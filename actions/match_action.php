@@ -17,6 +17,28 @@ function ridesync_match_success($message, $default) {
     ridesync_redirect($default);
 }
 
+function ridesync_match_existing_request_message($status) {
+    switch ($status) {
+        case 'pending':
+            return "You already have a pending request for this ride.";
+        case 'accepted':
+            return "You're already accepted on this ride.";
+        case 'rejected':
+            return "Your previous request for this ride was declined.";
+        default:
+            return "You already requested to join this ride.";
+    }
+}
+
+function ridesync_match_existing_request_status($conn, $rideId, $userId) {
+    $stmt = mysqli_prepare($conn, "SELECT status FROM matches WHERE ride_id = ? AND matched_user_id = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt, "ii", $rideId, $userId);
+    mysqli_stmt_execute($stmt);
+    $match = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+    return $match['status'] ?? null;
+}
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
     exit();
@@ -69,12 +91,9 @@ if ($action === 'request' && $ride_id > 0) {
         ridesync_match_error("You can't request to join your own ride.", $default);
     }
 
-    $dup = mysqli_prepare($conn, "SELECT id FROM matches WHERE ride_id = ? AND matched_user_id = ?");
-    mysqli_stmt_bind_param($dup, "ii", $ride_id, $user_id);
-    mysqli_stmt_execute($dup);
-
-    if (mysqli_num_rows(mysqli_stmt_get_result($dup)) > 0) {
-        ridesync_match_error("You already requested to join this ride.", $default);
+    $existingStatus = ridesync_match_existing_request_status($conn, $ride_id, $user_id);
+    if ($existingStatus !== null) {
+        ridesync_match_error(ridesync_match_existing_request_message($existingStatus), $default);
     }
 
     $matchScore = ridesync_float_or_null($_POST['match_score'] ?? null);
@@ -105,6 +124,11 @@ if ($action === 'request' && $ride_id > 0) {
             ($_SESSION['user_name'] ?? 'A rider') . ' requested to join your ride from ' . $ride['origin'] . ' to ' . $ride['destination'] . '.'
         );
         ridesync_match_success("Smart request sent. You'll see the status in My Matches.", $default);
+    }
+
+    if ((int) mysqli_errno($conn) === 1062) {
+        $existingStatus = ridesync_match_existing_request_status($conn, $ride_id, $user_id);
+        ridesync_match_error(ridesync_match_existing_request_message($existingStatus), $default);
     }
 
     ridesync_match_error("Something went wrong. Try again.", $default);

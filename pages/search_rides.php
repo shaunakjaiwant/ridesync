@@ -51,9 +51,10 @@ $sql = "SELECT rides.*,
                users.name AS poster_name,
                users.college AS poster_college,
                users.gender AS poster_gender,
-               (SELECT COUNT(*) FROM matches
+               (SELECT status FROM matches
                 WHERE matches.ride_id = rides.id
-                AND matches.matched_user_id = ?) AS already_requested,
+                AND matches.matched_user_id = ?
+                LIMIT 1) AS request_status,
                (SELECT COUNT(*) FROM matches
                 WHERE matches.ride_id = rides.id
                 AND matches.status = 'accepted') AS accepted_count
@@ -330,6 +331,14 @@ require_once __DIR__ . '/../includes/header.php';
                 $quickFare = calculateDynamicFareBreakdown($ride['origin'], $ride['destination'], $riderCount, $ride['route_distance_km'] ?? null);
                 ?>
                 <div class="ride-card smart-ride-card">
+                    <?php
+                    $requestStatus = $ride['request_status'] ?? null;
+                    $requestLabel = [
+                        'pending' => 'Requested',
+                        'accepted' => 'Accepted',
+                        'rejected' => 'Declined',
+                    ][$requestStatus] ?? null;
+                    ?>
                     <div class="smart-card-top">
                         <div>
                             <div class="ride-card-route">
@@ -380,8 +389,8 @@ require_once __DIR__ . '/../includes/header.php';
 
                     <div class="ride-card-footer">
                         <a href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $ride['id']; ?>" class="btn btn-secondary btn-sm">Details</a>
-                        <?php if ($ride['already_requested'] > 0): ?>
-                            <span class="status-badge status-pending">Requested</span>
+                        <?php if ($requestStatus !== null): ?>
+                            <span class="status-badge status-<?php echo htmlspecialchars($requestStatus); ?>"><?php echo htmlspecialchars($requestLabel ?? 'Requested'); ?></span>
                         <?php else: ?>
                             <form action="/ridesync/actions/match_action.php" method="POST" style="display:inline;">
                                 <input type="hidden" name="ride_id" value="<?php echo (int) $ride['id']; ?>">
