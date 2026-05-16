@@ -831,7 +831,8 @@ function ridesync_verification_process_session($conn, $sessionId) {
 
         $confidenceScore = (int) round(($ocrScore * 0.25) + ($apiScore * 0.30) + ($faceScore * 0.20) + ($fraudScore * 0.25));
         $submittedTypes = array_map(static fn($doc) => $doc['document_type'], $bundle['documents']);
-        $hasIdentityDoc = count(array_intersect($submittedTypes, ['aadhaar', 'pan', 'id_proof'])) > 0;
+        $hasIdentityDoc = in_array('id_proof', $submittedTypes, true)
+            || (in_array('aadhaar', $submittedTypes, true) && in_array('pan', $submittedTypes, true));
         $missingCore = [];
         foreach (['license', 'vehicle_rc', 'insurance'] as $coreType) {
             if (!in_array($coreType, $submittedTypes, true)) {

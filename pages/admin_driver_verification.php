@@ -1,10 +1,27 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
+require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/driver_document_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
 
 ridesync_require_admin_login();
+
+if (!ridesync_admin_schema_ready($conn)) {
+    unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
+    $_SESSION['admin_error'] = 'Admin database tables are missing.';
+    header('Location: /ridesync/pages/admin_login.php');
+    exit();
+}
+
+$admin = ridesync_fetch_admin($conn, (int) $_SESSION['admin_id']);
+if (!$admin || ($admin['status'] ?? '') !== 'active') {
+    unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
+    $_SESSION['admin_error'] = 'This admin account cannot access driver verification right now.';
+    header('Location: /ridesync/pages/admin_login.php');
+    exit();
+}
+ridesync_admin_sync_session($admin);
 
 function ridesync_admin_get_int_param($key) {
     return (int) ($_GET[$key] ?? 0);
@@ -113,23 +130,20 @@ foreach ($documents as $doc) {
 
 $requiredDocumentTypes = ridesync_driver_document_types();
 
-$coreRequiredDocumentTypes = ['license', 'id_proof', 'vehicle_rc', 'insurance'];
-$submittedRequiredDocuments = 0;
-$verifiedRequiredDocuments = 0;
-foreach ($coreRequiredDocumentTypes as $requiredType) {
-    if (!empty($docsByType[$requiredType])) {
-        $submittedRequiredDocuments++;
-    }
-
-    foreach ($docsByType[$requiredType] ?? [] as $requiredDoc) {
-        if (($requiredDoc['verification_status'] ?? '') === 'verified') {
-            $verifiedRequiredDocuments++;
-            break;
-        }
-    }
+$latestDocumentsByType = [];
+foreach ($docsByType as $type => $typeDocuments) {
+    $latestDocumentsByType[$type] = $typeDocuments[0] ?? [];
 }
-$driverPanelReady = ($driver['profile_verification_status'] ?? '') === 'verified' && $verifiedRequiredDocuments >= 4;
-$canApproveReadyDriver = !empty($driver['profile_id']) && $submittedRequiredDocuments >= 4 && !$driverPanelReady;
+$requiredDocumentSummary = ridesync_driver_required_document_summary($latestDocumentsByType);
+$submittedRequiredDocuments = $requiredDocumentSummary['submitted'];
+$verifiedRequiredDocuments = $requiredDocumentSummary['verified'];
+$identityRequirementLabel = ridesync_driver_document_verified($latestDocumentsByType, 'id_proof')
+    ? 'ID proof verified'
+    : (ridesync_driver_document_verified($latestDocumentsByType, 'aadhaar') && ridesync_driver_document_verified($latestDocumentsByType, 'pan')
+        ? 'Aadhaar + PAN verified'
+        : 'Identity proof pending');
+$driverPanelReady = ($driver['profile_verification_status'] ?? '') === 'verified' && $requiredDocumentSummary['ready'];
+$canApproveReadyDriver = !empty($driver['profile_id']) && $requiredDocumentSummary['complete'] && !$driverPanelReady;
 
 $extraDocumentTypes = array_diff(array_keys($docsByType), array_keys($requiredDocumentTypes));
 foreach ($extraDocumentTypes as $extraType) {
@@ -360,7 +374,13 @@ require_once __DIR__ . '/../includes/admin_header.php';
             <div><dt>Vehicle #</dt><dd><?php echo htmlspecialchars($driver['vehicle_number'] ?: 'Not provided'); ?></dd></div>
             <div><dt>Vehicle</dt><dd><?php echo htmlspecialchars(($driver['vehicle_type'] ?: 'Vehicle') . ' - ' . ($driver['seating_capacity'] ?: 0) . ' seats'); ?></dd></div>
             <div><dt>Driver Panel Ready</dt><dd><?php echo $driverPanelReady ? 'Yes' : 'No'; ?></dd></div>
-            <div><dt>Required Docs</dt><dd><?php echo (int) $verifiedRequiredDocuments; ?>/4 verified, <?php echo (int) $submittedRequiredDocuments; ?>/4 submitted</dd></div>
+            <div>
+                <dt>Required Checks</dt>
+                <dd>
+                    <?php echo (int) $verifiedRequiredDocuments; ?>/4 verified, <?php echo (int) $submittedRequiredDocuments; ?>/4 submitted
+                    <small><?php echo htmlspecialchars($identityRequirementLabel); ?></small>
+                </dd>
+            </div>
             <div><dt>Notes</dt><dd><?php echo htmlspecialchars($driver['verification_details'] ?: 'No notes submitted'); ?></dd></div>
         </dl>
 
@@ -409,6 +429,9 @@ require_once __DIR__ . '/../includes/admin_header.php';
     <div class="admin-document-grid">
         <?php foreach ($requiredDocumentTypes as $type => $label): ?>
             <?php $typeDocs = $docsByType[$type] ?? []; ?>
+            <?php if ($type === 'id_proof' && count($typeDocs) === 0 && ridesync_driver_identity_submitted($latestDocumentsByType)): ?>
+                <?php continue; ?>
+            <?php endif; ?>
             <?php
             $typePending = false;
             foreach ($typeDocs as $typeDoc) {

@@ -383,6 +383,7 @@ function initDriverLiveStatus() {
             .then(function (data) {
                 if (!data || !data.ok) return;
                 setText('[data-driver-pending]', data.pending_requests);
+                setText('[data-driver-active]', data.active_workload);
                 setText('[data-driver-today]', '\u20b9' + data.today_earnings);
                 setText('[data-driver-week]', '\u20b9' + data.week_earnings);
                 setText('[data-driver-trips]', data.completed_trips);

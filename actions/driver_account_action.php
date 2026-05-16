@@ -18,6 +18,41 @@ function ridesync_driver_account_fail($message, $default) {
     ridesync_driver_account_redirect($default);
 }
 
+function ridesync_driver_profile_old_input() {
+    $keys = [
+        'name',
+        'phone',
+        'license_number',
+        'vehicle_type',
+        'vehicle_number',
+        'seating_capacity',
+        'document_reference',
+        'aadhaar_reference',
+        'pan_reference',
+        'id_proof_reference',
+        'vehicle_rc_reference',
+        'insurance_reference',
+        'selfie_reference',
+        'vehicle_image_reference',
+        'other_document_reference',
+        'verification_details',
+    ];
+
+    $old = [];
+    foreach ($keys as $key) {
+        $old[$key] = substr(trim((string) ($_POST[$key] ?? '')), 0, $key === 'verification_details' ? 2000 : 255);
+    }
+
+    return $old;
+}
+
+function ridesync_driver_profile_fail($message) {
+    $_SESSION['driver_profile_old'] = ridesync_driver_profile_old_input();
+    $_SESSION['driver_error'] = $message;
+    header("Location: /ridesync/pages/driver_profile.php");
+    exit();
+}
+
 ridesync_require_driver_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -25,10 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
+$action = $_POST['action_type'] ?? '';
+
 if (!ridesync_csrf_is_valid()) {
-    $_SESSION['driver_error'] = "Invalid request. Please try again.";
-    header("Location: /ridesync/pages/driver_dashboard.php");
-    exit();
+    if ($action === 'update_profile') {
+        ridesync_driver_profile_fail("Invalid request. Please try again.");
+    }
+
+    ridesync_driver_account_fail("Invalid request. Please try again.", "/ridesync/pages/driver_dashboard.php");
 }
 
 if (!ridesync_driver_schema_ready($conn)) {
@@ -38,7 +77,6 @@ if (!ridesync_driver_schema_ready($conn)) {
 }
 
 $driverId = (int) $_SESSION['driver_id'];
-$action = $_POST['action_type'] ?? '';
 
 if ($action === 'toggle_availability') {
     $status = $_POST['status'] ?? 'offline';
@@ -69,13 +107,17 @@ if ($action === 'toggle_availability') {
         exit();
     }
 
-    $stmt = mysqli_prepare($conn,
-        "INSERT INTO driver_account_availability (driver_id, status, current_lat, current_lng, last_changed_at)
-         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-         ON DUPLICATE KEY UPDATE status = VALUES(status), current_lat = VALUES(current_lat), current_lng = VALUES(current_lng), last_changed_at = CURRENT_TIMESTAMP"
-    );
-    mysqli_stmt_bind_param($stmt, "isdd", $driverId, $status, $currentLat, $currentLng);
-    mysqli_stmt_execute($stmt);
+    if ($status === 'online' && ridesync_driver_has_active_workload($conn, $driverId)) {
+        $_SESSION['driver_error'] = "Complete your active trip before going online for new requests.";
+        header("Location: /ridesync/pages/driver_requests.php");
+        exit();
+    }
+
+    if (!ridesync_driver_set_availability($conn, $driverId, $status, $currentLat, $currentLng)) {
+        $_SESSION['driver_error'] = "Could not update availability. Please try again.";
+        header("Location: /ridesync/pages/driver_dashboard.php");
+        exit();
+    }
 
     $_SESSION['driver_success'] = "You are now " . $status . ".";
     header("Location: /ridesync/pages/driver_dashboard.php");
@@ -101,9 +143,7 @@ if ($action === 'update_profile') {
     $verificationDetails = trim($_POST['verification_details'] ?? '');
 
     if ($name === '' || $phone === '' || $licenseNumber === '' || $vehicleType === '' || $vehicleNumber === '') {
-        $_SESSION['driver_error'] = "All required profile and vehicle fields must be filled.";
-        header("Location: /ridesync/pages/driver_profile.php");
-        exit();
+        ridesync_driver_profile_fail("All required profile and vehicle fields must be filled.");
     }
 
     if (strlen($name) > 100 || strlen($licenseNumber) > 80
@@ -112,54 +152,61 @@ if ($action === 'update_profile') {
         || strlen($vehicleRcReference) > 255 || strlen($insuranceReference) > 255
         || strlen($selfieReference) > 255 || strlen($vehicleImageReference) > 255
         || strlen($otherDocumentReference) > 255) {
-        $_SESSION['driver_error'] = "One or more profile fields are too long.";
-        header("Location: /ridesync/pages/driver_profile.php");
-        exit();
+        ridesync_driver_profile_fail("One or more profile fields are too long.");
     }
 
     if (!preg_match('/^[0-9+\- ]{8,20}$/', $phone) || !preg_match('/^[A-Z0-9 -]{4,40}$/', $vehicleNumber)) {
-        $_SESSION['driver_error'] = "Check your phone number and vehicle number.";
-        header("Location: /ridesync/pages/driver_profile.php");
-        exit();
+        ridesync_driver_profile_fail("Check your phone number and vehicle number.");
     }
 
     if (!in_array($vehicleType, ['Bike', 'Car', 'Auto', 'Van', 'Other'], true) || $seatingCapacity < 1 || $seatingCapacity > 8) {
-        $_SESSION['driver_error'] = "Check your vehicle type and seating capacity.";
-        header("Location: /ridesync/pages/driver_profile.php");
-        exit();
+        ridesync_driver_profile_fail("Check your vehicle type and seating capacity.");
     }
 
     $stmt = mysqli_prepare($conn, "SELECT id FROM driver_accounts WHERE phone = ? AND id != ? LIMIT 1");
     mysqli_stmt_bind_param($stmt, "si", $phone, $driverId);
     mysqli_stmt_execute($stmt);
     if (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
-        $_SESSION['driver_error'] = "That phone number is already used by another driver.";
-        header("Location: /ridesync/pages/driver_profile.php");
-        exit();
+        ridesync_driver_profile_fail("That phone number is already used by another driver.");
     }
 
     $stmt = mysqli_prepare($conn, "SELECT id FROM driver_account_vehicles WHERE vehicle_number = ? AND driver_id != ? LIMIT 1");
     mysqli_stmt_bind_param($stmt, "si", $vehicleNumber, $driverId);
     mysqli_stmt_execute($stmt);
     if (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
-        $_SESSION['driver_error'] = "That vehicle number is already registered by another driver.";
-        header("Location: /ridesync/pages/driver_profile.php");
-        exit();
+        ridesync_driver_profile_fail("That vehicle number is already registered by another driver.");
+    }
+
+    $existingDocumentReferences = [];
+    $stmt = mysqli_prepare($conn, "SELECT document_type, document_reference FROM driver_account_documents WHERE driver_id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $driverId);
+    mysqli_stmt_execute($stmt);
+    $existingDocuments = mysqli_stmt_get_result($stmt);
+    while ($document = mysqli_fetch_assoc($existingDocuments)) {
+        $existingDocumentReferences[$document['document_type']] = $document['document_reference'];
     }
 
     mysqli_begin_transaction($conn);
+    $uploadedDocuments = [];
+    $replacedDocumentReferences = [];
     try {
-        $uploadedDocuments = [
-            'license' => ridesync_driver_document_upload('license_file', $driverId, 'license'),
-            'aadhaar' => ridesync_driver_document_upload('aadhaar_file', $driverId, 'aadhaar'),
-            'pan' => ridesync_driver_document_upload('pan_file', $driverId, 'pan'),
-            'id_proof' => ridesync_driver_document_upload('id_proof_file', $driverId, 'id_proof'),
-            'vehicle_rc' => ridesync_driver_document_upload('vehicle_rc_file', $driverId, 'vehicle_rc'),
-            'insurance' => ridesync_driver_document_upload('insurance_file', $driverId, 'insurance'),
-            'selfie' => ridesync_driver_document_upload('selfie_file', $driverId, 'selfie'),
-            'vehicle_image' => ridesync_driver_document_upload('vehicle_image_file', $driverId, 'vehicle_image'),
-            'other' => ridesync_driver_document_upload('other_file', $driverId, 'other'),
+        $documentUploadFields = [
+            'license' => 'license_file',
+            'aadhaar' => 'aadhaar_file',
+            'pan' => 'pan_file',
+            'id_proof' => 'id_proof_file',
+            'vehicle_rc' => 'vehicle_rc_file',
+            'insurance' => 'insurance_file',
+            'selfie' => 'selfie_file',
+            'vehicle_image' => 'vehicle_image_file',
+            'other' => 'other_file',
         ];
+        foreach ($documentUploadFields as $documentType => $fieldName) {
+            $uploaded = ridesync_driver_document_upload($fieldName, $driverId, $documentType);
+            if ($uploaded !== null) {
+                $uploadedDocuments[$documentType] = $uploaded;
+            }
+        }
 
         $stmt = mysqli_prepare($conn, "UPDATE driver_accounts SET name = ?, phone = ?, onboarding_status = 'complete' WHERE id = ?");
         mysqli_stmt_bind_param($stmt, "ssi", $name, $phone, $driverId);
@@ -198,6 +245,11 @@ if ($action === 'update_profile') {
                 continue;
             }
 
+            $oldReference = (string) ($existingDocumentReferences[$documentType] ?? '');
+            if ($oldReference !== '' && $oldReference !== $reference && ridesync_driver_document_reference_is_file($oldReference)) {
+                $replacedDocumentReferences[] = $oldReference;
+            }
+
             $stmt = mysqli_prepare($conn, "DELETE FROM driver_account_documents WHERE driver_id = ? AND document_type = ?");
             mysqli_stmt_bind_param($stmt, "is", $driverId, $documentType);
             mysqli_stmt_execute($stmt);
@@ -207,22 +259,22 @@ if ($action === 'update_profile') {
             mysqli_stmt_execute($stmt);
         }
 
-        $stmt = mysqli_prepare(
-            $conn,
-            "UPDATE driver_account_availability
-             SET status = 'offline', current_lat = NULL, current_lng = NULL, last_changed_at = CURRENT_TIMESTAMP
-             WHERE driver_id = ?"
-        );
-        mysqli_stmt_bind_param($stmt, "i", $driverId);
-        mysqli_stmt_execute($stmt);
+        ridesync_driver_set_availability($conn, $driverId, 'offline');
 
         mysqli_commit($conn);
+        foreach (array_unique($replacedDocumentReferences) as $reference) {
+            ridesync_driver_document_delete_reference($reference);
+        }
         ridesync_verification_start_for_driver($conn, $driverId, 'driver_profile_update');
+        unset($_SESSION['driver_profile_old']);
         $_SESSION['driver_name'] = $name;
         $_SESSION['driver_success'] = "Driver profile updated and sent for admin review.";
     } catch (Throwable $e) {
         mysqli_rollback($conn);
-        $_SESSION['driver_error'] = "Could not update driver profile.";
+        foreach ($uploadedDocuments as $reference) {
+            ridesync_driver_document_delete_reference($reference);
+        }
+        ridesync_driver_profile_fail($e instanceof RuntimeException ? $e->getMessage() : "Could not update driver profile.");
     }
 
     header("Location: /ridesync/pages/driver_profile.php");
@@ -261,6 +313,7 @@ if ($action === 'claim_community_ride') {
         exit();
     }
 
+    $forceOfflineAfterRollback = false;
     mysqli_begin_transaction($conn);
 
     try {
@@ -297,8 +350,19 @@ if ($action === 'claim_community_ride') {
             throw new RuntimeException("Another driver already picked up this posted ride.");
         }
 
+        if ($liveState
+            && (int) ($liveState['driver_id'] ?? 0) === $driverId
+            && in_array($liveState['live_status'], ['driver_assigned', 'arriving', 'active'], true)) {
+            throw new RuntimeException("You are already assigned to this posted ride.");
+        }
+
         if ($liveState && in_array($liveState['live_status'], ['active', 'completed', 'cancelled'], true)) {
             throw new RuntimeException("This ride cannot be picked up now.");
+        }
+
+        if (ridesync_driver_has_active_workload($conn, $driverId, $rideId)) {
+            $forceOfflineAfterRollback = true;
+            throw new RuntimeException("Complete your active trip before accepting another ride.");
         }
 
         $etaMinutes = ridesync_driver_community_eta($ride, $state);
@@ -307,6 +371,7 @@ if ($action === 'claim_community_ride') {
         $note = $driverName . ' accepted this posted ride from the driver app.';
 
         ridesync_update_live_status($conn, $rideId, 'driver_assigned', $note, $driverId, $etaMinutes);
+        ridesync_driver_set_availability($conn, $driverId, 'offline');
 
         ridesync_create_notification(
             $conn,
@@ -336,6 +401,9 @@ if ($action === 'claim_community_ride') {
         $_SESSION['driver_success'] = "Posted ride connected. You are now assigned to this ride.";
     } catch (Throwable $e) {
         mysqli_rollback($conn);
+        if ($forceOfflineAfterRollback) {
+            ridesync_driver_set_availability($conn, $driverId, 'offline');
+        }
         $_SESSION['driver_error'] = $e instanceof RuntimeException ? $e->getMessage() : "Could not connect you to this posted ride.";
     }
 
@@ -368,43 +436,68 @@ if ($action === 'respond_request') {
         }
     }
 
-    $stmt = mysqli_prepare($conn,
-        "SELECT rider_user_id, pickup, drop_location, estimated_fare, route_distance_km
-         FROM driver_ride_requests
-         WHERE id = ? AND driver_id = ? AND request_status = 'pending'
-         LIMIT 1"
-    );
-    mysqli_stmt_bind_param($stmt, "ii", $requestId, $driverId);
-    mysqli_stmt_execute($stmt);
-    $request = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    $forceOfflineAfterRollback = false;
+    mysqli_begin_transaction($conn);
 
-    if (!$request) {
-        $_SESSION['driver_error'] = "Ride request is no longer available.";
-        header("Location: /ridesync/pages/driver_requests.php");
-        exit();
-    }
-
-    $stmt = mysqli_prepare($conn,
-        "UPDATE driver_ride_requests
-         SET request_status = ?, responded_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND driver_id = ? AND request_status = 'pending'"
-    );
-    mysqli_stmt_bind_param($stmt, "sii", $decision, $requestId, $driverId);
-    mysqli_stmt_execute($stmt);
-
-    if (!empty($request['rider_user_id'])) {
-        ridesync_create_notification(
-            $conn,
-            (int) $request['rider_user_id'],
-            null,
-            $decision === 'accepted' ? 'Driver accepted your request' : 'Driver rejected your request',
-            $decision === 'accepted'
-                ? 'Your driver accepted the ride from ' . $request['pickup'] . ' to ' . $request['drop_location'] . '.'
-                : 'Your driver request from ' . $request['pickup'] . ' to ' . $request['drop_location'] . ' was rejected.'
+    try {
+        $stmt = mysqli_prepare($conn,
+            "SELECT rider_user_id, pickup, drop_location, estimated_fare, route_distance_km
+             FROM driver_ride_requests
+             WHERE id = ? AND driver_id = ? AND request_status = 'pending'
+             LIMIT 1
+             FOR UPDATE"
         );
+        mysqli_stmt_bind_param($stmt, "ii", $requestId, $driverId);
+        mysqli_stmt_execute($stmt);
+        $request = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+        if (!$request) {
+            throw new RuntimeException("Ride request is no longer available.");
+        }
+
+        if ($decision === 'accepted' && ridesync_driver_has_active_workload($conn, $driverId)) {
+            $forceOfflineAfterRollback = true;
+            throw new RuntimeException("Complete your active trip before accepting another request.");
+        }
+
+        $stmt = mysqli_prepare($conn,
+            "UPDATE driver_ride_requests
+             SET request_status = ?, responded_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND driver_id = ? AND request_status = 'pending'"
+        );
+        mysqli_stmt_bind_param($stmt, "sii", $decision, $requestId, $driverId);
+        mysqli_stmt_execute($stmt);
+
+        if (mysqli_stmt_affected_rows($stmt) !== 1) {
+            throw new RuntimeException("Ride request is no longer available.");
+        }
+
+        if ($decision === 'accepted') {
+            ridesync_driver_set_availability($conn, $driverId, 'offline');
+        }
+
+        if (!empty($request['rider_user_id'])) {
+            ridesync_create_notification(
+                $conn,
+                (int) $request['rider_user_id'],
+                null,
+                $decision === 'accepted' ? 'Driver accepted your request' : 'Driver rejected your request',
+                $decision === 'accepted'
+                    ? 'Your driver accepted the ride from ' . $request['pickup'] . ' to ' . $request['drop_location'] . '.'
+                    : 'Your driver request from ' . $request['pickup'] . ' to ' . $request['drop_location'] . ' was rejected.'
+            );
+        }
+
+        mysqli_commit($conn);
+        $_SESSION['driver_success'] = $decision === 'accepted' ? "Ride request accepted. You are offline until this trip is completed." : "Ride request rejected.";
+    } catch (Throwable $e) {
+        mysqli_rollback($conn);
+        if ($forceOfflineAfterRollback) {
+            ridesync_driver_set_availability($conn, $driverId, 'offline');
+        }
+        $_SESSION['driver_error'] = $e instanceof RuntimeException ? $e->getMessage() : "Could not update this ride request.";
     }
 
-    $_SESSION['driver_success'] = $decision === 'accepted' ? "Ride request accepted." : "Ride request rejected.";
     header("Location: /ridesync/pages/driver_requests.php");
     exit();
 }

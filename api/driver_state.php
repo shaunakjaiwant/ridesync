@@ -20,6 +20,8 @@ ridesync_json_response([
     'ok' => true,
     'availability' => $state['availability'],
     'pending_requests' => (int) $state['pending_requests'],
+    'active_workload' => (int) $state['active_workload'],
+    'is_busy' => (int) $state['active_workload'] > 0,
     'today_earnings' => number_format((float) $state['today_earnings'], 2),
     'week_earnings' => number_format((float) $state['week_earnings'], 2),
     'total_earnings' => number_format((float) $state['total_earnings'], 2),

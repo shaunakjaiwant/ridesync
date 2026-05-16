@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/cost_helper.php';
+require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/redirect_helper.php';
 require_once __DIR__ . '/../includes/http_helper.php';
@@ -117,6 +118,8 @@ $stmt = mysqli_prepare($conn,
         SELECT driver_id,
                SUM(CASE WHEN document_type = 'license' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS license_ok,
                SUM(CASE WHEN document_type = 'id_proof' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS id_ok,
+               SUM(CASE WHEN document_type = 'aadhaar' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS aadhaar_ok,
+               SUM(CASE WHEN document_type = 'pan' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS pan_ok,
                SUM(CASE WHEN document_type = 'vehicle_rc' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS rc_ok,
                SUM(CASE WHEN document_type = 'insurance' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS insurance_ok
         FROM driver_account_documents
@@ -127,7 +130,7 @@ $stmt = mysqli_prepare($conn,
        AND a.status = 'online'
        AND p.verification_status = 'verified'
        AND docs.license_ok > 0
-       AND docs.id_ok > 0
+       AND (docs.id_ok > 0 OR (docs.aadhaar_ok > 0 AND docs.pan_ok > 0))
        AND docs.rc_ok > 0
        AND docs.insurance_ok > 0
      LIMIT 1"
@@ -138,6 +141,12 @@ $driver = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
 if (!$driver) {
     $_SESSION['match_error'] = "That driver is no longer available or fully verified. Try searching again.";
+    ridesync_driver_request_redirect("/ridesync/pages/search_rides.php");
+}
+
+if (ridesync_driver_has_active_workload($conn, $driverId)) {
+    ridesync_driver_set_availability($conn, $driverId, 'offline');
+    $_SESSION['match_error'] = "That driver is currently on another trip. Try another available driver.";
     ridesync_driver_request_redirect("/ridesync/pages/search_rides.php");
 }
 
