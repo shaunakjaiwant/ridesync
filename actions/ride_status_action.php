@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/wallet_helper.php';
+require_once __DIR__ . '/../includes/http_helper.php';
 
 function ridesync_status_redirect($rideId) {
     header("Location: /ridesync/pages/ride_detail.php?id=" . (int) $rideId);
@@ -25,7 +26,7 @@ if ($rideId <= 0) {
     exit();
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!ridesync_csrf_is_valid()) {
     $_SESSION['error'] = "Invalid request. Please try again.";
     ridesync_status_redirect($rideId);
 }

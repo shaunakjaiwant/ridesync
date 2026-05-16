@@ -15,8 +15,8 @@ ridesync_require_csrf('/ridesync/pages/admin_login.php', 'admin_error');
 $action = $_POST['action_type'] ?? '';
 
 if ($action === 'logout') {
-    unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
     $_SESSION['admin_success'] = "Admin session ended.";
+    ridesync_forget_authenticated_session('ended');
     header("Location: /ridesync/pages/admin_login.php");
     exit();
 }
@@ -76,6 +76,7 @@ if ($action === 'setup') {
     $_SESSION['admin_id'] = $adminId;
     $_SESSION['admin_name'] = $name;
     $_SESSION['admin_role'] = 'super_admin';
+    ridesync_mark_authenticated_session('admin');
     ridesync_rate_limit_clear('auth:admin_setup', $rateIdentity);
     ridesync_admin_log($conn, $adminId, 'setup_admin', 'admin_user', $adminId, 'First admin account created.');
 
@@ -121,6 +122,7 @@ if ($action === 'login') {
     $_SESSION['admin_id'] = (int) $admin['id'];
     $_SESSION['admin_name'] = $admin['name'];
     $_SESSION['admin_role'] = $admin['role'];
+    ridesync_mark_authenticated_session('admin');
     ridesync_rate_limit_clear('auth:admin_login', $rateIdentity);
 
     header("Location: /ridesync/pages/admin_dashboard.php");

@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/driver_opportunity_helper.php';
 require_once __DIR__ . '/../includes/wallet_helper.php';
 require_once __DIR__ . '/../includes/redirect_helper.php';
+require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
 
 function ridesync_driver_account_redirect($default) {
@@ -24,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!ridesync_csrf_is_valid()) {
     $_SESSION['driver_error'] = "Invalid request. Please try again.";
     header("Location: /ridesync/pages/driver_dashboard.php");
     exit();

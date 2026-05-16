@@ -46,6 +46,7 @@ if ($row = mysqli_fetch_assoc($result)) {
         $_SESSION['selected_role'] = 'rider';
         $_SESSION['user_id']   = $row['id'];
         $_SESSION['user_name'] = $row['name'];
+        ridesync_mark_authenticated_session('rider');
         header("Location: /ridesync/pages/dashboard.php");
         exit();
     }

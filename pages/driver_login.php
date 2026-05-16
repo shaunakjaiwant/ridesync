@@ -1,4 +1,9 @@
 <?php
+require_once __DIR__ . '/../config/db.php';
+if (isset($_SESSION['driver_id'])) {
+    header("Location: /ridesync/pages/driver_dashboard.php");
+    exit();
+}
 $_SESSION['selected_role'] = 'driver';
 require_once __DIR__ . '/../includes/public_header.php';
 ?>

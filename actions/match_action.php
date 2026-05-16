@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/redirect_helper.php';
+require_once __DIR__ . '/../includes/http_helper.php';
 
 function ridesync_redirect($default) {
     ridesync_redirect_back($default);
@@ -27,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!ridesync_csrf_is_valid()) {
     ridesync_match_error("Invalid request. Please try again.", "/ridesync/pages/dashboard.php");
 }
 

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/http_helper.php';
 
 function ridesync_notification_redirect() {
     $actor = $_POST['actor_type'] ?? '';
@@ -35,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     ridesync_notification_redirect();
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!ridesync_csrf_is_valid()) {
     $_SESSION['notification_error'] = "Invalid request. Please try again.";
     ridesync_notification_redirect();
 }
