@@ -176,6 +176,34 @@ function ridesync_driver_document_read($reference) {
     ];
 }
 
+function ridesync_driver_document_delete_reference($reference) {
+    $reference = trim((string) $reference);
+    if ($reference === '') {
+        return false;
+    }
+
+    $path = null;
+    if (str_starts_with($reference, 'secure://driver_documents/')) {
+        $path = ridesync_driver_document_secure_path($reference);
+    } elseif (str_starts_with($reference, 'uploads/driver_documents/')) {
+        $path = ridesync_driver_document_upload_path($reference);
+    }
+
+    if (!$path || !is_file($path)) {
+        return false;
+    }
+
+    $deleted = @unlink($path);
+    if (str_ends_with($path, '.enc')) {
+        $metaPath = preg_replace('/\.enc$/', '.json', $path);
+        if ($metaPath && is_file($metaPath)) {
+            @unlink($metaPath);
+        }
+    }
+
+    return $deleted;
+}
+
 function ridesync_driver_document_signature($documentId, $expiresAt) {
     return hash_hmac(
         'sha256',
