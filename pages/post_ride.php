@@ -7,6 +7,19 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+$rideFormOld = $_SESSION['ride_form_old'] ?? [];
+unset($_SESSION['ride_form_old']);
+
+function ridesync_post_ride_old_value(array $oldInput, string $key, string $default = ''): string
+{
+    return htmlspecialchars((string) ($oldInput[$key] ?? $default));
+}
+
+$oldSeats = (int) ($rideFormOld['seats_available'] ?? 1);
+if ($oldSeats < 1 || $oldSeats > 5) {
+    $oldSeats = 1;
+}
+
 ridesync_enable_map_assets();
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -22,12 +35,12 @@ require_once __DIR__ . '/../includes/header.php';
 
         <div class="form-group">
             <label for="origin">Departure Location</label>
-            <input type="text" id="origin" name="origin" required placeholder="e.g. SDMIT Campus">
+            <input type="text" id="origin" name="origin" required placeholder="e.g. SDMIT Campus" value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'origin'); ?>">
         </div>
 
         <div class="form-group">
             <label for="destination">Destination</label>
-            <input type="text" id="destination" name="destination" required placeholder="e.g. Ujire Bus Stand">
+            <input type="text" id="destination" name="destination" required placeholder="e.g. Ujire Bus Stand" value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'destination'); ?>">
         </div>
 
         <section class="map-picker-card" data-map-picker>
@@ -59,32 +72,32 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
-            <input type="hidden" name="origin_lat" data-origin-lat>
-            <input type="hidden" name="origin_lng" data-origin-lng>
-            <input type="hidden" name="destination_lat" data-destination-lat>
-            <input type="hidden" name="destination_lng" data-destination-lng>
-            <input type="hidden" name="route_distance_km" data-route-distance-input>
-            <input type="hidden" name="route_polyline" data-route-polyline-input>
+            <input type="hidden" name="origin_lat" data-origin-lat value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'origin_lat'); ?>">
+            <input type="hidden" name="origin_lng" data-origin-lng value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'origin_lng'); ?>">
+            <input type="hidden" name="destination_lat" data-destination-lat value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'destination_lat'); ?>">
+            <input type="hidden" name="destination_lng" data-destination-lng value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'destination_lng'); ?>">
+            <input type="hidden" name="route_distance_km" data-route-distance-input value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'route_distance_km'); ?>">
+            <input type="hidden" name="route_polyline" data-route-polyline-input value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'route_polyline'); ?>">
         </section>
 
         <div class="form-group">
             <label for="travel_date">Travel Date</label>
-            <input type="date" id="travel_date" name="travel_date" required min="<?php echo date('Y-m-d'); ?>">
+            <input type="date" id="travel_date" name="travel_date" required min="<?php echo date('Y-m-d'); ?>" value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'travel_date'); ?>">
         </div>
 
         <div class="form-group">
             <label for="travel_time">Departure Time</label>
-            <input type="time" id="travel_time" name="travel_time" required>
+            <input type="time" id="travel_time" name="travel_time" required value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'travel_time'); ?>">
         </div>
 
         <div class="form-group">
             <label for="seats_available">Available Seats</label>
             <select id="seats_available" name="seats_available" required>
-                <option value="1">1 seat</option>
-                <option value="2">2 seats</option>
-                <option value="3">3 seats</option>
-                <option value="4">4 seats</option>
-                <option value="5">5 seats</option>
+                <?php for ($seats = 1; $seats <= 5; $seats++): ?>
+                    <option value="<?php echo $seats; ?>" <?php echo $oldSeats === $seats ? 'selected' : ''; ?>>
+                        <?php echo $seats; ?> <?php echo $seats === 1 ? 'seat' : 'seats'; ?>
+                    </option>
+                <?php endfor; ?>
             </select>
         </div>
 
