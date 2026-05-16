@@ -241,6 +241,7 @@ if ($action === 'login') {
     $_SESSION['selected_role'] = 'driver';
     $_SESSION['driver_id'] = (int) $driver['id'];
     $_SESSION['driver_name'] = $driver['name'];
+    ridesync_mark_authenticated_session('driver');
 
     $stmt = mysqli_prepare($conn,
         "INSERT INTO driver_account_availability (driver_id, status, current_lat, current_lng, last_changed_at)
@@ -267,7 +268,7 @@ if ($action === 'logout') {
         mysqli_stmt_execute($stmt);
     }
 
-    unset($_SESSION['driver_id'], $_SESSION['driver_name']);
+    ridesync_forget_authenticated_session('ended');
     $_SESSION['selected_role'] = 'driver';
     header("Location: /ridesync/pages/driver_login.php");
     exit();

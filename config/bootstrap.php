@@ -21,6 +21,15 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool) $default;
     }
 
+    function ridesync_env_int($key, $default) {
+        $value = ridesync_env($key, null);
+        if ($value === null || !is_numeric($value)) {
+            return (int) $default;
+        }
+
+        return (int) $value;
+    }
+
     function ridesync_app_env() {
         return strtolower((string) ridesync_env('RIDESYNC_ENV', 'local'));
     }
@@ -119,6 +128,128 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         session_start();
     }
 
+    function ridesync_issue_csrf_token() {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        return $_SESSION['csrf_token'];
+    }
+
+    function ridesync_authenticated_role() {
+        if (isset($_SESSION['admin_id'])) {
+            return 'admin';
+        }
+        if (isset($_SESSION['driver_id'])) {
+            return 'driver';
+        }
+        if (isset($_SESSION['user_id'])) {
+            return 'rider';
+        }
+
+        return null;
+    }
+
+    function ridesync_forget_authenticated_session($reason = 'ended') {
+        $role = ridesync_authenticated_role();
+        unset(
+            $_SESSION['user_id'],
+            $_SESSION['user_name'],
+            $_SESSION['driver_id'],
+            $_SESSION['driver_name'],
+            $_SESSION['admin_id'],
+            $_SESSION['admin_name'],
+            $_SESSION['admin_role'],
+            $_SESSION['selected_role'],
+            $_SESSION['_auth_role'],
+            $_SESSION['_auth_started_at'],
+            $_SESSION['_last_seen_at'],
+            $_SESSION['_last_rotated_at']
+        );
+
+        $_SESSION['_session_notice'] = $reason;
+        $_SESSION['_created_at'] = time();
+        if ($reason === 'expired') {
+            $message = 'Your session expired. Please login again.';
+            if ($role === 'admin') {
+                $_SESSION['admin_error'] = $message;
+            } elseif ($role === 'driver') {
+                $_SESSION['driver_auth_error'] = $message;
+            } elseif ($role === 'rider') {
+                $_SESSION['login_error'] = $message;
+            }
+        }
+
+        if (!headers_sent()) {
+            session_regenerate_id(true);
+        }
+
+        ridesync_issue_csrf_token();
+    }
+
+    function ridesync_mark_authenticated_session($role) {
+        $now = time();
+        $_SESSION['_auth_role'] = (string) $role;
+        $_SESSION['_auth_started_at'] = $now;
+        $_SESSION['_last_seen_at'] = $now;
+        $_SESSION['_last_rotated_at'] = $now;
+        $_SESSION['_created_at'] = $_SESSION['_created_at'] ?? $now;
+        ridesync_issue_csrf_token();
+    }
+
+    function ridesync_refresh_anonymous_session() {
+        $_SESSION['_created_at'] = $_SESSION['_created_at'] ?? time();
+        unset($_SESSION['_auth_role'], $_SESSION['_auth_started_at'], $_SESSION['_last_seen_at'], $_SESSION['_last_rotated_at']);
+    }
+
+    function ridesync_enforce_session_limits() {
+        $now = time();
+        $_SESSION['_created_at'] = $_SESSION['_created_at'] ?? $now;
+
+        $role = ridesync_authenticated_role();
+        if ($role === null) {
+            ridesync_refresh_anonymous_session();
+            return;
+        }
+
+        $startedAt = (int) ($_SESSION['_auth_started_at'] ?? $_SESSION['_created_at'] ?? $now);
+        $lastSeenAt = (int) ($_SESSION['_last_seen_at'] ?? $now);
+        $lastRotatedAt = (int) ($_SESSION['_last_rotated_at'] ?? $startedAt);
+        $idleSeconds = max(60, ridesync_env_int('RIDESYNC_SESSION_IDLE_SECONDS', 30 * 60));
+        $absoluteSeconds = max($idleSeconds, ridesync_env_int('RIDESYNC_SESSION_ABSOLUTE_SECONDS', 8 * 60 * 60));
+        $rotateSeconds = max(60, ridesync_env_int('RIDESYNC_SESSION_ROTATE_SECONDS', 15 * 60));
+
+        if (($now - $lastSeenAt) > $idleSeconds || ($now - $startedAt) > $absoluteSeconds) {
+            ridesync_forget_authenticated_session('expired');
+            return;
+        }
+
+        if (($now - $lastRotatedAt) >= $rotateSeconds && !headers_sent()) {
+            session_regenerate_id(true);
+            $_SESSION['_last_rotated_at'] = $now;
+        }
+
+        $_SESSION['_auth_role'] = $role;
+        $_SESSION['_auth_started_at'] = $startedAt;
+        $_SESSION['_last_seen_at'] = $now;
+        $_SESSION['_last_rotated_at'] = $_SESSION['_last_rotated_at'] ?? $now;
+    }
+
+    function ridesync_destroy_session() {
+        $_SESSION = [];
+
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', [
+                'expires' => time() - 42000,
+                'path' => $params['path'] ?? '/',
+                'domain' => $params['domain'] ?? '',
+                'secure' => (bool) ($params['secure'] ?? false),
+                'httponly' => (bool) ($params['httponly'] ?? true),
+                'samesite' => $params['samesite'] ?? 'Lax',
+            ]);
+        }
+
+        session_destroy();
+    }
+
     function ridesync_request_prefers_json() {
         $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
         $script = strtolower((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
@@ -183,8 +314,9 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
     ridesync_register_error_handlers();
     ridesync_send_security_headers();
     ridesync_start_session();
+    ridesync_enforce_session_limits();
 
     if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        ridesync_issue_csrf_token();
     }
 }

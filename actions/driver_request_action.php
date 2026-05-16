@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/cost_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/redirect_helper.php';
+require_once __DIR__ . '/../includes/http_helper.php';
 
 function ridesync_driver_request_redirect($default) {
     ridesync_redirect_back($default);
@@ -18,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!ridesync_csrf_is_valid()) {
     $_SESSION['match_error'] = "Invalid request. Please try again.";
     ridesync_driver_request_redirect("/ridesync/pages/search_rides.php");
 }
