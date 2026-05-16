@@ -23,6 +23,8 @@ if (!$admin || $admin['status'] !== 'active') {
     header("Location: /ridesync/pages/admin_login.php");
     exit();
 }
+ridesync_admin_sync_session($admin);
+$canManageDriverAccounts = ridesync_admin_can($admin, 'manage_driver_accounts');
 
 $section = $_GET['section'] ?? 'overview';
 if ($section === 'verifications') {
@@ -1073,24 +1075,26 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                                                 <button type="submit" class="btn btn-secondary btn-sm">Approve Profile</button>
                                             </form>
                                         <?php endif; ?>
-                                        <?php if ($driver['account_status'] !== 'suspended'): ?>
-                                            <form action="/ridesync/actions/admin_action.php" method="POST" onsubmit="return confirm('Suspend this driver account?');">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                <input type="hidden" name="action_type" value="driver_account_status">
-                                                <input type="hidden" name="driver_id" value="<?php echo (int) $driver['driver_id']; ?>">
-                                                <input type="hidden" name="status" value="suspended">
-                                                <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=drivers">
-                                                <button type="submit" class="btn btn-danger btn-sm">Suspend</button>
-                                            </form>
-                                        <?php else: ?>
-                                            <form action="/ridesync/actions/admin_action.php" method="POST">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                <input type="hidden" name="action_type" value="driver_account_status">
-                                                <input type="hidden" name="driver_id" value="<?php echo (int) $driver['driver_id']; ?>">
-                                                <input type="hidden" name="status" value="active">
-                                                <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=drivers">
-                                                <button type="submit" class="btn btn-primary btn-sm">Restore</button>
-                                            </form>
+                                        <?php if ($canManageDriverAccounts): ?>
+                                            <?php if ($driver['account_status'] !== 'suspended'): ?>
+                                                <form action="/ridesync/actions/admin_action.php" method="POST" onsubmit="return confirm('Suspend this driver account?');">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                    <input type="hidden" name="action_type" value="driver_account_status">
+                                                    <input type="hidden" name="driver_id" value="<?php echo (int) $driver['driver_id']; ?>">
+                                                    <input type="hidden" name="status" value="suspended">
+                                                    <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=drivers">
+                                                    <button type="submit" class="btn btn-danger btn-sm">Suspend</button>
+                                                </form>
+                                            <?php else: ?>
+                                                <form action="/ridesync/actions/admin_action.php" method="POST">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                    <input type="hidden" name="action_type" value="driver_account_status">
+                                                    <input type="hidden" name="driver_id" value="<?php echo (int) $driver['driver_id']; ?>">
+                                                    <input type="hidden" name="status" value="active">
+                                                    <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=drivers">
+                                                    <button type="submit" class="btn btn-primary btn-sm">Restore</button>
+                                                </form>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                 </td>

@@ -18,6 +18,7 @@ if (!$admin || $admin['status'] !== 'active') {
     header("Location: /ridesync/pages/admin_login.php");
     exit();
 }
+ridesync_admin_sync_session($admin);
 
 function ridesync_admin_detail_rows($result) {
     $rows = [];

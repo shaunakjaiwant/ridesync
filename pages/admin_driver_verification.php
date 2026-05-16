@@ -7,6 +7,22 @@ require_once __DIR__ . '/../includes/verification_helper.php';
 
 ridesync_require_admin_login();
 
+if (!ridesync_admin_schema_ready($conn)) {
+    unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
+    $_SESSION['admin_error'] = 'Admin database tables are missing.';
+    header('Location: /ridesync/pages/admin_login.php');
+    exit();
+}
+
+$admin = ridesync_fetch_admin($conn, (int) $_SESSION['admin_id']);
+if (!$admin || ($admin['status'] ?? '') !== 'active') {
+    unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
+    $_SESSION['admin_error'] = 'This admin account cannot access driver verification right now.';
+    header('Location: /ridesync/pages/admin_login.php');
+    exit();
+}
+ridesync_admin_sync_session($admin);
+
 function ridesync_admin_get_int_param($key) {
     return (int) ($_GET[$key] ?? 0);
 }
