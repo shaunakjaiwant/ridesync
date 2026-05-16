@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['driver_id'])) {
 
 $actorType = isset($_SESSION['driver_id']) ? 'driver' : 'user';
 $actorId = $actorType === 'driver' ? (int) $_SESSION['driver_id'] : (int) $_SESSION['user_id'];
-ridesync_enforce_rate_limit('sse:events', 8, 60, $actorType . ':' . $actorId, [
+ridesync_enforce_rate_limit('sse:events', 60, 60, $actorType . ':' . $actorId, [
     'message' => 'Too many live event connections. Please retry shortly.',
 ]);
 

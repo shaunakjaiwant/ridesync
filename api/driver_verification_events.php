@@ -16,7 +16,7 @@ if (!$admin || $admin['status'] !== 'active') {
     exit();
 }
 
-ridesync_enforce_rate_limit('sse:driver_verification_events', 20, 60, 'admin:' . (int) $_SESSION['admin_id'], [
+ridesync_enforce_rate_limit('sse:driver_verification_events', 60, 60, 'admin:' . (int) $_SESSION['admin_id'], [
     'message' => 'Too many verification event streams. Please retry shortly.',
 ]);
 
