@@ -379,7 +379,9 @@ function ridesync_find_online_driver($conn, $search) {
     if (!ridesync_table_exists($conn, 'driver_accounts')
         || !ridesync_table_exists($conn, 'driver_account_availability')
         || !ridesync_table_exists($conn, 'driver_account_profiles')
-        || !ridesync_table_exists($conn, 'driver_account_documents')) {
+        || !ridesync_table_exists($conn, 'driver_account_documents')
+        || !ridesync_table_exists($conn, 'driver_ride_requests')
+        || !ridesync_table_exists($conn, 'ride_live_status')) {
         return null;
     }
 
@@ -407,6 +409,18 @@ function ridesync_find_online_driver($conn, $search) {
               AND (docs.id_ok > 0 OR (docs.aadhaar_ok > 0 AND docs.pan_ok > 0))
               AND docs.rc_ok > 0
               AND docs.insurance_ok > 0
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM driver_ride_requests rr
+                    WHERE rr.driver_id = d.id
+                      AND rr.request_status = 'accepted'
+              )
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM ride_live_status busy_ls
+                    WHERE busy_ls.driver_id = d.id
+                      AND busy_ls.live_status IN ('driver_assigned', 'arriving', 'active')
+              )
             ORDER BY a.last_changed_at DESC
             LIMIT 20";
     $result = mysqli_query($conn, $sql);

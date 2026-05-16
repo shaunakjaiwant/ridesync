@@ -106,13 +106,17 @@ if ($action === 'toggle_availability') {
         exit();
     }
 
-    $stmt = mysqli_prepare($conn,
-        "INSERT INTO driver_account_availability (driver_id, status, current_lat, current_lng, last_changed_at)
-         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-         ON DUPLICATE KEY UPDATE status = VALUES(status), current_lat = VALUES(current_lat), current_lng = VALUES(current_lng), last_changed_at = CURRENT_TIMESTAMP"
-    );
-    mysqli_stmt_bind_param($stmt, "isdd", $driverId, $status, $currentLat, $currentLng);
-    mysqli_stmt_execute($stmt);
+    if ($status === 'online' && ridesync_driver_has_active_workload($conn, $driverId)) {
+        $_SESSION['driver_error'] = "Complete your active trip before going online for new requests.";
+        header("Location: /ridesync/pages/driver_requests.php");
+        exit();
+    }
+
+    if (!ridesync_driver_set_availability($conn, $driverId, $status, $currentLat, $currentLng)) {
+        $_SESSION['driver_error'] = "Could not update availability. Please try again.";
+        header("Location: /ridesync/pages/driver_dashboard.php");
+        exit();
+    }
 
     $_SESSION['driver_success'] = "You are now " . $status . ".";
     header("Location: /ridesync/pages/driver_dashboard.php");
@@ -254,14 +258,7 @@ if ($action === 'update_profile') {
             mysqli_stmt_execute($stmt);
         }
 
-        $stmt = mysqli_prepare(
-            $conn,
-            "UPDATE driver_account_availability
-             SET status = 'offline', current_lat = NULL, current_lng = NULL, last_changed_at = CURRENT_TIMESTAMP
-             WHERE driver_id = ?"
-        );
-        mysqli_stmt_bind_param($stmt, "i", $driverId);
-        mysqli_stmt_execute($stmt);
+        ridesync_driver_set_availability($conn, $driverId, 'offline');
 
         mysqli_commit($conn);
         foreach (array_unique($replacedDocumentReferences) as $reference) {
@@ -315,6 +312,7 @@ if ($action === 'claim_community_ride') {
         exit();
     }
 
+    $forceOfflineAfterRollback = false;
     mysqli_begin_transaction($conn);
 
     try {
@@ -351,8 +349,19 @@ if ($action === 'claim_community_ride') {
             throw new RuntimeException("Another driver already picked up this posted ride.");
         }
 
+        if ($liveState
+            && (int) ($liveState['driver_id'] ?? 0) === $driverId
+            && in_array($liveState['live_status'], ['driver_assigned', 'arriving', 'active'], true)) {
+            throw new RuntimeException("You are already assigned to this posted ride.");
+        }
+
         if ($liveState && in_array($liveState['live_status'], ['active', 'completed', 'cancelled'], true)) {
             throw new RuntimeException("This ride cannot be picked up now.");
+        }
+
+        if (ridesync_driver_has_active_workload($conn, $driverId, $rideId)) {
+            $forceOfflineAfterRollback = true;
+            throw new RuntimeException("Complete your active trip before accepting another ride.");
         }
 
         $etaMinutes = ridesync_driver_community_eta($ride, $state);
@@ -361,6 +370,7 @@ if ($action === 'claim_community_ride') {
         $note = $driverName . ' accepted this posted ride from the driver app.';
 
         ridesync_update_live_status($conn, $rideId, 'driver_assigned', $note, $driverId, $etaMinutes);
+        ridesync_driver_set_availability($conn, $driverId, 'offline');
 
         ridesync_create_notification(
             $conn,
@@ -390,6 +400,9 @@ if ($action === 'claim_community_ride') {
         $_SESSION['driver_success'] = "Posted ride connected. You are now assigned to this ride.";
     } catch (Throwable $e) {
         mysqli_rollback($conn);
+        if ($forceOfflineAfterRollback) {
+            ridesync_driver_set_availability($conn, $driverId, 'offline');
+        }
         $_SESSION['driver_error'] = $e instanceof RuntimeException ? $e->getMessage() : "Could not connect you to this posted ride.";
     }
 
@@ -422,43 +435,68 @@ if ($action === 'respond_request') {
         }
     }
 
-    $stmt = mysqli_prepare($conn,
-        "SELECT rider_user_id, pickup, drop_location, estimated_fare, route_distance_km
-         FROM driver_ride_requests
-         WHERE id = ? AND driver_id = ? AND request_status = 'pending'
-         LIMIT 1"
-    );
-    mysqli_stmt_bind_param($stmt, "ii", $requestId, $driverId);
-    mysqli_stmt_execute($stmt);
-    $request = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    $forceOfflineAfterRollback = false;
+    mysqli_begin_transaction($conn);
 
-    if (!$request) {
-        $_SESSION['driver_error'] = "Ride request is no longer available.";
-        header("Location: /ridesync/pages/driver_requests.php");
-        exit();
-    }
-
-    $stmt = mysqli_prepare($conn,
-        "UPDATE driver_ride_requests
-         SET request_status = ?, responded_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND driver_id = ? AND request_status = 'pending'"
-    );
-    mysqli_stmt_bind_param($stmt, "sii", $decision, $requestId, $driverId);
-    mysqli_stmt_execute($stmt);
-
-    if (!empty($request['rider_user_id'])) {
-        ridesync_create_notification(
-            $conn,
-            (int) $request['rider_user_id'],
-            null,
-            $decision === 'accepted' ? 'Driver accepted your request' : 'Driver rejected your request',
-            $decision === 'accepted'
-                ? 'Your driver accepted the ride from ' . $request['pickup'] . ' to ' . $request['drop_location'] . '.'
-                : 'Your driver request from ' . $request['pickup'] . ' to ' . $request['drop_location'] . ' was rejected.'
+    try {
+        $stmt = mysqli_prepare($conn,
+            "SELECT rider_user_id, pickup, drop_location, estimated_fare, route_distance_km
+             FROM driver_ride_requests
+             WHERE id = ? AND driver_id = ? AND request_status = 'pending'
+             LIMIT 1
+             FOR UPDATE"
         );
+        mysqli_stmt_bind_param($stmt, "ii", $requestId, $driverId);
+        mysqli_stmt_execute($stmt);
+        $request = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+        if (!$request) {
+            throw new RuntimeException("Ride request is no longer available.");
+        }
+
+        if ($decision === 'accepted' && ridesync_driver_has_active_workload($conn, $driverId)) {
+            $forceOfflineAfterRollback = true;
+            throw new RuntimeException("Complete your active trip before accepting another request.");
+        }
+
+        $stmt = mysqli_prepare($conn,
+            "UPDATE driver_ride_requests
+             SET request_status = ?, responded_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND driver_id = ? AND request_status = 'pending'"
+        );
+        mysqli_stmt_bind_param($stmt, "sii", $decision, $requestId, $driverId);
+        mysqli_stmt_execute($stmt);
+
+        if (mysqli_stmt_affected_rows($stmt) !== 1) {
+            throw new RuntimeException("Ride request is no longer available.");
+        }
+
+        if ($decision === 'accepted') {
+            ridesync_driver_set_availability($conn, $driverId, 'offline');
+        }
+
+        if (!empty($request['rider_user_id'])) {
+            ridesync_create_notification(
+                $conn,
+                (int) $request['rider_user_id'],
+                null,
+                $decision === 'accepted' ? 'Driver accepted your request' : 'Driver rejected your request',
+                $decision === 'accepted'
+                    ? 'Your driver accepted the ride from ' . $request['pickup'] . ' to ' . $request['drop_location'] . '.'
+                    : 'Your driver request from ' . $request['pickup'] . ' to ' . $request['drop_location'] . ' was rejected.'
+            );
+        }
+
+        mysqli_commit($conn);
+        $_SESSION['driver_success'] = $decision === 'accepted' ? "Ride request accepted. You are offline until this trip is completed." : "Ride request rejected.";
+    } catch (Throwable $e) {
+        mysqli_rollback($conn);
+        if ($forceOfflineAfterRollback) {
+            ridesync_driver_set_availability($conn, $driverId, 'offline');
+        }
+        $_SESSION['driver_error'] = $e instanceof RuntimeException ? $e->getMessage() : "Could not update this ride request.";
     }
 
-    $_SESSION['driver_success'] = $decision === 'accepted' ? "Ride request accepted." : "Ride request rejected.";
     header("Location: /ridesync/pages/driver_requests.php");
     exit();
 }

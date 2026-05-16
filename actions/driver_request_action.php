@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/cost_helper.php';
+require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/redirect_helper.php';
 
@@ -139,6 +140,12 @@ $driver = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
 if (!$driver) {
     $_SESSION['match_error'] = "That driver is no longer available or fully verified. Try searching again.";
+    ridesync_driver_request_redirect("/ridesync/pages/search_rides.php");
+}
+
+if (ridesync_driver_has_active_workload($conn, $driverId)) {
+    ridesync_driver_set_availability($conn, $driverId, 'offline');
+    $_SESSION['match_error'] = "That driver is currently on another trip. Try another available driver.";
     ridesync_driver_request_redirect("/ridesync/pages/search_rides.php");
 }
 

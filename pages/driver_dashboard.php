@@ -84,6 +84,13 @@ require_once __DIR__ . '/../includes/driver_header.php';
     </form>
 </section>
 
+<?php if ((int) ($state['active_workload'] ?? 0) > 0): ?>
+    <section class="driver-notice-card">
+        <strong>Active trip in progress</strong>
+        <span>You are hidden from new rider requests until the current trip is completed.</span>
+    </section>
+<?php endif; ?>
+
 <div class="driver-metrics-grid">
     <div class="driver-metric">
         <span>Today</span>
@@ -96,6 +103,10 @@ require_once __DIR__ . '/../includes/driver_header.php';
     <div class="driver-metric">
         <span>Pending Requests</span>
         <strong data-driver-pending><?php echo (int) $state['pending_requests']; ?></strong>
+    </div>
+    <div class="driver-metric">
+        <span>Active Trips</span>
+        <strong data-driver-active><?php echo (int) ($state['active_workload'] ?? 0); ?></strong>
     </div>
     <div class="driver-metric">
         <span>Total Trips</span>

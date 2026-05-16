@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/matching_helper.php';
+
 function ridesync_driver_schema_ready($conn) {
     static $ready = null;
 
@@ -58,6 +60,7 @@ function ridesync_fetch_driver_state($conn, $driverId) {
         'current_lat' => null,
         'current_lng' => null,
         'pending_requests' => 0,
+        'active_workload' => 0,
         'today_earnings' => 0,
         'week_earnings' => 0,
         'total_earnings' => 0,
@@ -130,7 +133,92 @@ function ridesync_fetch_driver_state($conn, $driverId) {
         $state['completed_trips'] = (int) $earnings['completed_trips'];
     }
 
+    $state['active_workload'] = ridesync_driver_active_workload_count($conn, $driverId);
+
     return $state;
+}
+
+function ridesync_driver_active_workload_count($conn, $driverId, $excludeCommunityRideId = null) {
+    if (!$conn instanceof mysqli) {
+        return 0;
+    }
+
+    $driverId = (int) $driverId;
+    if ($driverId <= 0) {
+        return 0;
+    }
+
+    $total = 0;
+
+    if (ridesync_table_exists($conn, 'driver_ride_requests')) {
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT COUNT(*) AS total
+             FROM driver_ride_requests
+             WHERE driver_id = ? AND request_status = 'accepted'"
+        );
+        mysqli_stmt_bind_param($stmt, "i", $driverId);
+        mysqli_stmt_execute($stmt);
+        $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        $total += (int) ($row['total'] ?? 0);
+    }
+
+    if (ridesync_table_exists($conn, 'ride_live_status')) {
+        $excludeCommunityRideId = $excludeCommunityRideId !== null ? (int) $excludeCommunityRideId : null;
+        if ($excludeCommunityRideId !== null && $excludeCommunityRideId > 0) {
+            $stmt = mysqli_prepare(
+                $conn,
+                "SELECT COUNT(*) AS total
+                 FROM ride_live_status
+                 WHERE driver_id = ?
+                   AND ride_id != ?
+                   AND live_status IN ('driver_assigned', 'arriving', 'active')"
+            );
+            mysqli_stmt_bind_param($stmt, "ii", $driverId, $excludeCommunityRideId);
+        } else {
+            $stmt = mysqli_prepare(
+                $conn,
+                "SELECT COUNT(*) AS total
+                 FROM ride_live_status
+                 WHERE driver_id = ?
+                   AND live_status IN ('driver_assigned', 'arriving', 'active')"
+            );
+            mysqli_stmt_bind_param($stmt, "i", $driverId);
+        }
+        mysqli_stmt_execute($stmt);
+        $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        $total += (int) ($row['total'] ?? 0);
+    }
+
+    return $total;
+}
+
+function ridesync_driver_has_active_workload($conn, $driverId, $excludeCommunityRideId = null) {
+    return ridesync_driver_active_workload_count($conn, $driverId, $excludeCommunityRideId) > 0;
+}
+
+function ridesync_driver_set_availability($conn, $driverId, $status, $currentLat = null, $currentLng = null) {
+    if (!$conn instanceof mysqli) {
+        return false;
+    }
+
+    $driverId = (int) $driverId;
+    if ($driverId <= 0 || !in_array($status, ['online', 'offline'], true)) {
+        return false;
+    }
+
+    if ($status === 'offline') {
+        $currentLat = null;
+        $currentLng = null;
+    }
+
+    $stmt = mysqli_prepare($conn,
+        "INSERT INTO driver_account_availability (driver_id, status, current_lat, current_lng, last_changed_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON DUPLICATE KEY UPDATE status = VALUES(status), current_lat = VALUES(current_lat), current_lng = VALUES(current_lng), last_changed_at = CURRENT_TIMESTAMP"
+    );
+    mysqli_stmt_bind_param($stmt, "isdd", $driverId, $status, $currentLat, $currentLng);
+    return mysqli_stmt_execute($stmt);
 }
 
 function ridesync_driver_onboarding_complete($state) {
