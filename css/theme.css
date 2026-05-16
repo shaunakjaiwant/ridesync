@@ -2275,6 +2275,16 @@ button:disabled {
 .admin-command-center {
     display: grid;
     gap: 18px;
+    min-width: 0;
+}
+
+.admin-command-center > *,
+.admin-command-grid > *,
+.admin-priority-grid > *,
+.admin-connection-grid > *,
+.admin-kyc-grid > * {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .admin-section {
@@ -2400,6 +2410,8 @@ button:disabled {
 }
 
 .admin-table-wrap {
+    max-width: 100%;
+    min-width: 0;
     overflow: auto;
     border: 1px solid var(--line-soft);
     border-radius: var(--radius);

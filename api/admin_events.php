@@ -15,7 +15,7 @@ if (!$admin || $admin['status'] !== 'active') {
     exit();
 }
 
-ridesync_enforce_rate_limit('sse:admin_events', 8, 60, 'admin:' . (int) $_SESSION['admin_id'], [
+ridesync_enforce_rate_limit('sse:admin_events', 60, 60, 'admin:' . (int) $_SESSION['admin_id'], [
     'message' => 'Too many admin live event connections. Please retry shortly.',
 ]);
 
