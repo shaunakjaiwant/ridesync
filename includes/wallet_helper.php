@@ -55,7 +55,11 @@ function ridesync_wallet_record($conn, $userId, $transactionType, $amount, $desc
         "INSERT INTO wallet_transactions
             (wallet_id, user_id, ride_id, driver_id, transaction_type, amount, description, reference_type, reference_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE description = VALUES(description)"
+         ON DUPLICATE KEY UPDATE
+             ride_id = VALUES(ride_id),
+             driver_id = VALUES(driver_id),
+             amount = VALUES(amount),
+             description = VALUES(description)"
     );
     mysqli_stmt_bind_param($stmt, "iiiisdssi", $walletId, $userId, $rideId, $driverId, $transactionType, $amount, $description, $referenceType, $referenceId);
     return mysqli_stmt_execute($stmt);

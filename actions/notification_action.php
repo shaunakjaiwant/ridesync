@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/rate_limit_helper.php';
 
 function ridesync_notification_redirect() {
     $actor = $_POST['actor_type'] ?? '';
@@ -49,6 +50,11 @@ if (!$notificationsTable || mysqli_num_rows($notificationsTable) === 0) {
 $action = $_POST['action_type'] ?? 'mark_all_read';
 $notificationId = (int) ($_POST['notification_id'] ?? 0);
 [$column, $actorId] = ridesync_notification_actor();
+ridesync_enforce_rate_limit('notifications:mutate', 90, 60, $column . ':' . $actorId, [
+    'redirect' => '/ridesync/pages/notifications.php?actor_type=' . urlencode($column === 'driver_id' ? 'driver' : 'user'),
+    'flash_key' => 'notification_error',
+    'message' => 'Too many notification actions. Please wait briefly and try again.',
+]);
 
 if ($action === 'mark_one_read') {
     if ($notificationId <= 0) {
