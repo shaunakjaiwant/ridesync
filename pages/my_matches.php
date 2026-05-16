@@ -14,6 +14,7 @@ $user_id = (int) $_SESSION['user_id'];
 // ---------- Fetch all matches where this user is the requester ----------
 $stmt = $conn->prepare("
     SELECT m.id AS match_id, m.status AS match_status, m.match_score, m.route_overlap_percent, m.created_at AS requested_at,
+           r.id AS ride_id,
            r.origin, r.destination, r.travel_date, r.travel_time, r.status AS ride_status,
            u.name AS poster_name, u.email AS poster_email, u.college AS poster_college
     FROM matches m
@@ -87,6 +88,7 @@ if ($driverRequestsTable && mysqli_num_rows($driverRequestsTable) > 0) {
 
                 <?php if ($m['match_status'] === 'pending'): ?>
                     <div class="match-card-footer">
+                        <a href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $m['ride_id']; ?>" class="btn btn-small btn-secondary">View Details</a>
                         <form method="POST" action="/ridesync/actions/match_action.php" onsubmit="return confirm('Cancel this request?');">
                             <input type="hidden" name="action" value="cancel">
                             <input type="hidden" name="match_id" value="<?php echo $m['match_id']; ?>">
@@ -94,6 +96,10 @@ if ($driverRequestsTable && mysqli_num_rows($driverRequestsTable) > 0) {
                             <input type="hidden" name="return_to" value="/ridesync/pages/my_matches.php">
                             <button type="submit" class="btn btn-small btn-warning">Cancel Request</button>
                         </form>
+                    </div>
+                <?php else: ?>
+                    <div class="match-card-footer">
+                        <a href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $m['ride_id']; ?>" class="btn btn-small btn-secondary">View Details</a>
                     </div>
                 <?php endif; ?>
             </div>
