@@ -1,0 +1,6 @@
+Options -Indexes
+Require all denied
+
+<FilesMatch ".*">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,415 @@
+<?php
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/cost_helper.php';
+require_once __DIR__ . '/../includes/matching_helper.php';
+require_once __DIR__ . '/../includes/intelligence_helper.php';
+require_once __DIR__ . '/../includes/asset_helper.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: /ridesync/pages/login.php");
+    exit();
+}
+
+$user_id = (int) $_SESSION['user_id'];
+$searched = false;
+$rides = [];
+
+$filter_origin = trim($_GET['origin'] ?? '');
+$filter_dest = trim($_GET['destination'] ?? '');
+$filter_date = trim($_GET['travel_date'] ?? '');
+$filter_time = trim($_GET['travel_time'] ?? '');
+$origin_lat = trim($_GET['origin_lat'] ?? '');
+$origin_lng = trim($_GET['origin_lng'] ?? '');
+$destination_lat = trim($_GET['destination_lat'] ?? '');
+$destination_lng = trim($_GET['destination_lng'] ?? '');
+$route_distance_km = trim($_GET['route_distance_km'] ?? '');
+$route_polyline = trim($_GET['route_polyline'] ?? '');
+
+$searched = $filter_origin !== '' || $filter_dest !== '' || $filter_date !== '' || $filter_time !== ''
+    || $origin_lat !== '' || $destination_lat !== '';
+
+$stmt = mysqli_prepare($conn, "SELECT college FROM users WHERE id = ? LIMIT 1");
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+$viewer = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$viewerCollege = $viewer['college'] ?? '';
+
+$searchContext = [
+    'origin' => $filter_origin,
+    'destination' => $filter_dest,
+    'origin_lat' => $origin_lat,
+    'origin_lng' => $origin_lng,
+    'destination_lat' => $destination_lat,
+    'destination_lng' => $destination_lng,
+    'route_polyline' => $route_polyline,
+    'travel_date' => $filter_date,
+    'travel_time' => $filter_time,
+];
+
+$sql = "SELECT rides.*,
+               rr.encoded_polyline,
+               users.name AS poster_name,
+               users.college AS poster_college,
+               users.gender AS poster_gender,
+               (SELECT COUNT(*) FROM matches
+                WHERE matches.ride_id = rides.id
+                AND matches.matched_user_id = ?) AS already_requested,
+               (SELECT COUNT(*) FROM matches
+                WHERE matches.ride_id = rides.id
+                AND matches.status = 'accepted') AS accepted_count
+        FROM rides
+        JOIN users ON rides.user_id = users.id
+        LEFT JOIN ride_routes rr ON rr.ride_id = rides.id
+        LEFT JOIN ride_live_status ls ON ls.ride_id = rides.id
+        WHERE rides.user_id != ?
+          AND rides.status = 'open'
+          AND TIMESTAMP(rides.travel_date, rides.travel_time) >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+          AND (ls.live_status IS NULL OR ls.live_status NOT IN ('active', 'completed', 'cancelled'))";
+
+$params = [$user_id, $user_id];
+$types = "ii";
+
+if ($filter_date !== '') {
+    $sql .= " AND rides.travel_date = ?";
+    $params[] = $filter_date;
+    $types .= "s";
+}
+
+$sql .= " ORDER BY rides.travel_date ASC, rides.travel_time ASC LIMIT 100";
+
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, $types, ...$params);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+
+while ($row = mysqli_fetch_assoc($result)) {
+    $match = ridesync_calculate_match_score($conn, $row, $searchContext, $viewerCollege);
+    $row['smart_match'] = $match;
+
+    $textMatches = true;
+    if (!$searched) {
+        $rides[] = $row;
+        continue;
+    }
+
+    if ($filter_origin !== '') {
+        $textMatches = $textMatches && (
+            stripos($row['origin'], $filter_origin) !== false
+            || stripos($filter_origin, $row['origin']) !== false
+            || $match['pickup_score'] >= 52
+        );
+    }
+
+    if ($filter_dest !== '') {
+        $textMatches = $textMatches && (
+            stripos($row['destination'], $filter_dest) !== false
+            || stripos($filter_dest, $row['destination']) !== false
+            || $match['drop_score'] >= 52
+        );
+    }
+
+    if ($match['score'] >= 38 || $textMatches) {
+        $rides[] = $row;
+    }
+}
+
+usort($rides, function ($a, $b) {
+    $scoreCompare = ($b['smart_match']['score'] <=> $a['smart_match']['score']);
+    if ($scoreCompare !== 0) {
+        return $scoreCompare;
+    }
+
+    return strcmp($a['travel_date'] . $a['travel_time'], $b['travel_date'] . $b['travel_time']);
+});
+
+$bestScore = count($rides) > 0 ? (float) $rides[0]['smart_match']['score'] : 0;
+$showDriverFallback = $searched && $bestScore < 70;
+$bestDriver = $showDriverFallback ? ridesync_find_online_driver($conn, $searchContext) : null;
+$fallbackDistance = ridesync_float_or_null($route_distance_km);
+
+if ($fallbackDistance === null || $fallbackDistance <= 0) {
+    if (ridesync_float_or_null($origin_lat) !== null && ridesync_float_or_null($origin_lng) !== null
+        && ridesync_float_or_null($destination_lat) !== null && ridesync_float_or_null($destination_lng) !== null) {
+        $fallbackDistance = ridesync_haversine_km($origin_lat, $origin_lng, $destination_lat, $destination_lng);
+    } elseif ($filter_origin !== '' && $filter_dest !== '') {
+        $fallbackDistance = ridesync_estimate_route_distance($filter_origin, $filter_dest);
+    } else {
+        $fallbackDistance = 4;
+    }
+}
+
+$driverFare = ridesync_driver_fare_estimate($fallbackDistance);
+$driverFareBreakdown = calculateDynamicFareBreakdown($filter_origin, $filter_dest, 1, $fallbackDistance);
+$matchingDemandCount = $searched ? ridesync_count_matching_demand($conn, $searchContext, $user_id) : 0;
+$waitSuggestion = $searched ? ridesync_smart_wait_suggestion($fallbackDistance, $bestScore, $matchingDemandCount, count($rides)) : null;
+$returnTo = $_SERVER['REQUEST_URI'] ?? '/ridesync/pages/search_rides.php';
+
+ridesync_enable_map_assets();
+require_once __DIR__ . '/../includes/header.php';
+?>
+
+<div class="search-page smart-search-page">
+    <div class="page-header">
+        <h1>Smart Match Search</h1>
+        <p>Route-aware matching ranks community rides first, then offers an online driver if pooling is weak.</p>
+    </div>
+
+    <?php ridesync_flash('match_success', 'alert-success'); ?>
+    <?php ridesync_flash('match_error', 'alert-error'); ?>
+
+    <div class="card search-filter-card smart-filter-card">
+        <form method="GET" action="" class="search-form">
+            <div class="smart-search-grid">
+                <div class="form-group">
+                    <label for="origin">Pickup</label>
+                    <input type="text" id="origin" name="origin"
+                           placeholder="e.g. SDMIT Campus"
+                           value="<?php echo htmlspecialchars($filter_origin); ?>">
+                </div>
+                <div class="form-group">
+                    <label for="destination">Destination</label>
+                    <input type="text" id="destination" name="destination"
+                           placeholder="e.g. Mangaluru"
+                           value="<?php echo htmlspecialchars($filter_dest); ?>">
+                </div>
+                <div class="form-group">
+                    <label for="travel_date">Date</label>
+                    <input type="date" id="travel_date" name="travel_date"
+                           min="<?php echo date('Y-m-d'); ?>"
+                           value="<?php echo htmlspecialchars($filter_date); ?>">
+                </div>
+                <div class="form-group">
+                    <label for="travel_time">Time</label>
+                    <input type="time" id="travel_time" name="travel_time"
+                           value="<?php echo htmlspecialchars($filter_time); ?>">
+                </div>
+            </div>
+
+            <section class="map-picker-card compact-map-picker" data-map-picker>
+                <div class="map-picker-header">
+                    <div>
+                        <span class="map-kicker">Smart route input</span>
+                        <h3>Set exact pickup and destination</h3>
+                        <p>Location suggestions, current location, and map pins improve match accuracy.</p>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" data-use-current-location>Use my location</button>
+                </div>
+
+                <div class="map-picker-tools">
+                    <button type="button" class="btn btn-secondary btn-sm is-active" data-map-mode="origin">Pickup</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-map-mode="destination">Destination</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-map-search-origin>Find pickup</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-map-search-destination>Find destination</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-map-swap>Swap</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-map-clear>Clear</button>
+                </div>
+
+                <div id="smartSearchMap" class="ride-map" data-map-canvas></div>
+
+                <div class="map-picker-status">
+                    <span data-map-status>Set pickup and destination for stronger matching.</span>
+                    <div class="map-distance-summary">
+                        <strong data-route-distance><?php echo $route_distance_km !== '' ? htmlspecialchars($route_distance_km) . ' km route' : 'Distance not set'; ?></strong>
+                        <strong class="map-fare-highlight" data-route-fare><?php echo $route_distance_km !== '' ? ridesync_fare_preview_label((float) $route_distance_km) : 'Fare estimate appears here'; ?></strong>
+                    </div>
+                </div>
+
+                <input type="hidden" name="origin_lat" value="<?php echo htmlspecialchars($origin_lat); ?>" data-origin-lat>
+                <input type="hidden" name="origin_lng" value="<?php echo htmlspecialchars($origin_lng); ?>" data-origin-lng>
+                <input type="hidden" name="destination_lat" value="<?php echo htmlspecialchars($destination_lat); ?>" data-destination-lat>
+                <input type="hidden" name="destination_lng" value="<?php echo htmlspecialchars($destination_lng); ?>" data-destination-lng>
+                <input type="hidden" name="route_distance_km" value="<?php echo htmlspecialchars($route_distance_km); ?>" data-route-distance-input>
+                <input type="hidden" name="route_polyline" value="<?php echo htmlspecialchars($route_polyline); ?>" data-route-polyline-input>
+            </section>
+
+            <div class="smart-search-actions">
+                <button type="submit" class="btn btn-primary">Find Smart Matches</button>
+                <a href="/ridesync/pages/search_rides.php" class="btn btn-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <?php if ($searched): ?>
+        <div class="smart-engine-summary">
+            <div>
+                <span class="fare-kicker">Matching engine</span>
+                <strong><?php echo count($rides); ?> community option<?php echo count($rides) === 1 ? '' : 's'; ?></strong>
+                <p>Score uses 35% route overlap, 25% pickup closeness, 20% destination closeness, 10% time fit, and 10% trust.</p>
+            </div>
+            <div class="smart-engine-score">
+                <span>Best score</span>
+                <strong><?php echo number_format($bestScore, 1); ?>%</strong>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($searched && $filter_origin !== '' && $filter_dest !== ''): ?>
+        <section class="smart-wait-card">
+            <div>
+                <span class="fare-kicker">Smart wait timer</span>
+                <h2><?php echo $waitSuggestion && $waitSuggestion['should_wait'] ? 'Pool may improve soon' : 'Strong match available'; ?></h2>
+                <p>
+                    <?php echo htmlspecialchars($waitSuggestion['message'] ?? 'RideSync is watching this route.'); ?>
+                    <?php if ($matchingDemandCount > 0): ?>
+                        <?php echo (int) $matchingDemandCount; ?> other demand signal<?php echo $matchingDemandCount === 1 ? '' : 's'; ?> already exist for this route.
+                    <?php endif; ?>
+                </p>
+            </div>
+            <form action="/ridesync/actions/demand_action.php" method="POST" class="demand-signal-form">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="origin" value="<?php echo htmlspecialchars($filter_origin); ?>">
+                <input type="hidden" name="destination" value="<?php echo htmlspecialchars($filter_dest); ?>">
+                <input type="hidden" name="travel_date" value="<?php echo htmlspecialchars($filter_date); ?>">
+                <input type="hidden" name="travel_time" value="<?php echo htmlspecialchars($filter_time); ?>">
+                <input type="hidden" name="origin_lat" value="<?php echo htmlspecialchars($origin_lat); ?>">
+                <input type="hidden" name="origin_lng" value="<?php echo htmlspecialchars($origin_lng); ?>">
+                <input type="hidden" name="destination_lat" value="<?php echo htmlspecialchars($destination_lat); ?>">
+                <input type="hidden" name="destination_lng" value="<?php echo htmlspecialchars($destination_lng); ?>">
+                <input type="hidden" name="route_distance_km" value="<?php echo htmlspecialchars((string) $fallbackDistance); ?>">
+                <input type="hidden" name="route_polyline" value="<?php echo htmlspecialchars($route_polyline); ?>">
+                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($returnTo); ?>">
+                <button type="submit" class="btn btn-primary">Notify Me</button>
+                <a href="/ridesync/pages/insights.php" class="btn btn-secondary">View Route Heat</a>
+            </form>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($showDriverFallback): ?>
+        <section class="hybrid-fallback-card">
+            <div>
+                <span class="fare-kicker">Hybrid fallback</span>
+                <h2><?php echo $bestDriver ? 'Online driver available' : 'No online driver right now'; ?></h2>
+                <p>
+                    <?php if ($bestDriver): ?>
+                        Community pooling is weak for this search, so RideSync can send this request to <?php echo htmlspecialchars($bestDriver['name']); ?>.
+                    <?php else: ?>
+                        Community pooling is weak and no driver is currently online. Keep this route posted or try again later.
+                    <?php endif; ?>
+                </p>
+            </div>
+
+            <?php if ($bestDriver): ?>
+                <div class="hybrid-driver-panel">
+                    <div>
+                        <strong><?php echo htmlspecialchars($bestDriver['name']); ?></strong>
+                        <span><?php echo htmlspecialchars($bestDriver['vehicle_type'] ?? 'Vehicle'); ?> <?php echo htmlspecialchars($bestDriver['vehicle_number'] ?? ''); ?></span>
+                        <span><?php echo $bestDriver['distance_km'] !== null ? number_format((float) $bestDriver['distance_km'], 1) . ' km away' : 'ETA about ' . (int) $bestDriver['eta_minutes'] . ' min'; ?></span>
+                    </div>
+                    <div class="hybrid-fare">
+                        <span>Estimated fare</span>
+                        <strong><?php echo formatCost($driverFare); ?></strong>
+                    </div>
+                </div>
+                <div class="hybrid-pricing-note">
+                    <span>Distance synced</span>
+                    <strong><?php echo number_format($driverFareBreakdown['direct_distance_km'], 1); ?> km &times; <?php echo formatFareRate(); ?>/km</strong>
+                    <span>Same estimate is sent to the driver request.</span>
+                </div>
+
+                <form action="/ridesync/actions/driver_request_action.php" method="POST" class="hybrid-request-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <input type="hidden" name="driver_id" value="<?php echo (int) $bestDriver['id']; ?>">
+                    <input type="hidden" name="pickup" value="<?php echo htmlspecialchars($filter_origin); ?>">
+                    <input type="hidden" name="drop_location" value="<?php echo htmlspecialchars($filter_dest); ?>">
+                    <input type="hidden" name="route_distance_km" value="<?php echo htmlspecialchars((string) $fallbackDistance); ?>">
+                    <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($returnTo); ?>">
+                    <button type="submit" class="btn btn-primary" <?php echo ($filter_origin === '' || $filter_dest === '') ? 'disabled' : ''; ?>>Request Driver</button>
+                </form>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
+
+    <?php if (count($rides) > 0): ?>
+        <p class="search-results-count"><?php echo count($rides); ?> smart result<?php echo count($rides) !== 1 ? 's' : ''; ?> found</p>
+
+        <div class="ride-cards smart-ride-cards">
+            <?php foreach ($rides as $ride): ?>
+                <?php
+                $match = $ride['smart_match'];
+                $riderCount = min(6, max(2, (int) ($ride['accepted_count'] ?? 0) + 2));
+                $quickFare = calculateDynamicFareBreakdown($ride['origin'], $ride['destination'], $riderCount, $ride['route_distance_km'] ?? null);
+                ?>
+                <div class="ride-card smart-ride-card">
+                    <div class="smart-card-top">
+                        <div>
+                            <div class="ride-card-route">
+                                <?php echo htmlspecialchars($ride['origin']); ?> &rarr; <?php echo htmlspecialchars($ride['destination']); ?>
+                            </div>
+                            <div class="ride-card-details">
+                                <?php echo date('M j, Y', strtotime($ride['travel_date'])); ?>
+                                &nbsp;&middot;&nbsp;
+                                <?php echo date('g:i A', strtotime($ride['travel_time'])); ?>
+                            </div>
+                        </div>
+                        <div class="match-score-ring" style="--score-deg: <?php echo (float) $match['score'] * 3.6; ?>deg;">
+                            <strong><?php echo number_format((float) $match['score'], 0); ?>%</strong>
+                            <span>match</span>
+                        </div>
+                    </div>
+
+                    <div class="ride-card-details">
+                        <?php echo htmlspecialchars($ride['poster_name']); ?>
+                        &nbsp;&middot;&nbsp;
+                        <?php echo htmlspecialchars($ride['poster_college']); ?>
+                    </div>
+                    <div class="ride-card-details">
+                        <?php echo (int) $ride['seats_available']; ?> seat<?php echo (int) $ride['seats_available'] !== 1 ? 's' : ''; ?> available
+                    </div>
+
+                    <div class="smart-match-breakdown">
+                        <span><?php echo htmlspecialchars($match['label']); ?></span>
+                        <div class="smart-score-bar"><i style="width: <?php echo (float) $match['score']; ?>%;"></i></div>
+                        <small>
+                            <?php echo (int) $match['route_overlap_percent']; ?>% overlap
+                            &middot; pickup <?php echo $match['pickup_distance_km'] !== null ? number_format((float) $match['pickup_distance_km'], 1) . ' km' : 'text scored'; ?>
+                            &middot; drop <?php echo $match['drop_distance_km'] !== null ? number_format((float) $match['drop_distance_km'], 1) . ' km' : 'text scored'; ?>
+                        </small>
+                    </div>
+
+                    <div class="fare-preview-card">
+                        <div>
+                            <span>Estimated fair share</span>
+                            <strong><?php echo formatCost($quickFare['final_fare']); ?></strong>
+                        </div>
+                        <p>
+                            <?php echo number_format($quickFare['direct_distance_km'], 1); ?> km &times; <?php echo formatFareRate(); ?>/km
+                            &middot; <?php echo (int) $quickFare['overlap_percent']; ?>% route overlap
+                            &middot; saves <?php echo (int) $quickFare['savings_percent']; ?>%
+                        </p>
+                    </div>
+
+                    <div class="ride-card-footer">
+                        <a href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $ride['id']; ?>" class="btn btn-secondary btn-sm">Details</a>
+                        <?php if ($ride['already_requested'] > 0): ?>
+                            <span class="status-badge status-pending">Requested</span>
+                        <?php else: ?>
+                            <form action="/ridesync/actions/match_action.php" method="POST" style="display:inline;">
+                                <input type="hidden" name="ride_id" value="<?php echo (int) $ride['id']; ?>">
+                                <input type="hidden" name="action" value="request">
+                                <input type="hidden" name="match_score" value="<?php echo htmlspecialchars((string) $match['score']); ?>">
+                                <input type="hidden" name="pickup_distance_km" value="<?php echo htmlspecialchars((string) ($match['pickup_distance_km'] ?? '')); ?>">
+                                <input type="hidden" name="drop_distance_km" value="<?php echo htmlspecialchars((string) ($match['drop_distance_km'] ?? '')); ?>">
+                                <input type="hidden" name="route_overlap_percent" value="<?php echo (int) $match['route_overlap_percent']; ?>">
+                                <input type="hidden" name="time_score" value="<?php echo (int) $match['time_score']; ?>">
+                                <input type="hidden" name="match_source" value="<?php echo htmlspecialchars($match['source']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($returnTo); ?>">
+                                <button type="submit" class="btn btn-primary btn-sm">Request to Join</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+    <?php else: ?>
+        <div class="card search-empty-card">
+            <p class="text-muted">
+                <?php echo $searched ? 'No community rides match this route strongly yet.' : 'No upcoming rides available right now. Check back soon!'; ?>
+            </p>
+            <p class="text-muted">Use exact pickup and destination pins to unlock route-aware matching and driver fallback.</p>
+        </div>
+    <?php endif; ?>
+</div>
+
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

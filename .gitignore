@@ -1,0 +1,42 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# PHP / Node dependencies
+/vendor/
+/node_modules/
+
+# Python caches
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local database and runtime artifacts
+storage/backups/
+storage/logs/*
+!storage/logs/.gitkeep
+storage/rate_limits/*
+!storage/rate_limits/.gitkeep
+storage/secure_driver_documents/
+storage/test_audit/
+
+# Uploaded user/driver files
+uploads/driver_documents/*
+!uploads/driver_documents/.htaccess
+uploads/profile_photos/*
+!uploads/profile_photos/.htaccess
+
+# QA screenshots and generated reports
+qa_artifacts/
+qa-artifacts/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
