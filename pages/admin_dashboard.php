@@ -51,13 +51,46 @@ $metricsResult = mysqli_query(
          FROM driver_accounts d
          JOIN driver_account_profiles p ON p.driver_id = d.id AND p.verification_status = 'verified'
          WHERE d.status = 'active'
-           AND (
-                SELECT COUNT(DISTINCT document_type)
-                FROM driver_account_documents doc
+           AND EXISTS (
+                SELECT 1 FROM driver_account_documents doc
                 WHERE doc.driver_id = d.id
-                  AND doc.document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance')
+                  AND doc.document_type = 'license'
                   AND doc.verification_status = 'verified'
-           ) = 4) AS ready_drivers,
+           )
+           AND (
+                EXISTS (
+                    SELECT 1 FROM driver_account_documents doc
+                    WHERE doc.driver_id = d.id
+                      AND doc.document_type = 'id_proof'
+                      AND doc.verification_status = 'verified'
+                )
+                OR (
+                    EXISTS (
+                        SELECT 1 FROM driver_account_documents doc
+                        WHERE doc.driver_id = d.id
+                          AND doc.document_type = 'aadhaar'
+                          AND doc.verification_status = 'verified'
+                    )
+                    AND EXISTS (
+                        SELECT 1 FROM driver_account_documents doc
+                        WHERE doc.driver_id = d.id
+                          AND doc.document_type = 'pan'
+                          AND doc.verification_status = 'verified'
+                    )
+                )
+           )
+           AND EXISTS (
+                SELECT 1 FROM driver_account_documents doc
+                WHERE doc.driver_id = d.id
+                  AND doc.document_type = 'vehicle_rc'
+                  AND doc.verification_status = 'verified'
+           )
+           AND EXISTS (
+                SELECT 1 FROM driver_account_documents doc
+                WHERE doc.driver_id = d.id
+                  AND doc.document_type = 'insurance'
+                  AND doc.verification_status = 'verified'
+           )) AS ready_drivers,
         (SELECT COUNT(*) FROM driver_account_availability WHERE status = 'online') AS online_drivers,
         (SELECT COUNT(*) FROM rides WHERE status = 'open') AS open_rides,
         (SELECT COUNT(*) FROM ride_live_status WHERE live_status IN ('matched', 'driver_assigned', 'arriving', 'active')) AS live_rides,
@@ -221,14 +254,40 @@ if ($needsDrivers) {
          LEFT JOIN (
             SELECT
                 driver_id,
-                COUNT(*) AS total_documents,
-                COUNT(DISTINCT CASE WHEN document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance') THEN document_type END) AS submitted_required_documents,
-                COUNT(DISTINCT CASE WHEN document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance') AND verification_status = 'verified' THEN document_type END) AS verified_required_documents,
-                SUM(CASE WHEN verification_status = 'pending' THEN 1 ELSE 0 END) AS pending_documents,
-                SUM(CASE WHEN verification_status = 'verified' THEN 1 ELSE 0 END) AS verified_documents,
-                SUM(CASE WHEN verification_status = 'rejected' THEN 1 ELSE 0 END) AS rejected_documents
-            FROM driver_account_documents
-            GROUP BY driver_id
+                total_documents,
+                license_submitted
+                    + CASE WHEN id_submitted > 0 OR (aadhaar_submitted > 0 AND pan_submitted > 0) THEN 1 ELSE 0 END
+                    + rc_submitted
+                    + insurance_submitted AS submitted_required_documents,
+                license_verified
+                    + CASE WHEN id_verified > 0 OR (aadhaar_verified > 0 AND pan_verified > 0) THEN 1 ELSE 0 END
+                    + rc_verified
+                    + insurance_verified AS verified_required_documents,
+                pending_documents,
+                verified_documents,
+                rejected_documents
+            FROM (
+                SELECT
+                    driver_id,
+                    COUNT(*) AS total_documents,
+                    MAX(CASE WHEN document_type = 'license' THEN 1 ELSE 0 END) AS license_submitted,
+                    MAX(CASE WHEN document_type = 'license' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS license_verified,
+                    MAX(CASE WHEN document_type = 'id_proof' THEN 1 ELSE 0 END) AS id_submitted,
+                    MAX(CASE WHEN document_type = 'id_proof' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS id_verified,
+                    MAX(CASE WHEN document_type = 'aadhaar' THEN 1 ELSE 0 END) AS aadhaar_submitted,
+                    MAX(CASE WHEN document_type = 'aadhaar' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS aadhaar_verified,
+                    MAX(CASE WHEN document_type = 'pan' THEN 1 ELSE 0 END) AS pan_submitted,
+                    MAX(CASE WHEN document_type = 'pan' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS pan_verified,
+                    MAX(CASE WHEN document_type = 'vehicle_rc' THEN 1 ELSE 0 END) AS rc_submitted,
+                    MAX(CASE WHEN document_type = 'vehicle_rc' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS rc_verified,
+                    MAX(CASE WHEN document_type = 'insurance' THEN 1 ELSE 0 END) AS insurance_submitted,
+                    MAX(CASE WHEN document_type = 'insurance' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS insurance_verified,
+                    SUM(CASE WHEN verification_status = 'pending' THEN 1 ELSE 0 END) AS pending_documents,
+                    SUM(CASE WHEN verification_status = 'verified' THEN 1 ELSE 0 END) AS verified_documents,
+                    SUM(CASE WHEN verification_status = 'rejected' THEN 1 ELSE 0 END) AS rejected_documents
+                FROM driver_account_documents
+                GROUP BY driver_id
+            ) summarized_docs
          ) doc_summary ON doc_summary.driver_id = d.id
          LEFT JOIN (
             SELECT

@@ -9,6 +9,7 @@ $state = ridesync_fetch_driver_state($conn, $driverId);
 $account = $state['account'];
 $profile = $state['profile'];
 $vehicle = $state['vehicle'];
+$requiredDocumentSummary = ridesync_driver_required_document_summary($state['documents'] ?? []);
 
 $documentsByType = [];
 $stmt = mysqli_prepare($conn,
@@ -61,17 +62,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
             </div>
             <div class="driver-list-item">
                 <span>Documents</span>
-                <strong>
-                    <?php
-                    $verifiedDocs = 0;
-                    foreach (['license', 'aadhaar', 'pan', 'vehicle_rc', 'insurance', 'selfie', 'vehicle_image'] as $requiredType) {
-                        if (($state['documents'][$requiredType]['verification_status'] ?? '') === 'verified') {
-                            $verifiedDocs++;
-                        }
-                    }
-                    echo $verifiedDocs . '/7 verified';
-                    ?>
-                </strong>
+                <strong><?php echo (int) $requiredDocumentSummary['verified']; ?>/4 required checks</strong>
             </div>
         </div>
     </section>

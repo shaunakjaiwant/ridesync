@@ -392,6 +392,8 @@ function ridesync_find_online_driver($conn, $search) {
                 SELECT driver_id,
                        SUM(CASE WHEN document_type = 'license' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS license_ok,
                        SUM(CASE WHEN document_type = 'id_proof' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS id_ok,
+                       SUM(CASE WHEN document_type = 'aadhaar' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS aadhaar_ok,
+                       SUM(CASE WHEN document_type = 'pan' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS pan_ok,
                        SUM(CASE WHEN document_type = 'vehicle_rc' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS rc_ok,
                        SUM(CASE WHEN document_type = 'insurance' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS insurance_ok
                 FROM driver_account_documents
@@ -402,7 +404,7 @@ function ridesync_find_online_driver($conn, $search) {
               AND a.status = 'online'
               AND p.verification_status = 'verified'
               AND docs.license_ok > 0
-              AND docs.id_ok > 0
+              AND (docs.id_ok > 0 OR (docs.aadhaar_ok > 0 AND docs.pan_ok > 0))
               AND docs.rc_ok > 0
               AND docs.insurance_ok > 0
             ORDER BY a.last_changed_at DESC

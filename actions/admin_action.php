@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
 require_once __DIR__ . '/../includes/redirect_helper.php';
+require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
 
 ridesync_require_admin_login();
@@ -131,7 +132,6 @@ if ($action === 'driver_profile_decision') {
 
 if ($action === 'driver_full_approval') {
     $driverId = (int) ($_POST['driver_id'] ?? 0);
-    $requiredDocuments = ['license', 'id_proof', 'vehicle_rc', 'insurance'];
 
     if ($driverId <= 0) {
         $_SESSION['admin_error'] = "Invalid driver approval request.";
@@ -155,19 +155,11 @@ if ($action === 'driver_full_approval') {
         ridesync_admin_redirect();
     }
 
-    $stmt = mysqli_prepare(
-        $conn,
-        "SELECT COUNT(DISTINCT document_type) AS submitted_required
-         FROM driver_account_documents
-         WHERE driver_id = ?
-           AND document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance')"
-    );
-    mysqli_stmt_bind_param($stmt, "i", $driverId);
-    mysqli_stmt_execute($stmt);
-    $docCount = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['submitted_required'] ?? 0);
+    $state = ridesync_fetch_driver_state($conn, $driverId);
+    $documentSummary = ridesync_driver_required_document_summary($state['documents'] ?? []);
 
-    if ($docCount < count($requiredDocuments)) {
-        $_SESSION['admin_error'] = "All required driver documents must be submitted before full approval.";
+    if (!$documentSummary['complete']) {
+        $_SESSION['admin_error'] = "License, identity proof (ID proof or Aadhaar + PAN), vehicle RC, and insurance must be submitted before full approval.";
         ridesync_admin_redirect();
     }
 
@@ -187,7 +179,7 @@ if ($action === 'driver_full_approval') {
             "UPDATE driver_account_documents
              SET verification_status = 'verified'
              WHERE driver_id = ?
-               AND document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance')"
+               AND document_type IN ('license', 'aadhaar', 'pan', 'id_proof', 'vehicle_rc', 'insurance', 'selfie', 'vehicle_image')"
         );
         mysqli_stmt_bind_param($stmt, "i", $driverId);
         mysqli_stmt_execute($stmt);
@@ -378,21 +370,9 @@ if ($action === 'driver_document_decision') {
     ridesync_admin_log($conn, $adminId, 'driver_document_' . $decision, 'driver_document', $documentId, $document['name']);
 
     if ($decision === 'verified') {
-        $stmt = mysqli_prepare(
-            $conn,
-            "SELECT
-                p.verification_status AS profile_status,
-                COUNT(DISTINCT CASE WHEN doc.document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance') AND doc.verification_status = 'verified' THEN doc.document_type END) AS verified_required
-             FROM driver_account_profiles p
-             LEFT JOIN driver_account_documents doc ON doc.driver_id = p.driver_id
-             WHERE p.driver_id = ?
-             GROUP BY p.verification_status"
-        );
-        mysqli_stmt_bind_param($stmt, "i", $document['driver_id']);
-        mysqli_stmt_execute($stmt);
-        $readiness = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        $state = ridesync_fetch_driver_state($conn, (int) $document['driver_id']);
 
-        if (($readiness['profile_status'] ?? '') === 'verified' && (int) ($readiness['verified_required'] ?? 0) >= 4) {
+        if (ridesync_driver_is_verified($state)) {
             ridesync_admin_notify(
                 $conn,
                 null,

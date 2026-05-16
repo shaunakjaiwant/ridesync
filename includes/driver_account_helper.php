@@ -137,19 +137,87 @@ function ridesync_driver_onboarding_complete($state) {
     return !empty($state['account']) && !empty($state['profile']) && !empty($state['vehicle']);
 }
 
+function ridesync_driver_required_document_total() {
+    return 4;
+}
+
+function ridesync_driver_document_submitted($documents, $type) {
+    return !empty($documents[$type]);
+}
+
+function ridesync_driver_document_verified($documents, $type) {
+    return ($documents[$type]['verification_status'] ?? '') === 'verified';
+}
+
+function ridesync_driver_identity_submitted($documents) {
+    return ridesync_driver_document_submitted($documents, 'id_proof')
+        || (
+            ridesync_driver_document_submitted($documents, 'aadhaar')
+            && ridesync_driver_document_submitted($documents, 'pan')
+        );
+}
+
+function ridesync_driver_identity_verified($documents) {
+    return ridesync_driver_document_verified($documents, 'id_proof')
+        || (
+            ridesync_driver_document_verified($documents, 'aadhaar')
+            && ridesync_driver_document_verified($documents, 'pan')
+        );
+}
+
+function ridesync_driver_required_document_summary($documents) {
+    $checks = [
+        'license' => [
+            'label' => 'Driving license',
+            'submitted' => ridesync_driver_document_submitted($documents, 'license'),
+            'verified' => ridesync_driver_document_verified($documents, 'license'),
+        ],
+        'identity' => [
+            'label' => 'Identity proof',
+            'submitted' => ridesync_driver_identity_submitted($documents),
+            'verified' => ridesync_driver_identity_verified($documents),
+        ],
+        'vehicle_rc' => [
+            'label' => 'Vehicle RC',
+            'submitted' => ridesync_driver_document_submitted($documents, 'vehicle_rc'),
+            'verified' => ridesync_driver_document_verified($documents, 'vehicle_rc'),
+        ],
+        'insurance' => [
+            'label' => 'Insurance',
+            'submitted' => ridesync_driver_document_submitted($documents, 'insurance'),
+            'verified' => ridesync_driver_document_verified($documents, 'insurance'),
+        ],
+    ];
+
+    $submitted = 0;
+    $verified = 0;
+    foreach ($checks as $check) {
+        if ($check['submitted']) {
+            $submitted++;
+        }
+        if ($check['verified']) {
+            $verified++;
+        }
+    }
+
+    $total = ridesync_driver_required_document_total();
+
+    return [
+        'checks' => $checks,
+        'submitted' => $submitted,
+        'verified' => $verified,
+        'total' => $total,
+        'complete' => $submitted >= $total,
+        'ready' => $verified >= $total,
+    ];
+}
+
 function ridesync_driver_is_verified($state) {
     if (($state['profile']['verification_status'] ?? '') !== 'verified') {
         return false;
     }
 
-    $requiredDocuments = ['license', 'id_proof', 'vehicle_rc', 'insurance'];
-    foreach ($requiredDocuments as $type) {
-        if (($state['documents'][$type]['verification_status'] ?? '') !== 'verified') {
-            return false;
-        }
-    }
-
-    return true;
+    return ridesync_driver_required_document_summary($state['documents'] ?? [])['ready'];
 }
 
 function ridesync_format_money($amount) {
