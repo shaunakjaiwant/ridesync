@@ -10,6 +10,7 @@ if (!$admin || $admin['status'] !== 'active') {
     http_response_code(403);
     exit('Not allowed');
 }
+ridesync_admin_sync_session($admin);
 
 $documentId = (int) ($_GET['document_id'] ?? 0);
 if ($documentId <= 0) {

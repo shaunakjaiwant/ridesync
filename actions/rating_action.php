@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
+require_once __DIR__ . '/../includes/http_helper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
@@ -12,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!ridesync_csrf_is_valid()) {
     $_SESSION['error'] = "Invalid request. Please try again.";
     header("Location: /ridesync/pages/dashboard.php");
     exit();

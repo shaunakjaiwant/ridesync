@@ -188,13 +188,13 @@ $verificationLabel = [
         </div>
 
         <div class="form-group">
-            <label for="new_password">New Password (min 6 characters)</label>
-            <input type="password" id="new_password" name="new_password" minlength="6" required>
+            <label for="new_password">New Password (min 8 characters)</label>
+            <input type="password" id="new_password" name="new_password" minlength="8" required>
         </div>
 
         <div class="form-group">
             <label for="confirm_password">Confirm New Password</label>
-            <input type="password" id="confirm_password" name="confirm_password" minlength="6" required>
+            <input type="password" id="confirm_password" name="confirm_password" minlength="8" required>
         </div>
 
         <button type="submit" class="btn btn-primary" style="width:100%;">Update Password</button>

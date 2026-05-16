@@ -57,6 +57,47 @@ function ridesync_fetch_admin($conn, $adminId) {
     return mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 }
 
+function ridesync_admin_sync_session($admin) {
+    if (!is_array($admin)) {
+        return;
+    }
+
+    $_SESSION['admin_id'] = (int) ($admin['id'] ?? 0);
+    $_SESSION['admin_name'] = (string) ($admin['name'] ?? ($_SESSION['admin_name'] ?? 'Admin'));
+    $_SESSION['admin_role'] = (string) ($admin['role'] ?? 'moderator');
+}
+
+function ridesync_admin_can($admin, $capability) {
+    $role = is_array($admin) ? (string) ($admin['role'] ?? '') : (string) $admin;
+    if ($role === 'super_admin') {
+        return true;
+    }
+
+    $moderatorCapabilities = [
+        'review_students',
+        'review_drivers',
+        'run_ai_verification',
+        'review_reports',
+    ];
+
+    return $role === 'moderator' && in_array($capability, $moderatorCapabilities, true);
+}
+
+function ridesync_admin_action_capability($action) {
+    $map = [
+        'user_verification_decision' => 'review_students',
+        'driver_profile_decision' => 'review_drivers',
+        'driver_full_approval' => 'review_drivers',
+        'driver_ai_verification_start' => 'run_ai_verification',
+        'driver_ai_verification_decision' => 'review_drivers',
+        'driver_document_decision' => 'review_drivers',
+        'driver_account_status' => 'manage_driver_accounts',
+        'report_decision' => 'review_reports',
+    ];
+
+    return $map[$action] ?? null;
+}
+
 function ridesync_admin_log($conn, $adminId, $action, $entityType, $entityId = null, $message = null) {
     if (!ridesync_admin_schema_ready($conn)) {
         return;

@@ -180,7 +180,7 @@ function ridesync_admin_required_doc_summary($driver) {
     return [
         'submitted' => $submitted,
         'verified' => $verified,
-        'label' => $verified . '/4 required docs',
+        'label' => $verified . '/4 required checks',
         'ready' => $verified >= 4,
         'complete' => $submitted >= 4,
     ];

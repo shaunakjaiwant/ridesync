@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
 require_once __DIR__ . '/../includes/redirect_helper.php';
+require_once __DIR__ . '/../includes/http_helper.php';
+require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
 
 ridesync_require_admin_login();
@@ -14,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     ridesync_admin_redirect();
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!ridesync_csrf_is_valid()) {
     $_SESSION['admin_error'] = "Invalid request. Please try again.";
     ridesync_admin_redirect();
 }
@@ -26,6 +28,21 @@ if (!ridesync_admin_schema_ready($conn)) {
 
 $adminId = (int) $_SESSION['admin_id'];
 $action = $_POST['action_type'] ?? '';
+$admin = ridesync_fetch_admin($conn, $adminId);
+if (!$admin || ($admin['status'] ?? '') !== 'active') {
+    unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
+    $_SESSION['admin_error'] = "This admin account cannot perform actions right now.";
+    header("Location: /ridesync/pages/admin_login.php");
+    exit();
+}
+ridesync_admin_sync_session($admin);
+
+$requiredCapability = ridesync_admin_action_capability($action);
+if ($requiredCapability !== null && !ridesync_admin_can($admin, $requiredCapability)) {
+    ridesync_admin_log($conn, $adminId, 'admin_action_denied', 'admin_user', $adminId, $action);
+    $_SESSION['admin_error'] = "You do not have permission to perform that admin action.";
+    ridesync_admin_redirect();
+}
 
 if ($action === 'user_verification_decision') {
     $verificationId = (int) ($_POST['verification_id'] ?? 0);
@@ -104,14 +121,7 @@ if ($action === 'driver_profile_decision') {
     mysqli_stmt_execute($stmt);
 
     if ($decision === 'rejected') {
-        $stmt = mysqli_prepare(
-            $conn,
-            "UPDATE driver_account_availability
-             SET status = 'offline', current_lat = NULL, current_lng = NULL, last_changed_at = CURRENT_TIMESTAMP
-             WHERE driver_id = ?"
-        );
-        mysqli_stmt_bind_param($stmt, "i", $profile['driver_id']);
-        mysqli_stmt_execute($stmt);
+        ridesync_driver_set_availability($conn, (int) $profile['driver_id'], 'offline');
     }
 
     ridesync_admin_notify(
@@ -131,7 +141,6 @@ if ($action === 'driver_profile_decision') {
 
 if ($action === 'driver_full_approval') {
     $driverId = (int) ($_POST['driver_id'] ?? 0);
-    $requiredDocuments = ['license', 'id_proof', 'vehicle_rc', 'insurance'];
 
     if ($driverId <= 0) {
         $_SESSION['admin_error'] = "Invalid driver approval request.";
@@ -155,19 +164,11 @@ if ($action === 'driver_full_approval') {
         ridesync_admin_redirect();
     }
 
-    $stmt = mysqli_prepare(
-        $conn,
-        "SELECT COUNT(DISTINCT document_type) AS submitted_required
-         FROM driver_account_documents
-         WHERE driver_id = ?
-           AND document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance')"
-    );
-    mysqli_stmt_bind_param($stmt, "i", $driverId);
-    mysqli_stmt_execute($stmt);
-    $docCount = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['submitted_required'] ?? 0);
+    $state = ridesync_fetch_driver_state($conn, $driverId);
+    $documentSummary = ridesync_driver_required_document_summary($state['documents'] ?? []);
 
-    if ($docCount < count($requiredDocuments)) {
-        $_SESSION['admin_error'] = "All required driver documents must be submitted before full approval.";
+    if (!$documentSummary['complete']) {
+        $_SESSION['admin_error'] = "License, identity proof (ID proof or Aadhaar + PAN), vehicle RC, and insurance must be submitted before full approval.";
         ridesync_admin_redirect();
     }
 
@@ -187,19 +188,14 @@ if ($action === 'driver_full_approval') {
             "UPDATE driver_account_documents
              SET verification_status = 'verified'
              WHERE driver_id = ?
-               AND document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance')"
+               AND document_type IN ('license', 'aadhaar', 'pan', 'id_proof', 'vehicle_rc', 'insurance', 'selfie', 'vehicle_image')"
         );
         mysqli_stmt_bind_param($stmt, "i", $driverId);
         mysqli_stmt_execute($stmt);
 
-        $stmt = mysqli_prepare(
-            $conn,
-            "INSERT INTO driver_account_availability (driver_id, status, current_lat, current_lng, last_changed_at)
-             VALUES (?, 'offline', NULL, NULL, CURRENT_TIMESTAMP)
-             ON DUPLICATE KEY UPDATE status = 'offline', current_lat = NULL, current_lng = NULL, last_changed_at = CURRENT_TIMESTAMP"
-        );
-        mysqli_stmt_bind_param($stmt, "i", $driverId);
-        mysqli_stmt_execute($stmt);
+        if (!ridesync_driver_set_availability($conn, $driverId, 'offline')) {
+            throw new RuntimeException("Could not sync driver availability.");
+        }
 
         mysqli_commit($conn);
     } catch (Throwable $e) {
@@ -291,14 +287,9 @@ if ($action === 'driver_ai_verification_decision') {
             mysqli_stmt_bind_param($stmt, "i", $driverId);
             mysqli_stmt_execute($stmt);
 
-            $stmt = mysqli_prepare(
-                $conn,
-                "UPDATE driver_account_availability
-                 SET status = 'offline', current_lat = NULL, current_lng = NULL, last_changed_at = CURRENT_TIMESTAMP
-                 WHERE driver_id = ?"
-            );
-            mysqli_stmt_bind_param($stmt, "i", $driverId);
-            mysqli_stmt_execute($stmt);
+            if (!ridesync_driver_set_availability($conn, $driverId, 'offline')) {
+                throw new RuntimeException("Could not sync driver availability.");
+            }
         }
 
         mysqli_commit($conn);
@@ -356,14 +347,7 @@ if ($action === 'driver_document_decision') {
     mysqli_stmt_execute($stmt);
 
     if ($decision === 'rejected') {
-        $stmt = mysqli_prepare(
-            $conn,
-            "UPDATE driver_account_availability
-             SET status = 'offline', current_lat = NULL, current_lng = NULL, last_changed_at = CURRENT_TIMESTAMP
-             WHERE driver_id = ?"
-        );
-        mysqli_stmt_bind_param($stmt, "i", $document['driver_id']);
-        mysqli_stmt_execute($stmt);
+        ridesync_driver_set_availability($conn, (int) $document['driver_id'], 'offline');
     }
 
     ridesync_admin_notify(
@@ -378,21 +362,9 @@ if ($action === 'driver_document_decision') {
     ridesync_admin_log($conn, $adminId, 'driver_document_' . $decision, 'driver_document', $documentId, $document['name']);
 
     if ($decision === 'verified') {
-        $stmt = mysqli_prepare(
-            $conn,
-            "SELECT
-                p.verification_status AS profile_status,
-                COUNT(DISTINCT CASE WHEN doc.document_type IN ('license', 'id_proof', 'vehicle_rc', 'insurance') AND doc.verification_status = 'verified' THEN doc.document_type END) AS verified_required
-             FROM driver_account_profiles p
-             LEFT JOIN driver_account_documents doc ON doc.driver_id = p.driver_id
-             WHERE p.driver_id = ?
-             GROUP BY p.verification_status"
-        );
-        mysqli_stmt_bind_param($stmt, "i", $document['driver_id']);
-        mysqli_stmt_execute($stmt);
-        $readiness = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        $state = ridesync_fetch_driver_state($conn, (int) $document['driver_id']);
 
-        if (($readiness['profile_status'] ?? '') === 'verified' && (int) ($readiness['verified_required'] ?? 0) >= 4) {
+        if (ridesync_driver_is_verified($state)) {
             ridesync_admin_notify(
                 $conn,
                 null,
@@ -429,22 +401,23 @@ if ($action === 'driver_account_status') {
 
     mysqli_begin_transaction($conn);
 
-    $stmt = mysqli_prepare($conn, "UPDATE driver_accounts SET status = ? WHERE id = ?");
-    mysqli_stmt_bind_param($stmt, "si", $status, $driverId);
-    mysqli_stmt_execute($stmt);
+    try {
+        $stmt = mysqli_prepare($conn, "UPDATE driver_accounts SET status = ? WHERE id = ?");
+        mysqli_stmt_bind_param($stmt, "si", $status, $driverId);
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new RuntimeException("Could not update driver account status.");
+        }
 
-    if ($status !== 'active') {
-        $stmt = mysqli_prepare(
-            $conn,
-            "UPDATE driver_account_availability
-             SET status = 'offline', current_lat = NULL, current_lng = NULL, last_changed_at = CURRENT_TIMESTAMP
-             WHERE driver_id = ?"
-        );
-        mysqli_stmt_bind_param($stmt, "i", $driverId);
-        mysqli_stmt_execute($stmt);
+        if ($status !== 'active' && !ridesync_driver_set_availability($conn, $driverId, 'offline')) {
+            throw new RuntimeException("Could not take driver offline.");
+        }
+
+        mysqli_commit($conn);
+    } catch (Throwable $e) {
+        mysqli_rollback($conn);
+        $_SESSION['admin_error'] = "Could not update this driver account right now.";
+        ridesync_admin_redirect();
     }
-
-    mysqli_commit($conn);
 
     ridesync_admin_notify(
         $conn,
