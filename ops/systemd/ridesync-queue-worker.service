@@ -1,0 +1,18 @@
+[Unit]
+Description=RideSync verification queue worker
+After=network.target mysql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/html/ridesync
+Environment=RIDESYNC_ENV=production
+Environment=RIDESYNC_VERIFICATION_ASYNC=true
+Environment=RIDESYNC_VERIFICATION_INLINE_FALLBACK=false
+ExecStart=/usr/bin/php tools/queue_worker.php --watch --queue=verification --limit=10 --sleep=2
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

@@ -6,6 +6,7 @@
 # PHP / Node dependencies
 /vendor/
 /node_modules/
+**/node_modules/
 
 # Python caches
 .venv/

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/driver_document_helper.php';
 require_once __DIR__ . '/matching_helper.php';
+require_once __DIR__ . '/services/QueueService.php';
 require_once __DIR__ . '/services/RealtimeEventService.php';
 
 function ridesync_verification_schema_ready($conn) {
@@ -1015,6 +1016,28 @@ function ridesync_verification_start_for_driver($conn, $driverId, $source = 'man
     $sessionId = ridesync_verification_create_session($conn, $driverId, $source);
     if (!$sessionId) {
         return null;
+    }
+
+    $asyncEnabled = ridesync_env_bool('RIDESYNC_VERIFICATION_ASYNC', false);
+    if ($asyncEnabled && class_exists('RideSyncQueueService')) {
+        $jobId = RideSyncQueueService::enqueue($conn, 'verification.process', [
+            'session_id' => (int) $sessionId,
+            'driver_id' => (int) $driverId,
+            'source' => (string) $source,
+        ], [
+            'queue_name' => 'verification',
+            'max_attempts' => 3,
+        ]);
+
+        if ($jobId !== null) {
+            ridesync_verification_add_audit($conn, $sessionId, 'system', 'queued_worker_job', 'Verification worker job queued.', [
+                'job_id' => $jobId,
+            ]);
+            ridesync_verification_publish_event($conn, $sessionId, 'verification.worker.queued', [
+                'job_id' => $jobId,
+            ]);
+            return $sessionId;
+        }
     }
 
     $inlineFallback = filter_var(ridesync_env('RIDESYNC_VERIFICATION_INLINE_FALLBACK', 'true'), FILTER_VALIDATE_BOOLEAN);

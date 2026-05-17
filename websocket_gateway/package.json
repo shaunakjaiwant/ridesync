@@ -1,0 +1,14 @@
+{
+  "name": "ridesync-websocket-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.11.5",
+    "ws": "^8.18.0"
+  }
+}

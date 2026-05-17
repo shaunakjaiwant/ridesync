@@ -25,6 +25,42 @@ services:
       RIDESYNC_METRICS_TOKEN: ${RIDESYNC_METRICS_TOKEN:-}
       RIDESYNC_VERIFICATION_SERVICE_URL: http://ai-verification:8011
       RIDESYNC_KYC_PROVIDER: ${RIDESYNC_KYC_PROVIDER:-mock_compliance_provider}
+      RIDESYNC_VERIFICATION_ASYNC: "true"
+      RIDESYNC_VERIFICATION_INLINE_FALLBACK: "false"
+      RIDESYNC_REDIS_URL: redis://redis:6379/2
+      RIDESYNC_WEBSOCKET_URL: ${RIDESYNC_WEBSOCKET_URL:-ws://localhost:8081/ridesync/ws}
+      RIDESYNC_WS_SHARED_TOKEN: ${RIDESYNC_WS_SHARED_TOKEN:-ridesync-dev-websocket-token-change-me}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      ai-verification:
+        condition: service_started
+    volumes:
+      - ridesync_storage:/var/www/html/ridesync/storage
+      - ridesync_uploads:/var/www/html/ridesync/uploads
+    restart: unless-stopped
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "tools/queue_worker.php", "--watch", "--queue=verification", "--limit=10", "--sleep=2"]
+    environment:
+      RIDESYNC_ENV: production
+      RIDESYNC_DEBUG: "false"
+      RIDESYNC_TIMEZONE: ${RIDESYNC_TIMEZONE:-Asia/Kolkata}
+      RIDESYNC_DB_HOST: mysql
+      RIDESYNC_DB_PORT: 3306
+      RIDESYNC_DB_NAME: ridesync_db
+      RIDESYNC_DB_USER: ridesync_app
+      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+      RIDESYNC_DB_CONNECT_TIMEOUT: ${RIDESYNC_DB_CONNECT_TIMEOUT:-5}
+      RIDESYNC_STORAGE_DIR: /var/www/html/ridesync/storage
+      RIDESYNC_DOCUMENT_ENCRYPTION_KEY: ${RIDESYNC_DOCUMENT_ENCRYPTION_KEY:-}
+      RIDESYNC_VERIFICATION_SERVICE_URL: http://ai-verification:8011
+      RIDESYNC_KYC_PROVIDER: ${RIDESYNC_KYC_PROVIDER:-mock_compliance_provider}
       RIDESYNC_REDIS_URL: redis://redis:6379/2
     depends_on:
       mysql:
@@ -36,6 +72,57 @@ services:
     volumes:
       - ridesync_storage:/var/www/html/ridesync/storage
       - ridesync_uploads:/var/www/html/ridesync/uploads
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
+  notification-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "tools/queue_worker.php", "--watch", "--queue=notifications", "--limit=50", "--sleep=2"]
+    environment:
+      RIDESYNC_ENV: production
+      RIDESYNC_DEBUG: "false"
+      RIDESYNC_TIMEZONE: ${RIDESYNC_TIMEZONE:-Asia/Kolkata}
+      RIDESYNC_DB_HOST: mysql
+      RIDESYNC_DB_PORT: 3306
+      RIDESYNC_DB_NAME: ridesync_db
+      RIDESYNC_DB_USER: ridesync_app
+      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+      RIDESYNC_DB_CONNECT_TIMEOUT: ${RIDESYNC_DB_CONNECT_TIMEOUT:-5}
+      RIDESYNC_STORAGE_DIR: /var/www/html/ridesync/storage
+      RIDESYNC_REDIS_URL: redis://redis:6379/2
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ridesync_storage:/var/www/html/ridesync/storage
+      - ridesync_uploads:/var/www/html/ridesync/uploads
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
+  websocket-gateway:
+    build:
+      context: ./websocket_gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      RIDESYNC_WS_PORT: 8081
+      RIDESYNC_WS_POLL_MS: ${RIDESYNC_WS_POLL_MS:-1500}
+      RIDESYNC_WS_SHARED_TOKEN: ${RIDESYNC_WS_SHARED_TOKEN:-ridesync-dev-websocket-token-change-me}
+      RIDESYNC_DB_HOST: mysql
+      RIDESYNC_DB_PORT: 3306
+      RIDESYNC_DB_NAME: ridesync_db
+      RIDESYNC_DB_USER: ridesync_app
+      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+    depends_on:
+      mysql:
+        condition: service_healthy
     restart: unless-stopped
 
   ai-verification:

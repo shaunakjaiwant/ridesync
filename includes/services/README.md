@@ -15,6 +15,7 @@ Current services:
 - `NotificationService.php`: notification creation and inbox mutation operations.
 - `QueueService.php`: database-backed background job boundary for async-safe work.
 - `RealtimeEventService.php`: event outbox for SSE today and WebSocket/Redis fan-out later.
+- `CacheService.php`: Redis-aware cache with safe file fallback for local/XAMPP installs.
 
 Guidelines:
 

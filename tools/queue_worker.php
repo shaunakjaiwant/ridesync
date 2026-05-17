@@ -7,7 +7,7 @@ if (PHP_SAPI !== 'cli') {
 function ridesync_queue_parse_args(array $argv): array
 {
     $options = [
-        'queue' => 'notifications',
+        'queue' => 'default',
         'limit' => 25,
         'sleep' => 3,
         'watch' => false,
@@ -62,9 +62,10 @@ function ridesync_queue_print_help(): void
     echo "RideSync queue worker" . PHP_EOL . PHP_EOL;
     echo "Usage:" . PHP_EOL;
     echo "  php tools/queue_worker.php --once" . PHP_EOL;
-    echo "  php tools/queue_worker.php --watch --queue=notifications --limit=50" . PHP_EOL . PHP_EOL;
+    echo "  php tools/queue_worker.php --watch --queue=notifications --limit=50" . PHP_EOL;
+    echo "  php tools/queue_worker.php --watch --queue=verification --type=verification.process" . PHP_EOL . PHP_EOL;
     echo "Options:" . PHP_EOL;
-    echo "  --queue=NAME           Queue name to process. Default: notifications" . PHP_EOL;
+    echo "  --queue=NAME           Queue name to process. Default: default" . PHP_EOL;
     echo "  --type=JOB.TYPE        Restrict to a job type. May be repeated." . PHP_EOL;
     echo "  --limit=N              Max jobs per pass. Default: 25" . PHP_EOL;
     echo "  --watch                Keep polling until stopped." . PHP_EOL;
@@ -82,6 +83,7 @@ if ($options['help']) {
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/services/QueueService.php';
 require_once __DIR__ . '/../includes/services/NotificationService.php';
+require_once __DIR__ . '/../includes/verification_helper.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
@@ -111,6 +113,20 @@ function ridesync_queue_handle_job($conn, array $job): array
         }
 
         return ['created' => true];
+    }
+
+    if ($type === 'verification.process') {
+        $sessionId = (int) ($payload['session_id'] ?? 0);
+        if ($sessionId <= 0) {
+            throw new RuntimeException('Missing verification session id.');
+        }
+
+        $processed = ridesync_verification_process_session($conn, $sessionId);
+        if (!$processed) {
+            throw new RuntimeException('Verification session could not be processed.');
+        }
+
+        return ['processed' => true, 'session_id' => $sessionId];
     }
 
     throw new RuntimeException('Unsupported job type: ' . $type);

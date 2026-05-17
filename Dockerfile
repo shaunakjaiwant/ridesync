@@ -12,7 +12,7 @@ RUN a2enconf ridesync
 WORKDIR /var/www/html/ridesync
 COPY . /var/www/html/ridesync
 
-RUN mkdir -p storage/logs storage/rate_limits storage/secure_driver_documents uploads/profile_photos uploads/driver_documents \
+RUN mkdir -p storage/cache storage/logs storage/rate_limits storage/secure_driver_documents uploads/profile_photos uploads/driver_documents \
     && chown -R www-data:www-data storage uploads \
     && find storage uploads -type d -exec chmod 0750 {} \; \
     && find storage uploads -type f -exec chmod 0640 {} \;

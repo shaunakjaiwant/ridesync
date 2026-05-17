@@ -7,10 +7,11 @@
 3. Run `npm audit --omit=dev`.
 4. Run `npm run test:kyc-provider -- --required` after setting sandbox KYC variables.
 5. Run `php tools/apply_schema_upgrade.php` against the target database.
-6. Verify `/ridesync/api/live.php` returns `200`.
-7. Verify `/ridesync/api/readiness.php` returns `200`.
-8. Verify `/ridesync/api/metrics.php` returns Prometheus metrics.
-9. Confirm GitHub Actions is unblocked and the `RideSync Quality Gate` passes, unless explicitly waived for a non-production merge.
+6. Run `php tools/queue_worker.php --once --queue=verification` against staging.
+7. Verify `/ridesync/api/live.php` returns `200`.
+8. Verify `/ridesync/api/readiness.php` returns `200`.
+9. Verify `/ridesync/api/metrics.php` returns Prometheus metrics.
+10. Confirm GitHub Actions is unblocked and the `RideSync Quality Gate` passes, unless explicitly waived for a non-production merge.
 
 ## Container Deployment
 
@@ -23,14 +24,44 @@ curl -fsS http://127.0.0.1:8080/ridesync/api/readiness.php
 
 Set `RIDESYNC_COOKIE_SECURE=true` when the app is served only over HTTPS. If a reverse proxy terminates TLS, set `RIDESYNC_TRUST_PROXY=true` only when that proxy controls `X-Forwarded-*` headers.
 
+The compose stack includes:
+
+- `app`: PHP/Apache web application.
+- `queue-worker`: async driver verification worker.
+- `notification-worker`: async notification worker.
+- `ai-verification`: FastAPI KYC analysis service.
+- `websocket-gateway`: signed realtime event fan-out.
+- `mysql` and `redis`: database and cache/queue infrastructure.
+
 ## Health Checks
 
 - Liveness: `/ridesync/api/live.php`
 - Readiness: `/ridesync/api/readiness.php`
 - Legacy health: `/ridesync/api/health.php`
 - Metrics: `/ridesync/api/metrics.php`
+- WebSocket gateway: `http://127.0.0.1:8081/health`
 
 Use liveness for container restart checks and readiness for load balancer membership.
+
+## Workers And Realtime
+
+Run workers under Docker Compose, systemd, or a process supervisor:
+
+```bash
+npm run worker:verification
+npm run worker:notifications
+npm run worker:maintenance
+```
+
+For systemd-based hosts:
+
+```bash
+sudo cp ops/systemd/ridesync-queue-worker.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now ridesync-queue-worker.service
+```
+
+WebSocket clients request a short-lived token from `/ridesync/api/realtime_token.php` and connect to `RIDESYNC_WEBSOCKET_URL`. Keep `RIDESYNC_WS_SHARED_TOKEN` secret and rotate it during incident response.
 
 ## Monitoring And Alerting
 
@@ -69,6 +100,7 @@ Cron template:
 
 ```bash
 crontab ops/cron/ridesync-backup.cron
+crontab ops/cron/ridesync-maintenance.cron
 ```
 
 Systemd timer template:
