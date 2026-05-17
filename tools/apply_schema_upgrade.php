@@ -443,6 +443,32 @@ function schema_create_driver_verification_tables($conn) {
     );
 }
 
+function schema_create_background_jobs($conn) {
+    schema_query($conn,
+        "CREATE TABLE IF NOT EXISTS background_jobs (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            job_type VARCHAR(80) NOT NULL,
+            queue_name VARCHAR(80) NOT NULL DEFAULT 'default',
+            payload_json LONGTEXT NOT NULL,
+            status ENUM('queued', 'processing', 'succeeded', 'failed', 'cancelled') NOT NULL DEFAULT 'queued',
+            attempts INT UNSIGNED NOT NULL DEFAULT 0,
+            max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
+            available_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            locked_at TIMESTAMP NULL DEFAULT NULL,
+            locked_by VARCHAR(120) NULL,
+            last_error VARCHAR(255) NULL,
+            result_json LONGTEXT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_background_jobs_ready (queue_name, status, available_at, id),
+            KEY idx_background_jobs_type_status (job_type, status, created_at),
+            KEY idx_background_jobs_locked (locked_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        'Create background_jobs'
+    );
+}
+
 schema_add_column($conn, 'ride_routes', 'encoded_polyline', 'LONGTEXT NULL AFTER ride_id');
 schema_add_column($conn, 'route_demand_signals', 'encoded_polyline', 'LONGTEXT NULL AFTER route_distance_km');
 schema_add_column($conn, 'driver_ride_history', 'source_type', "ENUM('direct_request', 'community_ride') NULL AFTER distance_km");
@@ -457,6 +483,7 @@ schema_add_column($conn, 'audit_logs', 'user_agent', 'VARCHAR(255) NULL AFTER so
 schema_create_wallet_tables($conn);
 schema_update_driver_document_types($conn);
 schema_create_driver_verification_tables($conn);
+schema_create_background_jobs($conn);
 
 schema_normalize_fk_column($conn, 'driver_ride_requests', 'rider_user_id', 'users', true);
 schema_normalize_fk_column($conn, 'notifications', 'user_id', 'users', true);
@@ -483,6 +510,9 @@ schema_add_index($conn, 'driver_ride_requests', 'idx_driver_requests_rider_statu
 schema_add_index($conn, 'driver_ride_requests', 'idx_driver_requests_status_requested', 'KEY idx_driver_requests_status_requested (request_status, requested_at)');
 schema_add_index($conn, 'notifications', 'idx_notifications_user_created', 'KEY idx_notifications_user_created (user_id, created_at)');
 schema_add_index($conn, 'notifications', 'idx_notifications_driver_created', 'KEY idx_notifications_driver_created (driver_id, created_at)');
+schema_add_index($conn, 'background_jobs', 'idx_background_jobs_ready', 'KEY idx_background_jobs_ready (queue_name, status, available_at, id)');
+schema_add_index($conn, 'background_jobs', 'idx_background_jobs_type_status', 'KEY idx_background_jobs_type_status (job_type, status, created_at)');
+schema_add_index($conn, 'background_jobs', 'idx_background_jobs_locked', 'KEY idx_background_jobs_locked (locked_at)');
 schema_add_index($conn, 'audit_logs', 'idx_audit_source_time', 'KEY idx_audit_source_time (source_ip, created_at)');
 
 schema_add_fk($conn, 'driver_account_profiles', 'fk_driver_account_profiles_driver', 'driver_id', 'driver_accounts', 'CASCADE');

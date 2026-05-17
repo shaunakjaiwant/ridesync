@@ -251,6 +251,27 @@ CREATE TABLE IF NOT EXISTS notifications (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS background_jobs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  job_type VARCHAR(80) NOT NULL,
+  queue_name VARCHAR(80) NOT NULL DEFAULT 'default',
+  payload_json LONGTEXT NOT NULL,
+  status ENUM('queued', 'processing', 'succeeded', 'failed', 'cancelled') NOT NULL DEFAULT 'queued',
+  attempts INT UNSIGNED NOT NULL DEFAULT 0,
+  max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
+  available_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  locked_at TIMESTAMP NULL DEFAULT NULL,
+  locked_by VARCHAR(120) NULL,
+  last_error VARCHAR(255) NULL,
+  result_json LONGTEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_background_jobs_ready (queue_name, status, available_at, id),
+  KEY idx_background_jobs_type_status (job_type, status, created_at),
+  KEY idx_background_jobs_locked (locked_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS user_ratings (
   id INT NOT NULL AUTO_INCREMENT,
   ride_id INT UNSIGNED NOT NULL,

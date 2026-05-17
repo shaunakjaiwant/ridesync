@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/QueueService.php';
 
 class RideSyncNotificationService
 {
@@ -13,14 +14,10 @@ class RideSyncNotificationService
             return false;
         }
 
-        $title = trim((string) $title);
-        $message = trim((string) $message);
-        if ($title === '' || $message === '') {
+        $notification = self::normalizeNotification($userId, $driverId, $title, $message);
+        if ($notification === null) {
             return false;
         }
-
-        $title = function_exists('mb_substr') ? mb_substr($title, 0, 120) : substr($title, 0, 120);
-        $message = function_exists('mb_substr') ? mb_substr($message, 0, 255) : substr($message, 0, 255);
 
         $stmt = mysqli_prepare(
             $conn,
@@ -31,10 +28,36 @@ class RideSyncNotificationService
             return false;
         }
 
-        $userId = $userId !== null ? (int) $userId : null;
-        $driverId = $driverId !== null ? (int) $driverId : null;
+        $userId = $notification['user_id'];
+        $driverId = $notification['driver_id'];
+        $title = $notification['title'];
+        $message = $notification['message'];
         mysqli_stmt_bind_param($stmt, "iiss", $userId, $driverId, $title, $message);
         return mysqli_stmt_execute($stmt);
+    }
+
+    public static function createAsync($conn, $userId, $driverId, $title, $message, array $options = []): ?int
+    {
+        if (!$conn instanceof mysqli) {
+            return null;
+        }
+
+        $notification = self::normalizeNotification($userId, $driverId, $title, $message);
+        if ($notification === null) {
+            return null;
+        }
+
+        $jobId = RideSyncQueueService::enqueue($conn, 'notification.create', $notification, [
+            'queue_name' => $options['queue_name'] ?? 'notifications',
+            'max_attempts' => $options['max_attempts'] ?? 5,
+            'available_at' => $options['available_at'] ?? null,
+        ]);
+
+        if ($jobId !== null) {
+            return $jobId;
+        }
+
+        return self::create($conn, $userId, $driverId, $title, $message) ? 0 : null;
     }
 
     public static function markOneRead($conn, string $actorColumn, int $actorId, int $notificationId): int
@@ -97,6 +120,38 @@ class RideSyncNotificationService
     private static function isActorColumn(string $actorColumn): bool
     {
         return in_array($actorColumn, ['user_id', 'driver_id'], true);
+    }
+
+    private static function normalizeNotification($userId, $driverId, $title, $message): ?array
+    {
+        $userId = $userId !== null ? (int) $userId : null;
+        $driverId = $driverId !== null ? (int) $driverId : null;
+        if ($userId === null && $driverId === null) {
+            return null;
+        }
+
+        $title = self::truncate((string) $title, 120);
+        $message = self::truncate((string) $message, 255);
+        if ($title === '' || $message === '') {
+            return null;
+        }
+
+        return [
+            'user_id' => $userId,
+            'driver_id' => $driverId,
+            'title' => $title,
+            'message' => $message,
+        ];
+    }
+
+    private static function truncate(string $value, int $length): string
+    {
+        $value = trim($value);
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, $length);
+        }
+
+        return substr($value, 0, $length);
     }
 
     private static function tableExists($conn, string $table): bool
