@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/services/NotificationService.php';
+
 function ridesync_admin_schema_ready($conn) {
     if (!$conn instanceof mysqli) {
         return false;
@@ -154,33 +156,7 @@ function ridesync_admin_log($conn, $adminId, $action, $entityType, $entityId = n
 }
 
 function ridesync_admin_notify($conn, $userId, $driverId, $title, $message) {
-    if (!$conn instanceof mysqli || ($userId === null && $driverId === null)) {
-        return false;
-    }
-
-    $notificationsTable = mysqli_query($conn, "SHOW TABLES LIKE 'notifications'");
-    if (!$notificationsTable || mysqli_num_rows($notificationsTable) === 0) {
-        return false;
-    }
-
-    $userId = $userId !== null ? (int) $userId : null;
-    $driverId = $driverId !== null ? (int) $driverId : null;
-    $title = trim((string) $title);
-    $message = trim((string) $message);
-
-    if ($title === '' || $message === '') {
-        return false;
-    }
-
-    $title = function_exists('mb_substr') ? mb_substr($title, 0, 120) : substr($title, 0, 120);
-    $message = function_exists('mb_substr') ? mb_substr($message, 0, 255) : substr($message, 0, 255);
-
-    $stmt = mysqli_prepare(
-        $conn,
-        "INSERT INTO notifications (user_id, driver_id, title, message) VALUES (?, ?, ?, ?)"
-    );
-    mysqli_stmt_bind_param($stmt, "iiss", $userId, $driverId, $title, $message);
-    return mysqli_stmt_execute($stmt);
+    return RideSyncNotificationService::create($conn, $userId, $driverId, $title, $message);
 }
 
 function ridesync_admin_status_label($status) {

@@ -1,6 +1,8 @@
 <?php
 // Smart route matching, hybrid driver fallback, and live status helpers.
 require_once __DIR__ . '/cost_helper.php';
+require_once __DIR__ . '/services/NotificationService.php';
+require_once __DIR__ . '/services/RideService.php';
 
 function ridesync_table_exists($conn, $table) {
     if (!$conn instanceof mysqli) {
@@ -460,120 +462,34 @@ function ridesync_driver_fare_estimate($distanceKm) {
 }
 
 function ridesync_record_driver_trip($conn, $driverId, $pickup, $drop, $fare, $distanceKm, $sourceType = null, $sourceId = null) {
-    if (!$conn instanceof mysqli) {
-        return false;
-    }
-
-    if (!ridesync_table_exists($conn, 'driver_ride_history')) {
-        return false;
-    }
-
-    $driverId = (int) $driverId;
-    $pickup = trim((string) $pickup);
-    $drop = trim((string) $drop);
-    $fare = max(0, (float) $fare);
-    $distanceKm = is_numeric($distanceKm) ? round(max(0, min(1000, (float) $distanceKm)), 2) : 0;
-    $sourceId = $sourceId !== null ? (int) $sourceId : null;
-    $allowedSources = ['direct_request', 'community_ride'];
-    $sourceType = in_array($sourceType, $allowedSources, true) ? $sourceType : null;
-
-    if ($driverId <= 0 || $pickup === '' || $drop === '') {
-        return false;
-    }
-
-    $hasSourceColumns = ridesync_column_exists($conn, 'driver_ride_history', 'source_type')
-        && ridesync_column_exists($conn, 'driver_ride_history', 'source_id');
-
-    if ($hasSourceColumns && $sourceType !== null && $sourceId !== null && $sourceId > 0) {
-        $stmt = mysqli_prepare(
-            $conn,
-            "SELECT id
-             FROM driver_ride_history
-             WHERE driver_id = ? AND source_type = ? AND source_id = ?
-             LIMIT 1"
-        );
-        mysqli_stmt_bind_param($stmt, "isi", $driverId, $sourceType, $sourceId);
-        mysqli_stmt_execute($stmt);
-        if (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
-            return true;
-        }
-
-        $stmt = mysqli_prepare(
-            $conn,
-            "INSERT INTO driver_ride_history
-                (driver_id, pickup, drop_location, fare, distance_km, source_type, source_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
-        mysqli_stmt_bind_param($stmt, "issddsi", $driverId, $pickup, $drop, $fare, $distanceKm, $sourceType, $sourceId);
-        return mysqli_stmt_execute($stmt);
-    }
-
-    $stmt = mysqli_prepare(
+    return RideSyncRideService::recordDriverTrip(
         $conn,
-        "INSERT INTO driver_ride_history (driver_id, pickup, drop_location, fare, distance_km)
-         VALUES (?, ?, ?, ?, ?)"
+        (int) $driverId,
+        (string) $pickup,
+        (string) $drop,
+        (float) $fare,
+        $distanceKm,
+        $sourceType,
+        $sourceId !== null ? (int) $sourceId : null
     );
-    mysqli_stmt_bind_param($stmt, "issdd", $driverId, $pickup, $drop, $fare, $distanceKm);
-    return mysqli_stmt_execute($stmt);
 }
 
 function ridesync_ensure_live_status($conn, $rideId, $status = 'searching') {
-    if (!ridesync_table_exists($conn, 'ride_live_status')) {
-        return;
-    }
-
-    $stmt = mysqli_prepare($conn,
-        "INSERT INTO ride_live_status (ride_id, live_status)
-         VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE live_status = live_status"
-    );
-    mysqli_stmt_bind_param($stmt, "is", $rideId, $status);
-    mysqli_stmt_execute($stmt);
+    return RideSyncRideService::ensureLiveStatus($conn, (int) $rideId, (string) $status);
 }
 
 function ridesync_update_live_status($conn, $rideId, $status, $note = null, $driverId = null, $etaMinutes = null) {
-    if (!ridesync_table_exists($conn, 'ride_live_status')) {
-        return;
-    }
-
-    $stmt = mysqli_prepare($conn,
-        "INSERT INTO ride_live_status (ride_id, driver_id, live_status, eta_minutes, note)
-         VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-             driver_id = COALESCE(VALUES(driver_id), driver_id),
-             live_status = VALUES(live_status),
-             eta_minutes = COALESCE(VALUES(eta_minutes), eta_minutes),
-             note = VALUES(note),
-             updated_at = CURRENT_TIMESTAMP"
+    return RideSyncRideService::updateLiveStatus(
+        $conn,
+        (int) $rideId,
+        (string) $status,
+        $note !== null ? (string) $note : null,
+        $driverId !== null ? (int) $driverId : null,
+        $etaMinutes !== null ? (int) $etaMinutes : null
     );
-    mysqli_stmt_bind_param($stmt, "iisis", $rideId, $driverId, $status, $etaMinutes, $note);
-    mysqli_stmt_execute($stmt);
 }
 
 function ridesync_create_notification($conn, $userId, $driverId, $title, $message) {
-    if (!$conn instanceof mysqli || ($userId === null && $driverId === null)) {
-        return false;
-    }
-
-    if (!ridesync_table_exists($conn, 'notifications')) {
-        return false;
-    }
-
-    $title = trim((string) $title);
-    $message = trim((string) $message);
-
-    if ($title === '' || $message === '') {
-        return false;
-    }
-
-    $title = function_exists('mb_substr') ? mb_substr($title, 0, 120) : substr($title, 0, 120);
-    $message = function_exists('mb_substr') ? mb_substr($message, 0, 255) : substr($message, 0, 255);
-
-    $stmt = mysqli_prepare($conn,
-        "INSERT INTO notifications (user_id, driver_id, title, message)
-         VALUES (?, ?, ?, ?)"
-    );
-    mysqli_stmt_bind_param($stmt, "iiss", $userId, $driverId, $title, $message);
-    return mysqli_stmt_execute($stmt);
+    return RideSyncNotificationService::create($conn, $userId, $driverId, $title, $message);
 }
 ?>
