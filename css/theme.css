@@ -128,10 +128,6 @@ svg {
     animation: ridesyncPageIn 0.22s ease-out both;
 }
 
-.container {
-    width: min(100% - 40px, 980px);
-}
-
 @keyframes ridesyncPageIn {
     from {
         opacity: 0;
@@ -759,8 +755,7 @@ button:disabled {
     margin-top: 8px;
 }
 
-.auth-switch-text a,
-.text-link {
+.auth-switch-text a {
     color: var(--primary-dark);
     font-weight: 800;
     text-decoration: underline;
@@ -768,8 +763,7 @@ button:disabled {
     text-underline-offset: 3px;
 }
 
-.auth-switch-text a:hover,
-.text-link:hover {
+.auth-switch-text a:hover {
     color: #1746bd;
 }
 
@@ -1919,8 +1913,7 @@ button:disabled {
 }
 
 .driver-home-card,
-.admin-hero-panel,
-.hero {
+.admin-hero-panel {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1936,13 +1929,11 @@ button:disabled {
     box-shadow: var(--shadow);
 }
 
-.driver-home-card h2,
-.hero h1 {
+.driver-home-card h2 {
     color: var(--text);
 }
 
-.driver-home-card p,
-.hero p {
+.driver-home-card p {
     color: var(--muted);
 }
 
@@ -3009,8 +3000,7 @@ button:disabled {
     .driver-page-header,
     .driver-home-card,
     .admin-kyc-hero,
-    .admin-hero-panel,
-    .hero {
+    .admin-hero-panel {
         align-items: stretch;
         flex-direction: column;
     }
@@ -3139,8 +3129,7 @@ button:disabled {
     .notification-panel,
     .admin-command-card,
     .driver-home-card,
-    .admin-hero-panel,
-    .hero {
+    .admin-hero-panel {
         padding: 18px;
     }
 
