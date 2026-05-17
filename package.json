@@ -6,7 +6,9 @@
   "scripts": {
     "test": "php tools/quality_gate.php",
     "test:syntax": "php tools/quality_gate.php --syntax-only",
-    "test:load": "k6 run tests/load/k6-smoke.js"
+    "test:kyc-provider": "python ai_verification_service/scripts/validate_provider_contract.py",
+    "test:load": "k6 run tests/load/k6-smoke.js",
+    "test:load:production": "k6 run tests/load/k6-production.js"
   },
   "keywords": [],
   "author": "",

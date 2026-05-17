@@ -32,6 +32,17 @@ RIDESYNC_KYC_PROVIDER_TIMEOUT_SECONDS=6
 
 The endpoint should return either a JSON object or a `checks` array with `check_type`, `status`, `confidence`, and optional `response` fields. Supported statuses are `passed`, `failed`, `needs_review`, and `not_available`.
 
+Validate a sandbox provider contract before cutover:
+
+```bash
+RIDESYNC_KYC_PROVIDER=idfy \
+RIDESYNC_KYC_PROVIDER_URL=https://provider-gateway.example.com/verify \
+RIDESYNC_KYC_PROVIDER_TOKEN=... \
+python scripts/validate_provider_contract.py --required
+```
+
+The validator fails if the provider response has an invalid status, missing check type, non-numeric confidence, excessive latency, or raw Aadhaar/PAN-like values.
+
 ## Production notes
 
 - Add Redis/Celery workers for background document processing when uploads become high volume.

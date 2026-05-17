@@ -1,0 +1,47 @@
+groups:
+  - name: ridesync-production
+    rules:
+      - alert: RideSyncAppDown
+        expr: ridesync_up == 0 OR absent(ridesync_up)
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: RideSync app is not reporting metrics
+          description: The RideSync metrics endpoint is down or unreachable for more than 2 minutes.
+
+      - alert: RideSyncDatabaseDown
+        expr: ridesync_db_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: RideSync database connectivity failed
+          description: The application cannot ping MySQL.
+
+      - alert: RideSyncStorageNotWritable
+        expr: ridesync_storage_writable == 0
+        for: 2m
+        labels:
+          severity: high
+        annotations:
+          summary: RideSync storage is not writable
+          description: Uploads, logs, rate limits, or secure documents may fail.
+
+      - alert: RideSyncOpenReportsBacklog
+        expr: ridesync_reports_open > 25
+        for: 15m
+        labels:
+          severity: medium
+        annotations:
+          summary: RideSync report backlog is high
+          description: More than 25 reports have remained open or reviewing for at least 15 minutes.
+
+      - alert: RideSyncVerificationFailures
+        expr: ridesync_verification_sessions_total{status="failed"} > 5
+        for: 10m
+        labels:
+          severity: high
+        annotations:
+          summary: Driver verification failures are elevated
+          description: More than 5 driver verification sessions are currently failed.

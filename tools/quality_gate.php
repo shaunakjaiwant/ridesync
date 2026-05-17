@@ -67,6 +67,7 @@ $pythonFiles = [
     $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'main.py',
     $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'worker.py',
     $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'providers.py',
+    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'validate_provider_contract.py',
 ];
 $pythonFiles = array_values(array_filter($pythonFiles, 'is_file'));
 if (!empty($pythonFiles)) {
@@ -85,12 +86,24 @@ $requiredOperationalFiles = [
     '.github/workflows/quality.yml',
     'Dockerfile',
     'docker-compose.yml',
+    'docker-compose.monitoring.yml',
     'docker/apache/ridesync.conf',
     'ai_verification_service/Dockerfile',
+    'ai_verification_service/scripts/validate_provider_contract.py',
+    'api/metrics.php',
+    'docs/device_lab_test_plan.md',
+    'docs/production_ops_validation_report.md',
     'docs/production_runbook.md',
     'ops/backup_mysql.sh',
     'ops/restore_mysql.sh',
+    'ops/cron/ridesync-backup.cron',
+    'ops/monitoring/prometheus.yml',
+    'ops/monitoring/alerts.yml',
+    'ops/monitoring/alertmanager.yml',
+    'ops/systemd/ridesync-backup.service',
+    'ops/systemd/ridesync-backup.timer',
     'tests/load/k6-smoke.js',
+    'tests/load/k6-production.js',
 ];
 
 foreach ($requiredOperationalFiles as $relativePath) {

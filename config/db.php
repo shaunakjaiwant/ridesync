@@ -11,10 +11,16 @@ $port     = (int) ridesync_env('RIDESYNC_DB_PORT', 3306);
 $conn = mysqli_init();
 mysqli_options($conn, MYSQLI_OPT_CONNECT_TIMEOUT, (int) ridesync_env('RIDESYNC_DB_CONNECT_TIMEOUT', 5));
 
-$connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port);
+$connectExceptionMessage = null;
+try {
+    $connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port);
+} catch (mysqli_sql_exception $exception) {
+    $connected = false;
+    $connectExceptionMessage = $exception->getMessage();
+}
 
 if (!$connected) {
-    $error = mysqli_connect_error() ?: mysqli_error($conn);
+    $error = $connectExceptionMessage ?: (mysqli_connect_error() ?: mysqli_error($conn));
     ridesync_log('critical', 'Database connection failed', [
         'host' => $host,
         'database' => $database,
