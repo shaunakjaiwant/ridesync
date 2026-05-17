@@ -1435,6 +1435,63 @@ button:disabled {
     background: #ffffff;
 }
 
+.smart-search-suggestions {
+    position: fixed;
+    z-index: 1200;
+    display: none;
+    max-height: min(360px, calc(100vh - 40px));
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #ffffff;
+    box-shadow: var(--shadow);
+}
+
+.smart-search-suggestions.is-visible {
+    display: grid;
+}
+
+.smart-search-suggestions button,
+.smart-search-empty {
+    display: grid;
+    width: 100%;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--line-soft);
+    background: #ffffff;
+    color: var(--text);
+    text-align: left;
+}
+
+.smart-search-suggestions button {
+    cursor: pointer;
+}
+
+.smart-search-suggestions button:hover,
+.smart-search-suggestions button:focus-visible {
+    background: var(--primary-soft);
+}
+
+.smart-search-suggestions span {
+    color: var(--primary-dark);
+    font-size: 0.72rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.smart-search-suggestions strong {
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 850;
+}
+
+.smart-search-suggestions small,
+.smart-search-empty {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
 .map-pin-icon {
     display: inline-flex;
     align-items: center;

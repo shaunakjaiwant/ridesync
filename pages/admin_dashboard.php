@@ -936,7 +936,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                     <h2>Drivers</h2>
                 </div>
                 <div class="admin-table-tools">
-                    <input type="search" placeholder="Filter drivers" aria-label="Filter drivers table" data-admin-table-search="driversTable">
+                    <input type="search" placeholder="Filter drivers" aria-label="Filter drivers table" data-admin-table-search="driversTable" data-search-context="driversTable">
                     <select aria-label="Filter drivers by status" data-admin-table-status="driversTable">
                         <option value="">All statuses</option>
                         <option value="pending">Pending</option>
@@ -1118,7 +1118,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                     <h2>Users</h2>
                 </div>
                 <div class="admin-table-tools">
-                    <input type="search" placeholder="Filter users" aria-label="Filter users table" data-admin-table-search="usersTable">
+                    <input type="search" placeholder="Filter users" aria-label="Filter users table" data-admin-table-search="usersTable" data-search-context="usersTable">
                     <select aria-label="Filter users by status" data-admin-table-status="usersTable">
                         <option value="">All statuses</option>
                         <option value="verified">Verified</option>
@@ -1254,7 +1254,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                     <h2>Rides</h2>
                 </div>
                 <div class="admin-table-tools">
-                    <input type="search" placeholder="Filter rides" aria-label="Filter rides table" data-admin-table-search="ridesTable">
+                    <input type="search" placeholder="Filter rides" aria-label="Filter rides table" data-admin-table-search="ridesTable" data-search-context="ridesTable">
                     <select aria-label="Filter rides by status" data-admin-table-status="ridesTable">
                         <option value="">All statuses</option>
                         <option value="open">Open</option>
@@ -1324,7 +1324,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                     <h2>Direct Driver Requests</h2>
                 </div>
                 <div class="admin-table-tools">
-                    <input type="search" placeholder="Filter direct requests" aria-label="Filter direct driver requests table" data-admin-table-search="directRequestsTable">
+                    <input type="search" placeholder="Filter direct requests" aria-label="Filter direct driver requests table" data-admin-table-search="directRequestsTable" data-search-context="directRequestsTable">
                     <select aria-label="Filter direct driver requests by status" data-admin-table-status="directRequestsTable">
                         <option value="">All statuses</option>
                         <option value="pending">Pending</option>
@@ -1384,7 +1384,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                     <h2>Join Requests</h2>
                 </div>
                 <div class="admin-table-tools">
-                    <input type="search" placeholder="Filter join requests" aria-label="Filter join requests table" data-admin-table-search="joinRequestsTable">
+                    <input type="search" placeholder="Filter join requests" aria-label="Filter join requests table" data-admin-table-search="joinRequestsTable" data-search-context="joinRequestsTable">
                     <select aria-label="Filter join requests by status" data-admin-table-status="joinRequestsTable">
                         <option value="">All statuses</option>
                         <option value="pending">Pending</option>
@@ -1444,13 +1444,17 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                     <span class="driver-kicker">Moderation</span>
                     <h2>User Reports</h2>
                 </div>
+                <div class="admin-table-tools">
+                    <input type="search" placeholder="Filter reports" aria-label="Filter reports panel" data-admin-panel-search="reportsPanel" data-search-context="reportsPanel">
+                </div>
             </div>
             <?php if (count($reportRows) === 0): ?>
                 <div class="driver-empty-card">No active reports. System trust health is stable.</div>
             <?php else: ?>
-                <div class="admin-report-list">
+                <div class="admin-report-list" id="reportsPanel">
                     <?php foreach ($reportRows as $report): ?>
-                        <article class="admin-report-card">
+                        <?php $reportSearch = ridesync_admin_search_blob([$report['id'], $report['reason'], $report['report_status'], $report['reporter_name'], $report['reported_name'], $report['origin'], $report['destination'], $report['message'], $report['admin_note'] ?? '']); ?>
+                        <article class="admin-report-card" data-search="<?php echo htmlspecialchars($reportSearch); ?>">
                             <div class="admin-review-top">
                                 <div>
                                     <span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($report['report_status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($report['report_status'])); ?></span>
@@ -1519,7 +1523,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
             <div class="admin-card-head">
                 <div><span class="driver-kicker">System</span><h2>Audit Log</h2></div>
                 <div class="admin-table-tools">
-                    <input type="search" placeholder="Filter audit log" aria-label="Filter audit log table" data-admin-table-search="auditTable">
+                    <input type="search" placeholder="Filter audit log" aria-label="Filter audit log table" data-admin-table-search="auditTable" data-search-context="auditTable">
                     <span><?php echo ridesync_admin_int($metrics, 'audit_24h'); ?> actions in 24h</span>
                 </div>
             </div>

@@ -67,7 +67,7 @@ $adminNavItems = [
     <form class="admin-global-search" action="/ridesync/pages/admin_dashboard.php" method="GET" role="search">
         <input type="hidden" name="section" value="<?php echo htmlspecialchars($currentAdminSection); ?>">
         <span>Search</span>
-        <input type="search" name="q" value="<?php echo htmlspecialchars($adminSearchValue); ?>" placeholder="users, rides, drivers, emails, vehicle numbers" aria-label="Search admin records" data-admin-global-search>
+        <input type="search" name="q" value="<?php echo htmlspecialchars($adminSearchValue); ?>" placeholder="users, rides, drivers, emails, vehicle numbers" aria-label="Search admin records" data-admin-global-search data-search-context="admin_global">
         <kbd>Ctrl K</kbd>
     </form>
 
