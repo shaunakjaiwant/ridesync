@@ -25,7 +25,7 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="form-container ride-form-container">
-    <h2>Post a Ride</h2>
+    <h1>Post a Ride</h1>
 
     <?php ridesync_flash('ride_error', 'alert-error'); ?>
     <?php ridesync_flash('ride_success', 'alert-success'); ?>
@@ -47,7 +47,7 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="map-picker-header">
                 <div>
                     <span class="map-kicker">Exact location</span>
-                    <h3>Set departure and destination on map</h3>
+                    <h2>Set departure and destination on map</h2>
                     <p>Type in Departure/Destination for suggestions, use current location, or click the map to place pins.</p>
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm" data-use-current-location>Use my location</button>

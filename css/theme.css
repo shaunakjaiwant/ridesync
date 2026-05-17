@@ -7,21 +7,21 @@
     --surface-soft: #f8fafc;
     --surface-muted: #f1f5f9;
     --text: #111827;
-    --muted: #64748b;
-    --muted-strong: #475569;
+    --muted: #5b6678;
+    --muted-strong: #3f4b5f;
     --line: #dbe3ee;
     --line-soft: #e8eef5;
     --primary: #2563eb;
     --primary-dark: #1d4ed8;
     --primary-soft: #eff6ff;
-    --success: #0f9f6e;
+    --success: #047857;
     --success-soft: #e8f8f2;
-    --info: #0284c7;
+    --info: #0369a1;
     --info-soft: #e0f2fe;
-    --warning: #b7791f;
+    --warning: #83510f;
     --warning-soft: #fff7e6;
-    --danger: #dc2626;
-    --danger-dark: #b91c1c;
+    --danger: #b91c1c;
+    --danger-dark: #991b1b;
     --danger-soft: #fef2f2;
     --nav: #0f172a;
     --header-bg: rgba(255, 255, 255, 0.88);
@@ -31,7 +31,7 @@
     --admin-rail: #111827;
     --admin-rail-soft: #1f2937;
     --admin-blue: #2563eb;
-    --admin-green: #0f9f6e;
+    --admin-green: #047857;
     --admin-yellow: #b7791f;
     --admin-red: #dc2626;
     --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -481,7 +481,7 @@ svg {
 }
 
 .btn-warning {
-    border-color: rgba(183, 121, 31, 0.24);
+    border-color: rgba(131, 81, 15, 0.3);
     background: var(--warning-soft);
     color: var(--warning);
 }
@@ -608,6 +608,7 @@ button:disabled {
 }
 
 .card h2,
+.form-container h1,
 .form-container h2,
 .dashboard-section h2,
 .driver-panel h2,
@@ -691,8 +692,11 @@ button:disabled {
     grid-column: 1 / -1;
 }
 
+.form-container h1,
 .form-container h2 {
     margin: 0 0 22px;
+    font-size: 1.45rem;
+    line-height: 1.2;
     text-align: left;
 }
 
@@ -742,7 +746,31 @@ button:disabled {
 .form-group textarea::placeholder,
 .admin-table-tools input::placeholder,
 .admin-report-form input::placeholder {
-    color: #94a3b8;
+    color: #5f6b7a;
+}
+
+.auth-switch-text {
+    margin-top: 15px;
+    color: var(--muted-strong);
+    text-align: center;
+}
+
+.auth-switch-text + .auth-switch-text {
+    margin-top: 8px;
+}
+
+.auth-switch-text a,
+.text-link {
+    color: var(--primary-dark);
+    font-weight: 800;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
+.auth-switch-text a:hover,
+.text-link:hover {
+    color: #1746bd;
 }
 
 .form-group input:focus,
@@ -1112,6 +1140,20 @@ button:disabled {
     align-items: center;
     margin-bottom: 8px;
     font-size: 0.95rem;
+}
+
+.map-picker-header h2 {
+    margin: 4px 0 5px;
+    color: var(--text);
+    font-size: 1.08rem;
+    line-height: 1.25;
+}
+
+.ride-manage-header h2 {
+    margin: 0 0 4px;
+    color: var(--text);
+    font-size: 1.05rem;
+    line-height: 1.3;
 }
 
 .mini-ride-route .arrow,
@@ -1928,7 +1970,7 @@ button:disabled {
 .driver-toggle-off {
     background: var(--warning-soft);
     color: var(--warning);
-    border-color: rgba(183, 121, 31, 0.24);
+    border-color: rgba(131, 81, 15, 0.3);
 }
 
 .driver-status-pill::before,
@@ -2070,7 +2112,7 @@ button:disabled {
 /* Admin command center */
 .admin-command-shell {
     --admin-text: #172033;
-    --admin-muted: #65758b;
+    --admin-muted: #5b6678;
     --admin-line: #dbe3ee;
     background: var(--admin-bg);
 }
@@ -2416,6 +2458,12 @@ button:disabled {
     border: 1px solid var(--line-soft);
     border-radius: var(--radius);
     background: #ffffff;
+}
+
+.admin-table-wrap:focus-visible,
+.admin-feed-list:focus-visible {
+    outline: 0;
+    box-shadow: var(--focus-ring);
 }
 
 .admin-smart-table {
@@ -3022,6 +3070,46 @@ button:disabled {
     .driver-app,
     .admin-app {
         font-size: 14px;
+    }
+
+    .navbar,
+    .driver-navbar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .nav-left,
+    .driver-brand {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .nav-right,
+    .driver-nav-actions {
+        grid-column: 1;
+        grid-row: 2;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links,
+    .driver-nav-links {
+        grid-column: 1;
+        grid-row: 3;
+        flex-wrap: wrap;
+        overflow: visible;
+    }
+
+    .nav-links li,
+    .driver-nav-links li {
+        flex: 1 1 auto;
+    }
+
+    .nav-links a,
+    .driver-nav-links a {
+        width: 100%;
+        padding: 0 10px;
+        white-space: normal;
     }
 
     .main-content,

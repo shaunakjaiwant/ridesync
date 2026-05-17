@@ -10,7 +10,7 @@ require_once __DIR__ . '/../includes/college_suggestions.php';
 ?>
 
 <div class="form-container">
-    <h2>Create an Account</h2>
+    <h1>Create an Account</h1>
 
     <?php ridesync_flash('register_error', 'alert-error'); ?>
 
@@ -19,22 +19,22 @@ require_once __DIR__ . '/../includes/college_suggestions.php';
 
         <div class="form-group">
             <label for="name">Full Name</label>
-            <input type="text" id="name" name="name" required placeholder="John Doe">
+            <input type="text" id="name" name="name" required autocomplete="name" placeholder="John Doe">
         </div>
 
         <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" required placeholder="you@gmail.com">
+            <input type="email" id="email" name="email" required autocomplete="username" placeholder="you@gmail.com">
         </div>
 
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required minlength="8" placeholder="Min 8 characters">
+            <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" placeholder="Min 8 characters">
         </div>
 
         <div class="form-group">
             <label for="confirm_password">Confirm Password</label>
-            <input type="password" id="confirm_password" name="confirm_password" required placeholder="Re-enter password">
+            <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password" placeholder="Re-enter password">
         </div>
 
         <div class="form-group">
@@ -56,8 +56,8 @@ require_once __DIR__ . '/../includes/college_suggestions.php';
         <button type="submit" class="btn btn-primary" style="width:100%;">Sign Up</button>
     </form>
 
-    <p style="text-align:center; margin-top:15px; color:#777;">
-        Already have an account? <a href="/ridesync/pages/login.php" style="color:#4361ee;">Login here</a>
+    <p class="auth-switch-text">
+        Already have an account? <a href="/ridesync/pages/login.php">Login here</a>
     </p>
 </div>
 

@@ -27,7 +27,7 @@ require_once __DIR__ . '/../includes/public_header.php';
 ?>
 
 <div class="form-container auth-register-form">
-    <h2>Register as a Driver</h2>
+    <h1>Register as a Driver</h1>
 
     <?php ridesync_flash('driver_register_error', 'alert-error'); ?>
 
@@ -37,27 +37,27 @@ require_once __DIR__ . '/../includes/public_header.php';
 
         <div class="form-group">
             <label for="name">Full Name</label>
-            <input type="text" id="name" name="name" required placeholder="Driver name" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'name'); ?>">
+            <input type="text" id="name" name="name" required autocomplete="name" placeholder="Driver name" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'name'); ?>">
         </div>
 
         <div class="form-group">
             <label for="email">Driver Email</label>
-            <input type="email" id="email" name="email" required placeholder="driver@example.com" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'email'); ?>">
+            <input type="email" id="email" name="email" required autocomplete="username" placeholder="driver@example.com" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'email'); ?>">
         </div>
 
         <div class="form-group">
             <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" name="phone" required placeholder="9876543210" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'phone'); ?>">
+            <input type="tel" id="phone" name="phone" required autocomplete="tel" placeholder="9876543210" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'phone'); ?>">
         </div>
 
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required minlength="8" placeholder="Min 8 characters">
+            <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" placeholder="Min 8 characters">
         </div>
 
         <div class="form-group">
             <label for="confirm_password">Confirm Password</label>
-            <input type="password" id="confirm_password" name="confirm_password" required minlength="8" placeholder="Re-enter password">
+            <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password" placeholder="Re-enter password">
         </div>
 
         <div class="form-group">
@@ -159,8 +159,8 @@ require_once __DIR__ . '/../includes/public_header.php';
         <button type="submit" class="btn btn-primary" style="width:100%;">Create Driver Account</button>
     </form>
 
-    <p style="text-align:center; margin-top:15px; color:#777;">
-        Already registered? <a href="/ridesync/pages/driver_login.php" style="color:#4361ee;">Driver Login</a>
+    <p class="auth-switch-text">
+        Already registered? <a href="/ridesync/pages/driver_login.php">Driver Login</a>
     </p>
 </div>
 

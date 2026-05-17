@@ -176,7 +176,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="ride-manage-card <?php echo $ride['status'] !== 'open' ? 'ride-closed' : ''; ?>">
             <div class="ride-manage-header">
                 <div>
-                    <h3><?php echo htmlspecialchars($ride['origin']); ?> &rarr; <?php echo htmlspecialchars($ride['destination']); ?></h3>
+                    <h2><?php echo htmlspecialchars($ride['origin']); ?> &rarr; <?php echo htmlspecialchars($ride['destination']); ?></h2>
                     <p class="ride-meta">
                         Date <?php echo date('M j, Y', strtotime($ride['travel_date'])); ?>
                         &nbsp;&middot;&nbsp;

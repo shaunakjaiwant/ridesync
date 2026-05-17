@@ -9,7 +9,7 @@ require_once __DIR__ . '/../includes/public_header.php';
 ?>
 
 <div class="form-container">
-    <h2>Login to Ride</h2>
+    <h1>Login to Ride</h1>
 
     <?php ridesync_flash('register_success', 'alert-success'); ?>
     <?php ridesync_flash('login_error', 'alert-error'); ?>
@@ -19,22 +19,22 @@ require_once __DIR__ . '/../includes/public_header.php';
 
         <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" required placeholder="you@university.edu">
+            <input type="email" id="email" name="email" required autocomplete="username" placeholder="you@university.edu">
         </div>
 
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required placeholder="Your password">
+            <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Your password">
         </div>
 
         <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
     </form>
 
-    <p style="text-align:center; margin-top:15px; color:#777;">
-        Don't have an account? <a href="/ridesync/pages/register.php" style="color:#4361ee;">Sign up here</a>
+    <p class="auth-switch-text">
+        Don't have an account? <a href="/ridesync/pages/register.php">Sign up here</a>
     </p>
-    <p style="text-align:center; margin-top:8px; color:#777;">
-        Want to drive? <a href="/ridesync/pages/driver_login.php" style="color:#4361ee;">Switch to Driver</a>
+    <p class="auth-switch-text">
+        Want to drive? <a href="/ridesync/pages/driver_login.php">Switch to Driver</a>
     </p>
 </div>
 

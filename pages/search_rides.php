@@ -190,7 +190,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="map-picker-header">
                     <div>
                         <span class="map-kicker">Smart route input</span>
-                        <h3>Set exact pickup and destination</h3>
+                        <h2>Set exact pickup and destination</h2>
                         <p>Location suggestions, current location, and map pins improve match accuracy.</p>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" data-use-current-location>Use my location</button>

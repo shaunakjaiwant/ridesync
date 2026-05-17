@@ -352,10 +352,18 @@
     }
 
     function addTiles(map) {
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
+        });
+
+        tiles.on('tileload', function (event) {
+            if (!event.tile) return;
+            event.tile.alt = '';
+            event.tile.setAttribute('aria-hidden', 'true');
+        });
+
+        tiles.addTo(map);
     }
 
     function makePinIcon(label, type) {
