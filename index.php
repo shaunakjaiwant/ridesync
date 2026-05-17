@@ -35,7 +35,4 @@ require_once 'includes/public_header.php';
             </a>
         </div>
 
-
-</main>
-
 <?php require_once 'includes/footer.php'; ?>

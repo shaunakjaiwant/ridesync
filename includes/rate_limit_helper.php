@@ -1,18 +1,10 @@
 <?php
 require_once __DIR__ . '/../config/bootstrap.php';
 
-function ridesync_client_ip() {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-
-    if (ridesync_env_bool('RIDESYNC_TRUST_PROXY', false)) {
-        $forwardedFor = trim((string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-        if ($forwardedFor !== '') {
-            $parts = array_map('trim', explode(',', $forwardedFor));
-            $ip = $parts[0] ?: $ip;
-        }
+if (!function_exists('ridesync_client_ip')) {
+    function ridesync_client_ip() {
+        return substr((string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'), 0, 64);
     }
-
-    return substr((string) $ip, 0, 64);
 }
 
 function ridesync_rate_limit_dir() {

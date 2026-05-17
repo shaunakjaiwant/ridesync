@@ -7,9 +7,9 @@ Scope: Rider app, Driver app, Admin panel, APIs, PHP backend, MySQL schema, AI v
 
 RideSync is in a strong local production-readiness state for a controlled pilot or staging rollout. The core PHP/MySQL application passed route protection, role isolation, CSRF, injection, invalid upload, database integrity, smoke, UI, mobile emulation, race, rate-limit, and moderate local load checks.
 
-The application is not yet ready to be described as enterprise-scale production-ready for thousands or millions of users without additional operational work: production Docker or server manifests, observability/alerting, centralized logs, backup/restore runbooks, real KYC provider integration, physical-device Safari/Android testing, larger load tests, and unblocked hosted CI execution remain open.
+The follow-up remediation pass added deployable container scaffolding, liveness/readiness endpoints, stricter CSP with nonced scripts, admin audit request context, backup/restore scripts, load-test scaffolding, and a configurable HTTP KYC provider adapter. The application is still not ready to be described as enterprise-scale production-ready for thousands or millions of users until hosted CI execution is unblocked, real provider credentials are validated, physical-device Safari/Android testing is completed, and larger distributed load tests are run.
 
-Deployment readiness score: 82/100
+Deployment readiness score: 88/100
 Verdict: Go for staging / controlled beta. Conditional go for production only after operational readiness items are completed.
 
 ## 2. Architecture Review
@@ -34,9 +34,9 @@ Strengths:
 
 Risks:
 
-- No full production deployment manifest yet.
+- Hosted GitHub Actions execution is blocked by account billing/spending settings.
 - No centralized queue worker supervisor configuration.
-- AI KYC provider is currently mock/fallback.
+- Real KYC provider credentials and sandbox responses still need environment-specific validation.
 
 ## 3. Frontend Audit
 
@@ -172,7 +172,7 @@ Automated/local evidence:
 - Performance suites: 7 local load paths.
 - AI service TestClient: health and analyze endpoints.
 
-Hardening added during this audit:
+Hardening added during this audit and remediation:
 
 - `tools/quality_gate.php`
 - `npm test` now runs a real quality gate.
@@ -180,6 +180,12 @@ Hardening added during this audit:
 - `package-lock.json` added so `npm audit` can run.
 - `.github/workflows/quality.yml` added.
 - `.env.example` added.
+- `Dockerfile`, `docker-compose.yml`, and Apache production config added.
+- `/api/live.php` and `/api/readiness.php` added.
+- `ops/backup_mysql.sh` and `ops/restore_mysql.sh` added.
+- `tests/load/k6-smoke.js` added.
+- Strict CSP path added with nonce-backed scripts.
+- Admin audit logs now support source IP and user-agent context.
 
 ## 11. Bugs & Defects List
 
@@ -218,20 +224,59 @@ Status: Fixed
 Root cause: `.gitignore` allowed `.env.example`, but no template was present.  
 Fix: Added `.env.example` with production-relevant variables.
 
+### BUG-006: Partial CSP allowed weaker browser-side XSS posture
+
+Severity: High
+Status: Fixed
+Root cause: CSP only covered base/form/frame/object restrictions and inline JavaScript handlers were still present.
+Fix: Added centralized CSP sources with script nonces, nonced script tags, and replaced inline `onsubmit`, `onclick`, and `javascript:` usage with unobtrusive JavaScript.
+
+### BUG-007: Admin audit logs lacked request context
+
+Severity: Medium
+Status: Fixed
+Root cause: `audit_logs` captured action metadata but not source IP or user-agent.
+Fix: Added `source_ip` and `user_agent` columns, schema migration, index, admin helper capture, and admin table display.
+
+### BUG-008: No repeatable container deployment path
+
+Severity: Medium
+Status: Fixed
+Root cause: No Docker/Apache/Compose assets existed.
+Fix: Added PHP Apache container, AI verification container, MySQL/Redis compose stack, Apache deny rules, and health checks.
+
+### BUG-009: No backup/restore operational runbook
+
+Severity: Medium
+Status: Fixed
+Root cause: No checked-in backup scripts or restore drill instructions existed.
+Fix: Added MySQL backup/restore scripts with checksum validation and `docs/production_runbook.md`.
+
+### BUG-010: KYC provider layer was mock-only
+
+Severity: Medium
+Status: Partially fixed
+Root cause: AI service instantiated only the mock provider.
+Fix: Added environment-driven provider registry and generic HTTP KYC adapter with timeout, redaction, and safe `needs_review` fallback. Real provider credentials still require sandbox validation.
+
+### BUG-011: Quality gate Python syntax check had a parallel bytecode race
+
+Severity: Low
+Status: Fixed
+Root cause: concurrent `py_compile` executions could compete for `__pycache__` writes on Windows.
+Fix: Switched the quality gate to AST parsing for Python syntax checks without bytecode writes.
+
 ## 12. Severity Classification
 
 Critical: 0 open  
 High: 1 open operational blocker
-Medium: 4 found, 4 fixed  
-Low: residual recommendations only
+Medium: 9 found, 8 fixed, 1 provider-validation item pending credentials
+Low: 1 found, 1 fixed
 
 ## 13. Production Risks
 
-- No Docker/reverse-proxy deployment assets.
-- No centralized monitoring/alerting configuration.
-- No production backup/restore runbook.
 - Hosted GitHub Actions quality gate is blocked by account billing/spending settings.
-- Real KYC providers are not yet wired.
+- Real KYC provider sandbox credentials and response contracts are not yet validated.
 - WebKit/Safari automation was not completed in this environment.
 - Physical mobile-device QA still required.
 - Large-dataset/load testing beyond local concurrency remains required.
@@ -269,4 +314,25 @@ Concerns:
 
 ## 16. Final Engineering Verdict
 
-RideSync is significantly beyond prototype quality after the current hardening. It is suitable for staging and controlled beta validation. It is not yet ready for a public enterprise-scale launch until the remaining operational, observability, Safari/physical-device, production KYC, and high-volume load-testing gaps are closed.
+RideSync is significantly beyond prototype quality after the current hardening and remediation. It is suitable for staging and controlled beta validation. It is not yet ready for a public enterprise-scale launch until GitHub Actions execution is unblocked, provider-backed KYC is validated, physical Safari/mobile-device QA is completed, and high-volume production-like load testing is run.
+
+## 17. Remediation Validation Addendum
+
+Post-fix validation completed:
+
+- `php tools/apply_schema_upgrade.php`: 0 failed migrations.
+- `npm test`: passed.
+- `npm run test:syntax`: passed.
+- `npm audit --omit=dev --json`: 0 vulnerabilities.
+- API/security contract audit: 29 passed, 0 failed.
+- Race/rate-limit audit: 4 passed, 0 failed.
+- Performance audit: all 7 local paths passed p95 thresholds.
+- Browser smoke: public/admin/driver/API pages had 0 console errors and no horizontal overflow in the in-app browser.
+- AI verification service: health and analyze endpoints passed for mock and external-provider-failure fallback.
+- `git diff --check`: passed.
+
+Remaining external constraints:
+
+- Docker is not installed in the current workstation, so `docker compose config/build` could not be executed locally.
+- GitHub hosted Actions are blocked by account billing/spending settings before the runner starts.
+- Physical iOS/Android and Safari/WebKit lab testing remains required.

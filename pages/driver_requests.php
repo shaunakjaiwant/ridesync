@@ -124,7 +124,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
                     <?php endif; ?>
                     <p>Accepted <?php echo !empty($request['responded_at']) ? date('g:i A', strtotime($request['responded_at'])) : date('g:i A', strtotime($request['requested_at'])); ?></p>
                     <div class="driver-request-actions">
-                        <form action="/ridesync/actions/driver_account_action.php" method="POST" onsubmit="return confirm('Mark this direct trip completed?');">
+                        <form action="/ridesync/actions/driver_account_action.php" method="POST" data-confirm-message="Mark this direct trip completed?">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <input type="hidden" name="action_type" value="complete_direct_request">
                             <input type="hidden" name="request_id" value="<?php echo (int) $request['id']; ?>">

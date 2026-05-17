@@ -120,7 +120,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="route-alert-actions">
                             <span class="status-badge status-<?php echo htmlspecialchars($signal['demand_status']); ?>"><?php echo ucfirst(htmlspecialchars($signal['demand_status'])); ?></span>
                             <?php if ($signal['demand_status'] === 'active'): ?>
-                                <form method="POST" action="/ridesync/actions/demand_action.php" onsubmit="return confirm('Cancel this route alert?');">
+                                <form method="POST" action="/ridesync/actions/demand_action.php" data-confirm-message="Cancel this route alert?">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                     <input type="hidden" name="action_type" value="cancel_signal">
                                     <input type="hidden" name="signal_id" value="<?php echo (int) $signal['id']; ?>">

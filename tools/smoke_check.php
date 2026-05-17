@@ -30,6 +30,7 @@ $requiredTables = [
     'wallet_transactions',
     'admin_users',
     'reports',
+    'audit_logs',
 ];
 
 foreach ($requiredTables as $table) {
@@ -92,11 +93,16 @@ smoke_check('foreign keys present', $fkCount >= 15, $fkCount . ' found');
 $rateLimitDir = ridesync_rate_limit_dir();
 smoke_check('rate limiter storage', is_dir($rateLimitDir) && is_writable($rateLimitDir), $rateLimitDir);
 
+foreach (['source_ip', 'user_agent'] as $column) {
+    smoke_check("audit log {$column} column", ridesync_column_exists($conn, 'audit_logs', $column));
+}
+
 $expectedIndexes = [
     ['rides', 'idx_rides_user_status_time'],
     ['matches', 'idx_matches_ride_status'],
     ['driver_ride_requests', 'idx_driver_requests_rider_status_time'],
     ['notifications', 'idx_notifications_user_created'],
+    ['audit_logs', 'idx_audit_source_time'],
 ];
 
 foreach ($expectedIndexes as [$table, $index]) {

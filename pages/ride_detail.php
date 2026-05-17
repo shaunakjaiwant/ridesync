@@ -156,7 +156,7 @@ $canReportRide = count($reportTargets) > 0;
 ?>
 
 <div class="page-header">
-    <a href="javascript:history.back()" class="back-link">&larr; Back</a>
+    <a href="/ridesync/pages/dashboard.php" class="back-link" data-history-back>&larr; Back</a>
     <h1>Ride Details</h1>
 </div>
 
@@ -559,7 +559,7 @@ $canReportRide = count($reportTargets) > 0;
                     <input type="hidden" name="match_id" value="<?php echo (int) $existingMatch['id']; ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="return_to" value="/ridesync/pages/ride_detail.php?id=<?php echo (int) $ride['id']; ?>">
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel your request?')">Cancel Request</button>
+                    <button type="submit" class="btn btn-danger btn-sm" data-confirm-message="Cancel your request?">Cancel Request</button>
                 </form>
             <?php elseif ($existingMatch['status'] === 'accepted'): ?>
                 <p class="accepted-badge">You're on this ride!</p>

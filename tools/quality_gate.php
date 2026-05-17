@@ -71,13 +71,37 @@ $pythonFiles = [
 $pythonFiles = array_values(array_filter($pythonFiles, 'is_file'));
 if (!empty($pythonFiles)) {
     $output = '';
-    $command = 'python -m py_compile ' . implode(' ', array_map('escapeshellarg', $pythonFiles));
+    $command = 'python -c ' . escapeshellarg('import ast, pathlib, sys; [ast.parse(pathlib.Path(p).read_text(), filename=p) for p in sys.argv[1:]]')
+        . ' ' . implode(' ', array_map('escapeshellarg', $pythonFiles));
     $code = qg_run($command, $root, $output);
     if ($code !== 0) {
-        $failures[] = 'Python verification service compile failed.' . PHP_EOL . $output;
+        $failures[] = 'Python verification service syntax check failed.' . PHP_EOL . $output;
     }
     qg_note($code === 0 ? 'OK' : 'FAIL', 'AI verification service syntax');
 }
+
+$requiredOperationalFiles = [
+    '.env.example',
+    '.github/workflows/quality.yml',
+    'Dockerfile',
+    'docker-compose.yml',
+    'docker/apache/ridesync.conf',
+    'ai_verification_service/Dockerfile',
+    'docs/production_runbook.md',
+    'ops/backup_mysql.sh',
+    'ops/restore_mysql.sh',
+    'tests/load/k6-smoke.js',
+];
+
+foreach ($requiredOperationalFiles as $relativePath) {
+    if (!is_file($root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath))) {
+        $failures[] = 'Missing operational readiness file: ' . $relativePath;
+    }
+}
+qg_note(
+    count(array_filter($failures, static fn($failure) => str_contains($failure, 'Missing operational readiness file'))) === 0 ? 'OK' : 'FAIL',
+    'Operational readiness files'
+);
 
 $skipDb = in_array('--syntax-only', $argv ?? [], true)
     || filter_var(getenv('RIDESYNC_SKIP_DB_TESTS') ?: 'false', FILTER_VALIDATE_BOOLEAN);

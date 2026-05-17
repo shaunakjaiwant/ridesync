@@ -556,10 +556,13 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   entity_type VARCHAR(80) NOT NULL,
   entity_id INT NULL,
   message VARCHAR(255) NULL,
+  source_ip VARCHAR(64) NULL,
+  user_agent VARCHAR(255) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_audit_admin_time (admin_id, created_at),
   KEY idx_audit_entity (entity_type, entity_id),
+  KEY idx_audit_source_time (source_ip, created_at),
   CONSTRAINT fk_audit_logs_admin
     FOREIGN KEY (admin_id) REFERENCES admin_users(id)
     ON DELETE SET NULL

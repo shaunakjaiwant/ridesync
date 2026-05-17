@@ -83,6 +83,25 @@ function ridesync_admin_can($admin, $capability) {
     return $role === 'moderator' && in_array($capability, $moderatorCapabilities, true);
 }
 
+function ridesync_admin_audit_has_request_context($conn) {
+    static $hasColumns = null;
+
+    if ($hasColumns !== null) {
+        return $hasColumns;
+    }
+
+    if (!$conn instanceof mysqli) {
+        $hasColumns = false;
+        return $hasColumns;
+    }
+
+    $ipColumn = mysqli_query($conn, "SHOW COLUMNS FROM audit_logs LIKE 'source_ip'");
+    $agentColumn = mysqli_query($conn, "SHOW COLUMNS FROM audit_logs LIKE 'user_agent'");
+    $hasColumns = $ipColumn && mysqli_num_rows($ipColumn) > 0 && $agentColumn && mysqli_num_rows($agentColumn) > 0;
+
+    return $hasColumns;
+}
+
 function ridesync_admin_action_capability($action) {
     $map = [
         'user_verification_decision' => 'review_students',
@@ -109,6 +128,19 @@ function ridesync_admin_log($conn, $adminId, $action, $entityType, $entityId = n
     $message = $message !== null ? substr(trim((string) $message), 0, 255) : null;
 
     if ($action === '' || $entityType === '') {
+        return;
+    }
+
+    if (ridesync_admin_audit_has_request_context($conn)) {
+        $sourceIp = function_exists('ridesync_client_ip') ? ridesync_client_ip() : substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 64);
+        $userAgent = function_exists('ridesync_user_agent') ? ridesync_user_agent() : substr(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 255);
+        $stmt = mysqli_prepare(
+            $conn,
+            "INSERT INTO audit_logs (admin_id, action, entity_type, entity_id, message, source_ip, user_agent)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
+        );
+        mysqli_stmt_bind_param($stmt, "ississs", $adminId, $action, $entityType, $entityId, $message, $sourceIp, $userAgent);
+        mysqli_stmt_execute($stmt);
         return;
     }
 
