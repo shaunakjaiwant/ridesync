@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
 require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
+require_once __DIR__ . '/../includes/services/RealtimeEventService.php';
 
 if (!isset($_SESSION['admin_id'])) {
     http_response_code(401);
@@ -22,6 +23,7 @@ ridesync_enforce_rate_limit('sse:admin_events', 60, 60, 'admin:' . (int) $_SESSI
 session_write_close();
 
 ridesync_sse_headers();
+$lastEventId = max(0, (int) ($_GET['last_event_id'] ?? 0));
 
 function ridesync_admin_event_metrics($conn) {
     $result = mysqli_query(
@@ -83,10 +85,17 @@ for ($tick = 0; $tick < 12; $tick++) {
         break;
     }
 
+    $events = RideSyncRealtimeEventService::recentForAudience($conn, 'admin', null, $lastEventId, 25);
+    if (!empty($events)) {
+        $lastEventId = (int) end($events)['id'];
+        reset($events);
+    }
+
     ridesync_sse_event('admin', [
         'ok' => true,
         'metrics' => ridesync_admin_event_metrics($conn),
         'latest' => ridesync_admin_event_latest($conn),
+        'events' => $events,
         'server_time' => date('c'),
     ]);
 

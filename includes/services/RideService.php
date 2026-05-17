@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/RideStateMachine.php';
+require_once __DIR__ . '/RealtimeEventService.php';
 
 class RideSyncRideService
 {
@@ -45,7 +46,12 @@ class RideSyncRideService
         }
 
         mysqli_stmt_bind_param($stmt, "iisis", $rideId, $driverId, $status, $etaMinutes, $note);
-        return mysqli_stmt_execute($stmt);
+        $ok = mysqli_stmt_execute($stmt);
+        if ($ok) {
+            self::publishLiveStatusEvent($conn, $rideId, $status, $note, $driverId, $etaMinutes);
+        }
+
+        return $ok;
     }
 
     public static function recordDriverTrip($conn, int $driverId, string $pickup, string $drop, float $fare, $distanceKm, ?string $sourceType = null, ?int $sourceId = null): bool
@@ -120,6 +126,26 @@ class RideSyncRideService
         $safeTable = mysqli_real_escape_string($conn, $table);
         $result = mysqli_query($conn, "SHOW TABLES LIKE '{$safeTable}'");
         return $result && mysqli_num_rows($result) > 0;
+    }
+
+    private static function publishLiveStatusEvent($conn, int $rideId, string $status, ?string $note, ?int $driverId, ?int $etaMinutes): void
+    {
+        $payload = [
+            'ride_id' => $rideId,
+            'live_status' => $status,
+            'driver_id' => $driverId,
+            'eta_minutes' => $etaMinutes,
+            'note' => $note,
+            'updated_at' => date('c'),
+        ];
+
+        RideSyncRealtimeEventService::publishForRide($conn, $rideId, 'ride.live_status.updated', $payload, [
+            'idempotency_key' => 'ride-status-' . $rideId . '-' . $status . '-' . time(),
+        ]);
+        RideSyncRealtimeEventService::publishForAdmins($conn, 'admin.ride.live_status.updated', $payload, [
+            'aggregate_type' => 'ride',
+            'aggregate_id' => $rideId,
+        ]);
     }
 
     private static function columnExists($conn, string $table, string $column): bool

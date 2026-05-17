@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
+require_once __DIR__ . '/../includes/services/RealtimeEventService.php';
 
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['driver_id'])) {
     http_response_code(401);
@@ -18,6 +19,7 @@ ridesync_enforce_rate_limit('sse:events', 60, 60, $actorType . ':' . $actorId, [
 session_write_close();
 
 ridesync_sse_headers();
+$lastEventId = max(0, (int) ($_GET['last_event_id'] ?? 0));
 
 function ridesync_event_count($conn, $actorType, $actorId) {
     if (!ridesync_table_exists($conn, 'notifications')) {
@@ -55,6 +57,13 @@ for ($tick = 0; $tick < 12; $tick++) {
         'unread_notifications' => ridesync_event_count($conn, $actorType, $actorId),
         'server_time' => date('c'),
     ];
+
+    $events = RideSyncRealtimeEventService::recentForAudience($conn, $actorType, $actorId, $lastEventId, 20);
+    if (!empty($events)) {
+        $payload['events'] = $events;
+        $lastEventId = (int) end($events)['id'];
+        reset($events);
+    }
 
     if ($actorType === 'driver') {
         $payload['pending_driver_requests'] = ridesync_driver_pending_count($conn, $actorId);

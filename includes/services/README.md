@@ -14,6 +14,7 @@ Current services:
 - `RideStateMachine.php`: canonical live ride states and allowed transitions.
 - `NotificationService.php`: notification creation and inbox mutation operations.
 - `QueueService.php`: database-backed background job boundary for async-safe work.
+- `RealtimeEventService.php`: event outbox for SSE today and WebSocket/Redis fan-out later.
 
 Guidelines:
 
@@ -28,3 +29,5 @@ Worker entrypoint:
 ```text
 php tools/queue_worker.php --watch --queue=notifications
 ```
+
+Realtime events should be compact and safe for client delivery. Do not publish raw document references, tokens, passwords, or unmasked government identifiers.

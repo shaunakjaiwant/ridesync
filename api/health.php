@@ -19,7 +19,7 @@ $checks = [
 
 if ($conn instanceof mysqli) {
     $checks['database'] = mysqli_ping($conn);
-    $requiredTables = ['users', 'rides', 'matches', 'driver_accounts', 'notifications', 'admin_users'];
+    $requiredTables = ['users', 'rides', 'matches', 'driver_accounts', 'notifications', 'background_jobs', 'realtime_events', 'admin_users'];
     $schemaReady = true;
     foreach ($requiredTables as $table) {
         if (!ridesync_table_exists($conn, $table)) {

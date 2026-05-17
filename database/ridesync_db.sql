@@ -272,6 +272,25 @@ CREATE TABLE IF NOT EXISTS background_jobs (
   KEY idx_background_jobs_locked (locked_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS realtime_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  event_type VARCHAR(100) NOT NULL,
+  audience_type VARCHAR(40) NOT NULL,
+  audience_id INT NULL,
+  aggregate_type VARCHAR(60) NULL,
+  aggregate_id INT NULL,
+  payload_json LONGTEXT NOT NULL,
+  idempotency_key VARCHAR(120) NULL,
+  expires_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_realtime_events_idempotency (idempotency_key),
+  KEY idx_realtime_events_audience (audience_type, audience_id, id),
+  KEY idx_realtime_events_aggregate (aggregate_type, aggregate_id, id),
+  KEY idx_realtime_events_type_time (event_type, created_at),
+  KEY idx_realtime_events_expiry (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS user_ratings (
   id INT NOT NULL AUTO_INCREMENT,
   ride_id INT UNSIGNED NOT NULL,

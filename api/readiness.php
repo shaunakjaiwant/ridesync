@@ -23,6 +23,8 @@ if ($conn instanceof mysqli) {
         'driver_accounts',
         'driver_account_documents',
         'notifications',
+        'background_jobs',
+        'realtime_events',
         'admin_users',
         'audit_logs',
     ];

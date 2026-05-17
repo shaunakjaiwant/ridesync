@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/QueueService.php';
+require_once __DIR__ . '/RealtimeEventService.php';
 
 class RideSyncNotificationService
 {
@@ -33,7 +34,12 @@ class RideSyncNotificationService
         $title = $notification['title'];
         $message = $notification['message'];
         mysqli_stmt_bind_param($stmt, "iiss", $userId, $driverId, $title, $message);
-        return mysqli_stmt_execute($stmt);
+        $ok = mysqli_stmt_execute($stmt);
+        if ($ok) {
+            self::publishNotificationEvent($conn, (int) mysqli_insert_id($conn), $notification);
+        }
+
+        return $ok;
     }
 
     public static function createAsync($conn, $userId, $driverId, $title, $message, array $options = []): ?int
@@ -142,6 +148,29 @@ class RideSyncNotificationService
             'title' => $title,
             'message' => $message,
         ];
+    }
+
+    private static function publishNotificationEvent($conn, int $notificationId, array $notification): void
+    {
+        $payload = [
+            'notification_id' => $notificationId,
+            'title' => $notification['title'],
+            'message' => $notification['message'],
+            'unread_delta' => 1,
+            'created_at' => date('c'),
+        ];
+        $options = [
+            'aggregate_type' => 'notification',
+            'aggregate_id' => $notificationId,
+            'idempotency_key' => 'notification-created-' . $notificationId,
+        ];
+
+        if (!empty($notification['user_id'])) {
+            RideSyncRealtimeEventService::publishForUser($conn, (int) $notification['user_id'], 'notification.created', $payload, $options);
+        }
+        if (!empty($notification['driver_id'])) {
+            RideSyncRealtimeEventService::publishForDriver($conn, (int) $notification['driver_id'], 'notification.created', $payload, $options);
+        }
     }
 
     private static function truncate(string $value, int $length): string

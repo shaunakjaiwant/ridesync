@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/driver_document_helper.php';
 require_once __DIR__ . '/matching_helper.php';
+require_once __DIR__ . '/services/RealtimeEventService.php';
 
 function ridesync_verification_schema_ready($conn) {
     if (!$conn instanceof mysqli) {
@@ -198,6 +199,57 @@ function ridesync_verification_add_audit($conn, $sessionId, $actorType, $eventTy
     return mysqli_stmt_execute($stmt);
 }
 
+function ridesync_verification_publish_event($conn, $sessionId, $eventType, array $payload = []) {
+    if (!$conn instanceof mysqli || !class_exists('RideSyncRealtimeEventService')) {
+        return;
+    }
+
+    $sessionId = (int) $sessionId;
+    if ($sessionId <= 0) {
+        return;
+    }
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT id, driver_id, status, ai_decision, risk_level, confidence_score, progress_stage, updated_at
+         FROM driver_verification_sessions
+         WHERE id = ?
+         LIMIT 1"
+    );
+    if (!$stmt) {
+        return;
+    }
+
+    mysqli_stmt_bind_param($stmt, 'i', $sessionId);
+    mysqli_stmt_execute($stmt);
+    $session = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    if (!$session) {
+        return;
+    }
+
+    $driverId = (int) $session['driver_id'];
+    $eventPayload = array_merge([
+        'session_id' => $sessionId,
+        'driver_id' => $driverId,
+        'status' => $session['status'],
+        'ai_decision' => $session['ai_decision'],
+        'risk_level' => $session['risk_level'],
+        'confidence_score' => (float) $session['confidence_score'],
+        'progress_stage' => $session['progress_stage'],
+        'updated_at' => $session['updated_at'],
+    ], $payload);
+    $options = [
+        'aggregate_type' => 'driver_verification',
+        'aggregate_id' => $sessionId,
+    ];
+
+    RideSyncRealtimeEventService::publishForAdmins($conn, $eventType, $eventPayload, $options);
+    RideSyncRealtimeEventService::publish($conn, $eventType, 'verification', $sessionId, $eventPayload, $options);
+    if ($driverId > 0) {
+        RideSyncRealtimeEventService::publishForDriver($conn, $driverId, $eventType, $eventPayload, $options);
+    }
+}
+
 function ridesync_verification_create_session($conn, $driverId, $source = 'manual') {
     if (!ridesync_verification_schema_ready($conn)) {
         return null;
@@ -227,6 +279,10 @@ function ridesync_verification_create_session($conn, $driverId, $source = 'manua
     $sessionId = (int) mysqli_insert_id($conn);
 
     ridesync_verification_add_audit($conn, $sessionId, 'system', 'queued', 'Verification session queued.', [
+        'source' => $source,
+        'document_count' => count($bundle['documents']),
+    ]);
+    ridesync_verification_publish_event($conn, $sessionId, 'verification.queued', [
         'source' => $source,
         'document_count' => count($bundle['documents']),
     ]);
@@ -308,6 +364,10 @@ function ridesync_verification_update_stage($conn, $sessionId, $stage, $message)
     mysqli_stmt_bind_param($stmt, 'ssi', $status, $stage, $sessionId);
     mysqli_stmt_execute($stmt);
     ridesync_verification_add_audit($conn, $sessionId, 'system', $stage, $message);
+    ridesync_verification_publish_event($conn, $sessionId, 'verification.stage.updated', [
+        'stage' => $stage,
+        'message' => $message,
+    ]);
 }
 
 function ridesync_verification_reference_field($reference, $key) {
@@ -919,6 +979,11 @@ function ridesync_verification_process_session($conn, $sessionId) {
             'face_score' => $faceScore,
             'fraud_score' => $fraudScore,
         ]);
+        ridesync_verification_publish_event($conn, $sessionId, 'verification.decision.generated', [
+            'decision' => $decision,
+            'risk_level' => $riskLevel,
+            'confidence_score' => $confidenceScore,
+        ]);
 
         mysqli_commit($conn);
         return true;
@@ -937,6 +1002,9 @@ function ridesync_verification_process_session($conn, $sessionId) {
         mysqli_stmt_execute($stmt);
         ridesync_verification_add_audit($conn, $sessionId, 'system', 'failed', 'Verification worker failed.', [
             'error_class' => get_class($exception),
+        ]);
+        ridesync_verification_publish_event($conn, $sessionId, 'verification.failed', [
+            'message' => 'Verification worker failed.',
         ]);
         ridesync_log_exception($exception, ['session_id' => $sessionId]);
         return false;
@@ -985,6 +1053,10 @@ function ridesync_verification_admin_decision($conn, $sessionId, $adminId, $deci
     ridesync_verification_add_audit($conn, $sessionId, 'admin', 'admin_' . $decision, 'Admin marked verification as ' . $decision . '.', [
         'note_present' => $note !== '',
     ], $adminId);
+    ridesync_verification_publish_event($conn, $sessionId, 'verification.admin_decision.saved', [
+        'admin_decision' => $decision,
+        'note_present' => $note !== '',
+    ]);
 
     return $ok;
 }

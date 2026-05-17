@@ -26,6 +26,8 @@ $requiredTables = [
     'ride_routes',
     'ride_live_status',
     'notifications',
+    'background_jobs',
+    'realtime_events',
     'wallet_accounts',
     'wallet_transactions',
     'admin_users',
@@ -102,6 +104,8 @@ $expectedIndexes = [
     ['matches', 'idx_matches_ride_status'],
     ['driver_ride_requests', 'idx_driver_requests_rider_status_time'],
     ['notifications', 'idx_notifications_user_created'],
+    ['background_jobs', 'idx_background_jobs_ready'],
+    ['realtime_events', 'idx_realtime_events_audience'],
     ['audit_logs', 'idx_audit_source_time'],
 ];
 
