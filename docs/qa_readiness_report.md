@@ -55,7 +55,7 @@ Residual security risks:
 - No automated DAST suite such as OWASP ZAP has been run yet.
 - No multi-browser authenticated security crawl has been completed.
 - No formal dependency vulnerability scan is present in the repo.
-- Admin audit logs should eventually include source IP and user agent.
+- Superseded by later hardening: admin audit logs now include request context; see `docs/production_audit_report_2026-05-17.md`.
 
 ## UI/UX Audit
 

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/view_helper.php';
 $currentDriverPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
 $cssFiles = glob(__DIR__ . '/../css/*.css') ?: [__DIR__ . '/../css/style.css'];
 $styleVersion = max(array_map('filemtime', $cssFiles));

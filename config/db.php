@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
-require_once __DIR__ . '/../includes/view_helper.php';
 
 $host     = ridesync_env('RIDESYNC_DB_HOST', 'localhost');
 $username = ridesync_env('RIDESYNC_DB_USER', 'root');

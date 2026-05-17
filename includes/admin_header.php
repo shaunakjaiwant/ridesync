@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/asset_helper.php';
+require_once __DIR__ . '/view_helper.php';
 $currentAdminPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
 $currentAdminSection = $_GET['section'] ?? 'overview';
 if ($currentAdminPage === 'admin_driver_verification.php') {

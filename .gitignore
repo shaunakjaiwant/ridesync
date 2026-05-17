@@ -35,6 +35,12 @@ uploads/profile_photos/*
 qa_artifacts/
 qa-artifacts/
 
+# Test/load tool output
+k6-results/
+playwright-report/
+test-results/
+.nyc_output/
+
 # OS/editor noise
 .DS_Store
 Thumbs.db
