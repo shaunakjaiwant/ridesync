@@ -1,0 +1,115 @@
+<?php
+require_once __DIR__ . '/../config/bootstrap.php';
+
+$root = realpath(__DIR__ . '/..');
+$failures = [];
+
+function qg_note($status, $message) {
+    echo '[' . $status . '] ' . $message . PHP_EOL;
+}
+
+function qg_run($command, $cwd, &$output = null) {
+    $descriptor = [
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+    $process = proc_open($command, $descriptor, $pipes, $cwd);
+    if (!is_resource($process)) {
+        $output = 'Could not start command: ' . $command;
+        return 1;
+    }
+
+    $stdout = stream_get_contents($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $code = proc_close($process);
+    $output = trim($stdout . ($stderr !== '' ? PHP_EOL . $stderr : ''));
+
+    return $code;
+}
+
+function qg_collect_php_files($root) {
+    $files = [];
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveCallbackFilterIterator(
+            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+            static function ($current) {
+                if (!$current->isDir()) {
+                    return true;
+                }
+
+                return !in_array($current->getFilename(), ['.git', 'node_modules', 'vendor', '.venv', '__pycache__'], true);
+            }
+        )
+    );
+
+    foreach ($iterator as $file) {
+        if ($file->isFile() && strtolower($file->getExtension()) === 'php') {
+            $files[] = $file->getPathname();
+        }
+    }
+
+    sort($files);
+    return $files;
+}
+
+foreach (qg_collect_php_files($root) as $file) {
+    $output = '';
+    $code = qg_run('php -l ' . escapeshellarg($file), $root, $output);
+    if ($code !== 0) {
+        $failures[] = 'PHP lint failed: ' . $file . PHP_EOL . $output;
+    }
+}
+qg_note(count($failures) === 0 ? 'OK' : 'FAIL', 'PHP syntax lint');
+
+$pythonFiles = [
+    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'main.py',
+    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'worker.py',
+    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'providers.py',
+];
+$pythonFiles = array_values(array_filter($pythonFiles, 'is_file'));
+if (!empty($pythonFiles)) {
+    $output = '';
+    $command = 'python -m py_compile ' . implode(' ', array_map('escapeshellarg', $pythonFiles));
+    $code = qg_run($command, $root, $output);
+    if ($code !== 0) {
+        $failures[] = 'Python verification service compile failed.' . PHP_EOL . $output;
+    }
+    qg_note($code === 0 ? 'OK' : 'FAIL', 'AI verification service syntax');
+}
+
+$skipDb = in_array('--syntax-only', $argv ?? [], true)
+    || filter_var(getenv('RIDESYNC_SKIP_DB_TESTS') ?: 'false', FILTER_VALIDATE_BOOLEAN);
+if ($skipDb) {
+    qg_note('SKIP', 'DB smoke checks disabled by RIDESYNC_SKIP_DB_TESTS');
+} else {
+    foreach ([
+        'php tools/smoke_check.php',
+        'php tools/smoke_admin_dashboard.php overview',
+        'php tools/smoke_admin_dashboard.php drivers',
+        'php tools/smoke_admin_dashboard.php users',
+        'php tools/smoke_admin_dashboard.php rides',
+        'php tools/smoke_admin_dashboard.php requests',
+        'php tools/smoke_admin_dashboard.php reports',
+        'php tools/smoke_admin_dashboard.php analytics',
+        'php tools/smoke_admin_dashboard.php system',
+    ] as $command) {
+        $output = '';
+        $code = qg_run($command, $root, $output);
+        if ($code !== 0) {
+            $failures[] = 'Smoke command failed: ' . $command . PHP_EOL . $output;
+        }
+    }
+    qg_note(count(array_filter($failures, static fn($failure) => str_contains($failure, 'Smoke command failed'))) === 0 ? 'OK' : 'FAIL', 'DB smoke checks');
+}
+
+if (!empty($failures)) {
+    echo PHP_EOL . 'Quality gate failures:' . PHP_EOL;
+    foreach ($failures as $failure) {
+        echo '- ' . $failure . PHP_EOL;
+    }
+    exit(1);
+}
+
+echo PHP_EOL . 'RideSync quality gate passed.' . PHP_EOL;
