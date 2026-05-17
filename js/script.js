@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initDriverLiveStatus();
     initDriverLocationCapture();
     initTripShare();
+    initScrollableRegions();
 
     // --- Registration Form ---
     var regForm = document.querySelector('form[action*="register_action"]');
@@ -638,10 +639,18 @@ function initAdminMap() {
         scrollWheelZoom: false
     }).setView([12.8698, 74.8430], 10);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    });
+
+    tiles.on('tileload', function (event) {
+        if (!event.tile) return;
+        event.tile.alt = '';
+        event.tile.setAttribute('aria-hidden', 'true');
+    });
+
+    tiles.addTo(map);
 
     var markers = [];
     points.forEach(function (point) {
@@ -655,6 +664,11 @@ function initAdminMap() {
             })
         }).addTo(map);
         marker.bindPopup('<strong>' + escapeHtml(point.name || 'Signal') + '</strong><br>' + escapeHtml(point.status || point.type || 'Active'));
+        var markerElement = marker.getElement && marker.getElement();
+        if (markerElement) {
+            markerElement.setAttribute('aria-label', (point.name || 'Map signal') + ' ' + (point.status || point.type || 'active'));
+            markerElement.setAttribute('title', point.name || 'Map signal');
+        }
         markers.push(marker);
     });
 
@@ -673,6 +687,15 @@ function initAdminMap() {
     setTimeout(function () {
         map.invalidateSize();
     }, 250);
+}
+
+function initScrollableRegions() {
+    document.querySelectorAll('.admin-table-wrap, .admin-feed-list').forEach(function (node, index) {
+        node.setAttribute('tabindex', '0');
+        if (!node.getAttribute('aria-label')) {
+            node.setAttribute('aria-label', index === 0 ? 'Scrollable admin data' : 'Scrollable admin data ' + (index + 1));
+        }
+    });
 }
 
 function initAdminRealtime() {

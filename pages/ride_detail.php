@@ -46,6 +46,7 @@ $stmt = mysqli_prepare($conn,
 mysqli_stmt_bind_param($stmt, "ii", $rideId, $userId);
 mysqli_stmt_execute($stmt);
 $existingMatch = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$canPollLiveStatus = $isOwner || !empty($existingMatch);
 
 $stmt = mysqli_prepare($conn,
     "SELECT u.id, u.name, u.college
@@ -188,7 +189,7 @@ $canReportRide = count($reportTargets) > 0;
             <div class="map-picker-header">
                 <div>
                     <span class="map-kicker">Route map</span>
-                    <h3>Exact departure and destination</h3>
+                    <h2>Exact departure and destination</h2>
                     <p><?php echo $ride['route_distance_km'] ? number_format((float) $ride['route_distance_km'], 2) . ' km route distance' : 'Route distance estimated from selected pins'; ?></p>
                 </div>
                 <span class="fare-live-badge">Map verified</span>
@@ -223,7 +224,7 @@ $canReportRide = count($reportTargets) > 0;
         </div>
     </div>
 
-    <section class="live-status-card" data-live-ride="<?php echo (int) $rideId; ?>">
+    <section class="live-status-card"<?php echo $canPollLiveStatus ? ' data-live-ride="' . (int) $rideId . '"' : ''; ?>>
         <div class="live-status-header">
             <div>
                 <span class="fare-kicker">Live ride state</span>

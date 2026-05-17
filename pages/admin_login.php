@@ -14,7 +14,7 @@ require_once __DIR__ . '/../includes/public_header.php';
 ?>
 
 <div class="form-container">
-    <h2><?php echo $needsSetup ? 'Create Admin Access' : 'Admin Login'; ?></h2>
+    <h1><?php echo $needsSetup ? 'Create Admin Access' : 'Admin Login'; ?></h1>
 
     <?php ridesync_flash('admin_success', 'alert-success'); ?>
     <?php ridesync_flash('admin_error', 'alert-error'); ?>
@@ -29,25 +29,25 @@ require_once __DIR__ . '/../includes/public_header.php';
             <?php if ($needsSetup): ?>
                 <div class="form-group">
                     <label for="name">Admin Name</label>
-                    <input type="text" id="name" name="name" required maxlength="100">
+                    <input type="text" id="name" name="name" required maxlength="100" autocomplete="name">
                 </div>
             <?php endif; ?>
 
             <div class="form-group">
                 <label for="email">Admin Email</label>
-                <input type="email" id="email" name="email" required data-email-validate>
+                <input type="email" id="email" name="email" required autocomplete="username" data-email-validate>
                 <div class="email-validation-message" data-email-message></div>
             </div>
 
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required minlength="8">
+                <input type="password" id="password" name="password" required minlength="8" autocomplete="<?php echo $needsSetup ? 'new-password' : 'current-password'; ?>">
             </div>
 
             <?php if ($needsSetup): ?>
                 <div class="form-group">
                     <label for="confirm_password">Confirm Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
                 </div>
             <?php endif; ?>
 
@@ -57,8 +57,8 @@ require_once __DIR__ . '/../includes/public_header.php';
         </form>
     <?php endif; ?>
 
-    <p style="text-align:center; margin-top:15px; color:#777;">
-        <a href="/ridesync/index.php" style="color:#4361ee;">Back to RideSync</a>
+    <p class="auth-switch-text">
+        <a href="/ridesync/index.php">Back to RideSync</a>
     </p>
 </div>
 
