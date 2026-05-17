@@ -22,6 +22,7 @@ $adminNavItems = [
     'rides' => ['label' => 'Rides', 'icon' => 'R'],
     'requests' => ['label' => 'Requests', 'icon' => 'Q'],
     'reports' => ['label' => 'Reports', 'icon' => '!'],
+    'remove' => ['label' => 'Remove', 'icon' => 'X'],
 ];
 ?>
 <!DOCTYPE html>

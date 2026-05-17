@@ -113,6 +113,7 @@ function ridesync_admin_action_capability($action) {
         'driver_ai_verification_decision' => 'review_drivers',
         'driver_document_decision' => 'review_drivers',
         'driver_account_status' => 'manage_driver_accounts',
+        'admin_remove_account' => 'remove_accounts',
         'report_decision' => 'review_reports',
     ];
 

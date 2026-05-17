@@ -8,7 +8,7 @@ require_once __DIR__ . '/../config/db.php';
 
 $section = $argv[1] ?? 'overview';
 $query = $argv[2] ?? '';
-$allowed = ['overview', 'drivers', 'users', 'rides', 'requests', 'reports', 'analytics', 'system'];
+$allowed = ['overview', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'analytics', 'system'];
 if (!in_array($section, $allowed, true)) {
     fwrite(STDERR, "Unsupported section\n");
     exit(1);

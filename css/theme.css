@@ -2517,6 +2517,14 @@ button:disabled {
     background: #ffffff;
 }
 
+.admin-danger-note {
+    max-width: 720px;
+    margin-top: 6px;
+    color: var(--danger);
+    font-size: 0.84rem;
+    font-weight: 750;
+}
+
 .admin-table-wrap:focus-visible,
 .admin-feed-list:focus-visible {
     outline: 0;

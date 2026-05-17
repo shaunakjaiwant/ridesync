@@ -137,6 +137,7 @@ if ($skipDb) {
         'php tools/smoke_admin_dashboard.php rides',
         'php tools/smoke_admin_dashboard.php requests',
         'php tools/smoke_admin_dashboard.php reports',
+        'php tools/smoke_admin_dashboard.php remove',
         'php tools/smoke_admin_dashboard.php analytics',
         'php tools/smoke_admin_dashboard.php system',
     ] as $command) {

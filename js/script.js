@@ -1186,6 +1186,23 @@ function initConfirmActions() {
             var message = (submitter && submitter.dataset && submitter.dataset.confirmMessage)
                 || form.dataset.confirmMessage
                 || 'Continue with this action?';
+            var phrase = (submitter && submitter.dataset && submitter.dataset.confirmPhrase)
+                || form.dataset.confirmPhrase
+                || '';
+
+            if (phrase) {
+                var typed = window.prompt(message + '\n\nType "' + phrase + '" to confirm.');
+                if (typed !== phrase) {
+                    event.preventDefault();
+                    return;
+                }
+
+                var confirmationInput = form.querySelector('input[name="confirmation_text"]');
+                if (confirmationInput) {
+                    confirmationInput.value = typed;
+                }
+                return;
+            }
 
             if (!window.confirm(message)) {
                 event.preventDefault();

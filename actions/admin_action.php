@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/redirect_helper.php';
 require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
+require_once __DIR__ . '/../includes/admin_remove_helper.php';
 
 ridesync_require_admin_login();
 
@@ -41,6 +42,61 @@ $requiredCapability = ridesync_admin_action_capability($action);
 if ($requiredCapability !== null && !ridesync_admin_can($admin, $requiredCapability)) {
     ridesync_admin_log($conn, $adminId, 'admin_action_denied', 'admin_user', $adminId, $action);
     $_SESSION['admin_error'] = "You do not have permission to perform that admin action.";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_remove_account') {
+    $accountType = strtolower(trim((string) ($_POST['account_type'] ?? '')));
+    $accountId = (int) ($_POST['account_id'] ?? 0);
+    $confirmationText = trim((string) ($_POST['confirmation_text'] ?? ''));
+    $expectedConfirmation = ridesync_admin_remove_confirmation_phrase($accountType, $accountId);
+
+    if (!in_array($accountType, ['rider', 'driver'], true) || $accountId <= 0) {
+        $_SESSION['admin_error'] = "Invalid account removal request.";
+        ridesync_admin_redirect();
+    }
+
+    if (!hash_equals($expectedConfirmation, $confirmationText)) {
+        ridesync_admin_log($conn, $adminId, 'admin_remove_confirmation_failed', $accountType, $accountId, 'Confirmation phrase mismatch.');
+        $_SESSION['admin_error'] = "Removal cancelled. The confirmation phrase did not match.";
+        ridesync_admin_redirect();
+    }
+
+    $account = ridesync_admin_fetch_removable_account($conn, $accountType, $accountId);
+    if (!$account) {
+        $_SESSION['admin_error'] = ucfirst($accountType) . " account not found.";
+        ridesync_admin_redirect();
+    }
+
+    mysqli_begin_transaction($conn);
+
+    try {
+        $summary = ridesync_admin_remove_account($conn, $accountType, $accountId);
+        mysqli_commit($conn);
+    } catch (Throwable $exception) {
+        mysqli_rollback($conn);
+        ridesync_log_exception($exception, [
+            'admin_id' => $adminId,
+            'account_type' => $accountType,
+            'account_id' => $accountId,
+        ]);
+        $_SESSION['admin_error'] = "Could not remove this account safely. No deletion was completed.";
+        ridesync_admin_redirect();
+    }
+
+    $summary = ridesync_admin_remove_finalize_cleanup($summary, $accountType, $accountId);
+    $deletedRows = array_sum(array_map('intval', $summary['deleted_rows'] ?? []));
+    $accountLabel = ucfirst($accountType) . ' #' . $accountId;
+    $accountName = trim((string) ($account['name'] ?? ''));
+    $accountEmail = trim((string) ($account['email'] ?? ''));
+    $auditMessage = substr(trim($accountLabel . ' ' . $accountName . ' ' . $accountEmail . ' removed; rows=' . $deletedRows), 0, 255);
+    ridesync_admin_log($conn, $adminId, 'admin_remove_' . $accountType, $accountType === 'driver' ? 'driver_account' : 'user', $accountId, $auditMessage);
+
+    if ((int) (($summary['files']['failed'] ?? 0)) > 0) {
+        $_SESSION['admin_error'] = $accountLabel . " was removed, but one uploaded file could not be deleted. Check server file permissions.";
+    } else {
+        $_SESSION['admin_success'] = $accountLabel . " and associated RideSync data were permanently removed.";
+    }
     ridesync_admin_redirect();
 }
 

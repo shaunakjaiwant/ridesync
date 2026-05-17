@@ -135,6 +135,7 @@ function ridesync_admin_suggestion_contexts() {
         'directRequestsTable',
         'joinRequestsTable',
         'reportsPanel',
+        'removeTable',
         'auditTable',
     ];
 }
@@ -356,6 +357,50 @@ function ridesync_admin_audit_suggestions($conn, $query, $limit) {
     return ridesync_search_finalize($items, $query, $limit);
 }
 
+function ridesync_admin_remove_suggestions($conn, $query, $limit) {
+    if (!ridesync_table_exists($conn, 'users') || !ridesync_table_exists($conn, 'driver_accounts')) {
+        return [];
+    }
+
+    $like = ridesync_search_like($query);
+    $id = ctype_digit($query) ? (int) $query : -1;
+    $rows = array_merge(
+        ridesync_search_rows($conn,
+            "SELECT 'rider' AS account_type, id, name, email, '' AS phone, created_at
+             FROM users
+             WHERE id = ? OR name LIKE ? OR email LIKE ? OR college LIKE ?
+             ORDER BY created_at DESC
+             LIMIT " . (int) $limit,
+            'isss',
+            [$id, $like, $like, $like]
+        ),
+        ridesync_search_rows($conn,
+            "SELECT 'driver' AS account_type, id, name, email, phone, created_at
+             FROM driver_accounts
+             WHERE id = ? OR name LIKE ? OR email LIKE ? OR phone LIKE ?
+             ORDER BY created_at DESC
+             LIMIT " . (int) $limit,
+            'isss',
+            [$id, $like, $like, $like]
+        )
+    );
+
+    $items = [];
+    foreach ($rows as $row) {
+        $type = (string) ($row['account_type'] ?? 'rider');
+        $category = $type === 'driver' ? 'Driver Account' : 'Rider Account';
+        $metaParts = array_filter([
+            '#' . (int) $row['id'],
+            $row['email'] ?? '',
+            $row['phone'] ?? '',
+        ]);
+        $items[] = ridesync_search_item('removeTable', $category, $row['name'], $row['name'], implode(' - ', $metaParts), null, 0);
+        $items[] = ridesync_search_item('removeTable', $category . ' ID', '#' . (int) $row['id'], (string) (int) $row['id'], $row['name'] ?? '', null, 0);
+    }
+
+    return ridesync_search_finalize($items, $query, $limit);
+}
+
 function ridesync_admin_search_suggestions($conn, $context, $query, $limit = 10) {
     $context = in_array($context, ridesync_admin_suggestion_contexts(), true) ? $context : 'admin_global';
     $query = ridesync_search_query($query);
@@ -372,6 +417,7 @@ function ridesync_admin_search_suggestions($conn, $context, $query, $limit = 10)
         'directRequestsTable' => 'ridesync_admin_direct_request_suggestions',
         'joinRequestsTable' => 'ridesync_admin_join_request_suggestions',
         'reportsPanel' => 'ridesync_admin_report_suggestions',
+        'removeTable' => 'ridesync_admin_remove_suggestions',
         'auditTable' => 'ridesync_admin_audit_suggestions',
     ];
 

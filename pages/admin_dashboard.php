@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/verification_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/cost_helper.php';
 require_once __DIR__ . '/../includes/asset_helper.php';
+require_once __DIR__ . '/../includes/admin_remove_helper.php';
 
 ridesync_require_admin_login();
 
@@ -25,13 +26,14 @@ if (!$admin || $admin['status'] !== 'active') {
 }
 ridesync_admin_sync_session($admin);
 $canManageDriverAccounts = ridesync_admin_can($admin, 'manage_driver_accounts');
+$canRemoveAccounts = ridesync_admin_can($admin, 'remove_accounts');
 
 $section = $_GET['section'] ?? 'overview';
 if ($section === 'verifications') {
     $section = 'users';
     $_GET['section'] = 'users';
 }
-$allowedSections = ['overview', 'drivers', 'users', 'rides', 'requests', 'reports', 'analytics', 'system'];
+$allowedSections = ['overview', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'analytics', 'system'];
 if (!in_array($section, $allowedSections, true)) {
     $section = 'overview';
 }
@@ -121,6 +123,7 @@ $adminSectionTabs = [
     'rides' => ['label' => 'Rides', 'count' => ridesync_admin_int($metrics, 'open_rides')],
     'requests' => ['label' => 'Requests', 'count' => $pendingRequests],
     'reports' => ['label' => 'Reports', 'count' => ridesync_admin_int($metrics, 'active_reports')],
+    'remove' => ['label' => 'Remove', 'count' => ridesync_admin_int($metrics, 'total_users') + ridesync_admin_int($metrics, 'total_drivers')],
 ];
 
 $needsOverview = $section === 'overview';
@@ -129,6 +132,7 @@ $needsUsers = $section === 'users';
 $needsRides = $section === 'rides';
 $needsRequests = $section === 'requests';
 $needsReports = $section === 'reports';
+$needsRemove = $section === 'remove';
 $needsAnalytics = $section === 'analytics';
 $needsSystem = $section === 'system';
 $verificationReady = ridesync_verification_schema_ready($conn);
@@ -139,6 +143,7 @@ $rideRows = [];
 $directRequestRows = [];
 $communityRequestRows = [];
 $studentVerificationRows = [];
+$removeRows = [];
 $reportRows = [];
 $auditRows = [];
 $routeDemandRows = [];
@@ -161,6 +166,7 @@ $ridePagination = null;
 $directRequestPagination = null;
 $communityRequestPagination = null;
 $reportPagination = null;
+$removePagination = null;
 $auditPagination = null;
 
 if ($needsDrivers) {
@@ -406,6 +412,114 @@ if ($needsUsers) {
          JOIN users u ON u.id = uv.user_id
          ORDER BY FIELD(uv.status, 'pending', 'rejected', 'verified'), uv.updated_at DESC
          LIMIT 80"
+    );
+}
+
+if ($needsRemove) {
+    $removeTotal = ridesync_admin_int($metrics, 'total_users') + ridesync_admin_int($metrics, 'total_drivers');
+    $removePagination = ridesync_admin_pagination_meta($removeTotal, 'remove_page', 25);
+    $removeRows = ridesync_admin_paginated_rows($conn,
+        "SELECT *
+         FROM (
+            SELECT
+                CAST('rider' AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci AS account_type,
+                u.id AS account_id,
+                CONVERT(u.name USING utf8mb4) COLLATE utf8mb4_unicode_ci AS name,
+                CONVERT(u.email USING utf8mb4) COLLATE utf8mb4_unicode_ci AS email,
+                CAST('' AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci AS phone,
+                CAST('Rider' AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci AS account_label,
+                u.created_at,
+                COALESCE(ride_summary.rides_posted, 0) AS ride_count,
+                COALESCE(match_summary.join_requests, 0) + COALESCE(direct_summary.direct_requests, 0) AS request_count,
+                0 AS document_count,
+                COALESCE(wallet_summary.payment_count, 0) AS payment_count,
+                COALESCE(notification_summary.notification_count, 0) AS notification_count,
+                COALESCE(report_summary.report_count, 0) + COALESCE(reported_summary.report_count, 0) AS report_count
+             FROM users u
+             LEFT JOIN (
+                SELECT user_id, COUNT(*) AS rides_posted
+                FROM rides
+                GROUP BY user_id
+             ) ride_summary ON ride_summary.user_id = u.id
+             LEFT JOIN (
+                SELECT matched_user_id, COUNT(*) AS join_requests
+                FROM matches
+                GROUP BY matched_user_id
+             ) match_summary ON match_summary.matched_user_id = u.id
+             LEFT JOIN (
+                SELECT rider_user_id, COUNT(*) AS direct_requests
+                FROM driver_ride_requests
+                WHERE rider_user_id IS NOT NULL
+                GROUP BY rider_user_id
+             ) direct_summary ON direct_summary.rider_user_id = u.id
+             LEFT JOIN (
+                SELECT user_id, COUNT(*) AS payment_count
+                FROM wallet_transactions
+                GROUP BY user_id
+             ) wallet_summary ON wallet_summary.user_id = u.id
+             LEFT JOIN (
+                SELECT user_id, COUNT(*) AS notification_count
+                FROM notifications
+                WHERE user_id IS NOT NULL
+                GROUP BY user_id
+             ) notification_summary ON notification_summary.user_id = u.id
+             LEFT JOIN (
+                SELECT reporter_user_id, COUNT(*) AS report_count
+                FROM reports
+                GROUP BY reporter_user_id
+             ) report_summary ON report_summary.reporter_user_id = u.id
+             LEFT JOIN (
+                SELECT reported_user_id, COUNT(*) AS report_count
+                FROM reports
+                WHERE reported_user_id IS NOT NULL
+                GROUP BY reported_user_id
+             ) reported_summary ON reported_summary.reported_user_id = u.id
+            UNION ALL
+            SELECT
+                CAST('driver' AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci AS account_type,
+                d.id AS account_id,
+                CONVERT(d.name USING utf8mb4) COLLATE utf8mb4_unicode_ci AS name,
+                CONVERT(d.email USING utf8mb4) COLLATE utf8mb4_unicode_ci AS email,
+                CONVERT(d.phone USING utf8mb4) COLLATE utf8mb4_unicode_ci AS phone,
+                CAST('Driver' AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci AS account_label,
+                d.created_at,
+                COALESCE(history_summary.completed_trips, 0) AS ride_count,
+                COALESCE(request_summary.request_count, 0) AS request_count,
+                COALESCE(document_summary.document_count, 0) AS document_count,
+                COALESCE(wallet_summary.payment_count, 0) AS payment_count,
+                COALESCE(notification_summary.notification_count, 0) AS notification_count,
+                0 AS report_count
+             FROM driver_accounts d
+             LEFT JOIN (
+                SELECT driver_id, COUNT(*) AS completed_trips
+                FROM driver_ride_history
+                GROUP BY driver_id
+             ) history_summary ON history_summary.driver_id = d.id
+             LEFT JOIN (
+                SELECT driver_id, COUNT(*) AS request_count
+                FROM driver_ride_requests
+                GROUP BY driver_id
+             ) request_summary ON request_summary.driver_id = d.id
+             LEFT JOIN (
+                SELECT driver_id, COUNT(*) AS document_count
+                FROM driver_account_documents
+                GROUP BY driver_id
+             ) document_summary ON document_summary.driver_id = d.id
+             LEFT JOIN (
+                SELECT driver_id, COUNT(*) AS payment_count
+                FROM wallet_transactions
+                WHERE driver_id IS NOT NULL
+                GROUP BY driver_id
+             ) wallet_summary ON wallet_summary.driver_id = d.id
+             LEFT JOIN (
+                SELECT driver_id, COUNT(*) AS notification_count
+                FROM notifications
+                WHERE driver_id IS NOT NULL
+                GROUP BY driver_id
+             ) notification_summary ON notification_summary.driver_id = d.id
+         ) removable_accounts
+         ORDER BY created_at DESC",
+        $removePagination
     );
 }
 
@@ -1243,6 +1357,112 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($section === 'remove'): ?>
+        <section class="admin-command-card admin-table-card" id="remove">
+            <div class="admin-card-head">
+                <div>
+                    <span class="driver-kicker">Account Cleanup</span>
+                    <h2>Remove Accounts</h2>
+                    <p class="admin-danger-note">Permanent cleanup removes the selected rider or driver account, related operational data, uploaded files, and active sessions.</p>
+                </div>
+                <div class="admin-table-tools">
+                    <input type="search" placeholder="Search removable users" aria-label="Search removable riders and drivers" data-admin-table-search="removeTable" data-search-context="removeTable">
+                    <select aria-label="Filter removable accounts by type" data-admin-table-status="removeTable">
+                        <option value="">All accounts</option>
+                        <option value="rider">Riders</option>
+                        <option value="driver">Drivers</option>
+                    </select>
+                </div>
+            </div>
+
+            <?php if (!$canRemoveAccounts): ?>
+                <div class="alert alert-error">Only super admins can permanently remove rider or driver accounts.</div>
+            <?php endif; ?>
+
+            <div class="admin-table-wrap">
+                <table class="admin-smart-table" id="removeTable">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Type</th>
+                            <th>Ride Data</th>
+                            <th>Requests</th>
+                            <th>Files</th>
+                            <th>Signals</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($removeRows as $accountRow): ?>
+                            <?php
+                            $accountType = (string) $accountRow['account_type'];
+                            $accountId = (int) $accountRow['account_id'];
+                            $confirmationPhrase = ridesync_admin_remove_confirmation_phrase($accountType, $accountId);
+                            $removeSearch = ridesync_admin_search_blob([
+                                $accountType,
+                                $accountId,
+                                $accountRow['name'],
+                                $accountRow['email'],
+                                $accountRow['phone'],
+                            ]);
+                            ?>
+                            <tr data-search="<?php echo htmlspecialchars($removeSearch); ?>" data-status="<?php echo htmlspecialchars($accountType); ?>">
+                                <td>
+                                    <strong><?php echo htmlspecialchars($accountRow['name']); ?></strong>
+                                    <span>#<?php echo $accountId; ?> - <?php echo htmlspecialchars($accountRow['email']); ?></span>
+                                    <?php if (trim((string) $accountRow['phone']) !== ''): ?>
+                                        <small><?php echo htmlspecialchars($accountRow['phone']); ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="badge badge-<?php echo $accountType === 'driver' ? 'open' : 'pending'; ?>"><?php echo htmlspecialchars($accountRow['account_label']); ?></span>
+                                    <small>Joined <?php echo htmlspecialchars(date('M j, Y', strtotime($accountRow['created_at']))); ?></small>
+                                </td>
+                                <td>
+                                    <strong><?php echo (int) $accountRow['ride_count']; ?></strong>
+                                    <span><?php echo $accountType === 'driver' ? 'completed trips' : 'posted rides'; ?></span>
+                                </td>
+                                <td>
+                                    <strong><?php echo (int) $accountRow['request_count']; ?></strong>
+                                    <span>booking/request records</span>
+                                </td>
+                                <td>
+                                    <strong><?php echo (int) $accountRow['document_count']; ?></strong>
+                                    <span><?php echo $accountType === 'driver' ? 'driver documents' : 'profile assets'; ?></span>
+                                </td>
+                                <td>
+                                    <strong><?php echo (int) $accountRow['payment_count']; ?> payments</strong>
+                                    <span><?php echo (int) $accountRow['notification_count']; ?> notifications - <?php echo (int) $accountRow['report_count']; ?> reports</span>
+                                </td>
+                                <td>
+                                    <?php if ($canRemoveAccounts): ?>
+                                        <form action="/ridesync/actions/admin_action.php" method="POST"
+                                              data-confirm-message="This permanently removes <?php echo htmlspecialchars($accountRow['account_label'] . ' #' . $accountId . ' and all associated RideSync data.'); ?>"
+                                              data-confirm-phrase="<?php echo htmlspecialchars($confirmationPhrase); ?>">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                            <input type="hidden" name="action_type" value="admin_remove_account">
+                                            <input type="hidden" name="account_type" value="<?php echo htmlspecialchars($accountType); ?>">
+                                            <input type="hidden" name="account_id" value="<?php echo $accountId; ?>">
+                                            <input type="hidden" name="confirmation_text" value="">
+                                            <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=remove">
+                                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span class="badge badge-closed">Restricted</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <?php if (count($removeRows) === 0): ?>
+                            <tr><td colspan="7" class="admin-table-empty">No rider or driver accounts are available for removal.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php ridesync_admin_render_pagination($removePagination); ?>
         </section>
     <?php endif; ?>
 
