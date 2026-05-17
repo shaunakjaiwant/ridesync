@@ -21,29 +21,46 @@ session_write_close();
 ridesync_sse_headers();
 $lastEventId = max(0, (int) ($_GET['last_event_id'] ?? 0));
 
-function ridesync_event_count($conn, $actorType, $actorId) {
-    if (!ridesync_table_exists($conn, 'notifications')) {
-        return 0;
+function ridesync_event_metrics($conn, $actorType, $actorId) {
+    $actorId = (int) $actorId;
+    if ($actorId <= 0) {
+        return ['unread_notifications' => 0, 'pending_driver_requests' => 0];
     }
 
-    $column = $actorType === 'driver' ? 'driver_id' : 'user_id';
-    $stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM notifications WHERE {$column} = ? AND is_read = 0");
-    mysqli_stmt_bind_param($stmt, "i", $actorId);
-    mysqli_stmt_execute($stmt);
-    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    return (int) ($row['total'] ?? 0);
-}
+    try {
+        if ($actorType === 'driver') {
+            $stmt = mysqli_prepare(
+                $conn,
+                "SELECT
+                    (SELECT COUNT(*) FROM notifications WHERE driver_id = ? AND is_read = 0) AS unread_notifications,
+                    (SELECT COUNT(*) FROM driver_ride_requests WHERE driver_id = ? AND request_status = 'pending') AS pending_driver_requests"
+            );
+            if (!$stmt) {
+                return ['unread_notifications' => 0, 'pending_driver_requests' => 0];
+            }
+            mysqli_stmt_bind_param($stmt, "ii", $actorId, $actorId);
+        } else {
+            $stmt = mysqli_prepare(
+                $conn,
+                "SELECT COUNT(*) AS unread_notifications
+                 FROM notifications
+                 WHERE user_id = ? AND is_read = 0"
+            );
+            if (!$stmt) {
+                return ['unread_notifications' => 0, 'pending_driver_requests' => 0];
+            }
+            mysqli_stmt_bind_param($stmt, "i", $actorId);
+        }
 
-function ridesync_driver_pending_count($conn, $driverId) {
-    if (!ridesync_table_exists($conn, 'driver_ride_requests')) {
-        return 0;
+        mysqli_stmt_execute($stmt);
+        $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
+        return [
+            'unread_notifications' => (int) ($row['unread_notifications'] ?? 0),
+            'pending_driver_requests' => (int) ($row['pending_driver_requests'] ?? 0),
+        ];
+    } catch (Throwable $exception) {
+        return ['unread_notifications' => 0, 'pending_driver_requests' => 0];
     }
-
-    $stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM driver_ride_requests WHERE driver_id = ? AND request_status = 'pending'");
-    mysqli_stmt_bind_param($stmt, "i", $driverId);
-    mysqli_stmt_execute($stmt);
-    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    return (int) ($row['total'] ?? 0);
 }
 
 for ($tick = 0; $tick < 12; $tick++) {
@@ -51,10 +68,11 @@ for ($tick = 0; $tick < 12; $tick++) {
         break;
     }
 
+    $metrics = ridesync_event_metrics($conn, $actorType, $actorId);
     $payload = [
         'ok' => true,
         'actor_type' => $actorType,
-        'unread_notifications' => ridesync_event_count($conn, $actorType, $actorId),
+        'unread_notifications' => $metrics['unread_notifications'],
         'server_time' => date('c'),
     ];
 
@@ -66,7 +84,7 @@ for ($tick = 0; $tick < 12; $tick++) {
     }
 
     if ($actorType === 'driver') {
-        $payload['pending_driver_requests'] = ridesync_driver_pending_count($conn, $actorId);
+        $payload['pending_driver_requests'] = $metrics['pending_driver_requests'];
     }
 
     ridesync_sse_event('ridesync', $payload);

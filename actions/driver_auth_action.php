@@ -128,6 +128,24 @@ if ($action === 'register') {
         ridesync_driver_register_fail("Vehicle number can use only letters, numbers, spaces, and hyphens.");
     }
 
+    $missingRequiredDocuments = ridesync_driver_missing_required_document_labels(
+        [
+            'license' => $documentReference,
+            'aadhaar' => $aadhaarReference,
+            'pan' => $panReference,
+            'vehicle_rc' => $vehicleRcReference,
+        ],
+        [
+            'license' => 'license_file',
+            'aadhaar' => 'aadhaar_file',
+            'pan' => 'pan_file',
+            'vehicle_rc' => 'vehicle_rc_file',
+        ]
+    );
+    if (count($missingRequiredDocuments) > 0) {
+        ridesync_driver_register_fail("Upload or enter references for required documents: " . implode(', ', $missingRequiredDocuments) . ".");
+    }
+
     $stmt = mysqli_prepare($conn, "SELECT id FROM users WHERE email = ? LIMIT 1");
     mysqli_stmt_bind_param($stmt, "s", $email);
     mysqli_stmt_execute($stmt);

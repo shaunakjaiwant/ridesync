@@ -140,7 +140,12 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
         header('X-Request-Id: ' . ridesync_request_id());
-        header('Cache-Control: no-store, private');
+        $isCacheableLocalPage = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+            && !ridesync_request_prefers_json()
+            && ridesync_app_env() !== 'production';
+        header($isCacheableLocalPage
+            ? 'Cache-Control: private, max-age=15, stale-while-revalidate=30'
+            : 'Cache-Control: no-store, private');
 
         if (ridesync_env_bool('RIDESYNC_ENABLE_CSP', true)) {
             $scriptSources = array_merge([
@@ -183,6 +188,7 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         ini_set('session.use_strict_mode', '1');
         ini_set('session.cookie_httponly', '1');
         ini_set('session.cookie_samesite', 'Lax');
+        session_cache_limiter('');
 
         $secureCookie = ridesync_env_bool('RIDESYNC_COOKIE_SECURE', ridesync_is_https_request());
         session_set_cookie_params([

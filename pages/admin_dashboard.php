@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/cost_helper.php';
 require_once __DIR__ . '/../includes/asset_helper.php';
 require_once __DIR__ . '/../includes/admin_remove_helper.php';
+require_once __DIR__ . '/../includes/services/CacheService.php';
 
 ridesync_require_admin_login();
 
@@ -33,7 +34,7 @@ if ($section === 'verifications') {
     $section = 'users';
     $_GET['section'] = 'users';
 }
-$allowedSections = ['overview', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'analytics', 'system'];
+$allowedSections = ['overview', 'profiles', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'analytics', 'system'];
 if (!in_array($section, $allowedSections, true)) {
     $section = 'overview';
 }
@@ -45,88 +46,102 @@ if ($globalSearch === '') {
     unset($_GET['q']);
 }
 
-$metricsResult = mysqli_query(
-    $conn,
-    "SELECT
-        (SELECT COUNT(*) FROM users) AS total_users,
-        (SELECT COUNT(DISTINCT user_id) FROM user_verifications WHERE status = 'verified') AS verified_users,
-        (SELECT COUNT(*) FROM driver_accounts) AS total_drivers,
-        (SELECT COUNT(*)
-         FROM driver_accounts d
-         JOIN driver_account_profiles p ON p.driver_id = d.id AND p.verification_status = 'verified'
-         WHERE d.status = 'active'
-           AND EXISTS (
-                SELECT 1 FROM driver_account_documents doc
-                WHERE doc.driver_id = d.id
-                  AND doc.document_type = 'license'
-                  AND doc.verification_status = 'verified'
-           )
-           AND (
-                EXISTS (
+$metrics = RideSyncCacheService::remember('admin:dashboard:metrics:v3', 10, static function () use ($conn) {
+    $metricsResult = mysqli_query(
+        $conn,
+        "SELECT
+            (SELECT COUNT(*) FROM users) AS total_users,
+            (SELECT COUNT(DISTINCT user_id) FROM user_verifications WHERE status = 'verified') AS verified_users,
+            (SELECT COUNT(*) FROM driver_accounts) AS total_drivers,
+            (SELECT COUNT(*)
+             FROM driver_accounts d
+             JOIN driver_account_profiles p ON p.driver_id = d.id AND p.verification_status = 'verified'
+             WHERE d.status = 'active'
+               AND EXISTS (
                     SELECT 1 FROM driver_account_documents doc
                     WHERE doc.driver_id = d.id
-                      AND doc.document_type = 'id_proof'
+                      AND doc.document_type = 'license'
                       AND doc.verification_status = 'verified'
-                )
-                OR (
-                    EXISTS (
-                        SELECT 1 FROM driver_account_documents doc
-                        WHERE doc.driver_id = d.id
-                          AND doc.document_type = 'aadhaar'
-                          AND doc.verification_status = 'verified'
-                    )
-                    AND EXISTS (
-                        SELECT 1 FROM driver_account_documents doc
-                        WHERE doc.driver_id = d.id
-                          AND doc.document_type = 'pan'
-                          AND doc.verification_status = 'verified'
-                    )
-                )
-           )
-           AND EXISTS (
-                SELECT 1 FROM driver_account_documents doc
-                WHERE doc.driver_id = d.id
-                  AND doc.document_type = 'vehicle_rc'
-                  AND doc.verification_status = 'verified'
-           )
-           AND EXISTS (
-                SELECT 1 FROM driver_account_documents doc
-                WHERE doc.driver_id = d.id
-                  AND doc.document_type = 'insurance'
-                  AND doc.verification_status = 'verified'
-           )) AS ready_drivers,
-        (SELECT COUNT(*) FROM driver_account_availability WHERE status = 'online') AS online_drivers,
-        (SELECT COUNT(*) FROM rides WHERE status = 'open') AS open_rides,
-        (SELECT COUNT(*) FROM ride_live_status WHERE live_status IN ('matched', 'driver_assigned', 'arriving', 'active')) AS live_rides,
-        (SELECT COUNT(*) FROM matches WHERE status = 'pending') AS pending_join_requests,
-        (SELECT COUNT(*) FROM driver_ride_requests WHERE request_status = 'pending') AS pending_driver_requests,
-        (SELECT COUNT(*) FROM driver_account_profiles WHERE verification_status = 'pending') AS pending_driver_profiles,
-        (SELECT COUNT(*) FROM driver_account_documents WHERE verification_status = 'pending') AS pending_driver_documents,
-        (SELECT COUNT(*) FROM user_verifications WHERE status = 'pending') AS pending_student_verifications,
-        (SELECT COUNT(*) FROM reports WHERE report_status IN ('open', 'reviewing')) AS active_reports,
-        (SELECT COUNT(*) FROM reports WHERE report_status = 'open') AS open_reports,
-        (SELECT COUNT(*) FROM rides WHERE status = 'open' AND CONCAT(travel_date, ' ', travel_time) < NOW()) AS stale_open_rides,
-        (SELECT COALESCE(SUM(amount), 0) FROM wallet_transactions WHERE transaction_type = 'fare_due') AS fare_due_total,
-        (SELECT COUNT(*) FROM audit_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)) AS audit_24h"
-);
-$metrics = mysqli_fetch_assoc($metricsResult) ?: [];
+               )
+               AND EXISTS (
+                    SELECT 1 FROM driver_account_documents doc
+                    WHERE doc.driver_id = d.id
+                      AND doc.document_type = 'aadhaar'
+                      AND doc.verification_status = 'verified'
+               )
+               AND EXISTS (
+                    SELECT 1 FROM driver_account_documents doc
+                    WHERE doc.driver_id = d.id
+                      AND doc.document_type = 'pan'
+                      AND doc.verification_status = 'verified'
+               )
+               AND EXISTS (
+                    SELECT 1 FROM driver_account_documents doc
+                    WHERE doc.driver_id = d.id
+                      AND doc.document_type = 'vehicle_rc'
+                      AND doc.verification_status = 'verified'
+               )) AS ready_drivers,
+            (SELECT COUNT(*) FROM driver_account_availability WHERE status = 'online') AS online_drivers,
+            (SELECT COUNT(*) FROM rides WHERE status = 'open') AS open_rides,
+            (SELECT COUNT(*) FROM ride_live_status WHERE live_status IN ('matched', 'driver_assigned', 'arriving', 'active')) AS live_rides,
+            (SELECT COUNT(*) FROM matches WHERE status = 'pending') AS pending_join_requests,
+            (SELECT COUNT(*) FROM driver_ride_requests WHERE request_status = 'pending') AS pending_driver_requests,
+            (SELECT COUNT(*) FROM driver_account_profiles WHERE verification_status = 'pending') AS pending_driver_profiles,
+            (SELECT COUNT(*) FROM driver_account_documents WHERE verification_status = 'pending') AS pending_driver_documents,
+            (SELECT COUNT(*) FROM user_verifications WHERE status = 'pending') AS pending_student_verifications,
+            (SELECT COUNT(*) FROM reports WHERE report_status IN ('open', 'reviewing')) AS active_reports,
+            (SELECT COUNT(*) FROM reports WHERE report_status = 'open') AS open_reports,
+            (SELECT COUNT(*) FROM rides WHERE status = 'open' AND CONCAT(travel_date, ' ', travel_time) < NOW()) AS stale_open_rides,
+            (SELECT COALESCE(SUM(amount), 0) FROM wallet_transactions WHERE transaction_type = 'fare_due') AS fare_due_total,
+            (SELECT COUNT(*) FROM audit_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)) AS audit_24h"
+    );
+
+    return mysqli_fetch_assoc($metricsResult) ?: [];
+});
 $pendingVerifications = ridesync_admin_int($metrics, 'pending_driver_profiles')
     + ridesync_admin_int($metrics, 'pending_driver_documents')
     + ridesync_admin_int($metrics, 'pending_student_verifications');
 $pendingRequests = ridesync_admin_int($metrics, 'pending_join_requests')
     + ridesync_admin_int($metrics, 'pending_driver_requests');
 
-$adminSectionTabs = [
-    'overview' => ['label' => 'Overview', 'count' => null],
-    'drivers' => ['label' => 'Drivers', 'count' => ridesync_admin_int($metrics, 'total_drivers')],
-    'users' => ['label' => 'Users', 'count' => ridesync_admin_int($metrics, 'total_users')],
-    'rides' => ['label' => 'Rides', 'count' => ridesync_admin_int($metrics, 'open_rides')],
-    'requests' => ['label' => 'Requests', 'count' => $pendingRequests],
-    'reports' => ['label' => 'Reports', 'count' => ridesync_admin_int($metrics, 'active_reports')],
-    'remove' => ['label' => 'Remove', 'count' => ridesync_admin_int($metrics, 'total_users') + ridesync_admin_int($metrics, 'total_drivers')],
+$adminProfiles = [
+    [
+        'name' => 'Vinay H Gowda',
+        'initials' => 'VG',
+        'image' => '/ridesync/vinay.jpeg',
+        'role' => 'Project Director & Operations Coordinator',
+        'accent' => 'gold',
+        'traits' => ['Leadership', 'Support', 'Operations', 'Workflow'],
+        'description' => 'Vinay oversees the overall management and coordination of the platform, ensuring smooth operations and efficient workflow execution. Known for his leadership, strategic thinking, and problem-solving approach, he plays a key role in maintaining system integrity and team collaboration while driving continuous improvement across all areas.',
+    ],
+    [
+        'name' => 'Shaunak N Jaiwant',
+        'initials' => 'SJ',
+        'image' => '/ridesync/shaunak.png',
+        'image_zoom' => '104%',
+        'image_position' => 'center 34%',
+        'role' => 'Creative Director & Technical Administrator',
+        'accent' => 'violet',
+        'traits' => ['Leadership', 'Design', 'Systems', 'Precision'],
+        'description' => 'Shaunak specializes in blending creativity with technical precision. With expertise in design, digital management, and system organization, he contributes to building visually refined and user-focused experiences. His attention to detail and innovative mindset help elevate both functionality and presentation standards.',
+    ],
+    [
+        'name' => 'Vishal D Naik',
+        'initials' => 'VN',
+        'image' => '/ridesync/vishal.png',
+        'image_zoom' => '92%',
+        'image_position' => 'center 28%',
+        'image_shift_y' => '-14px',
+        'avatar_background' => '#ffffff',
+        'role' => 'System Director & Support Coordinator',
+        'accent' => 'cyan',
+        'traits' => ['Leadership', 'Reliability', 'Support', 'Stability'],
+        'description' => 'Vishal is responsible for maintaining system reliability, administrative support, and operational stability. His strong analytical skills and dedication to efficiency ensure seamless performance and quick resolution of technical or organizational challenges. He plays a vital role in supporting the team and optimizing daily operations.',
+    ],
 ];
 
 $needsOverview = $section === 'overview';
+$needsProfiles = $section === 'profiles';
 $needsDrivers = $section === 'drivers';
 $needsUsers = $section === 'users';
 $needsRides = $section === 'rides';
@@ -264,13 +279,15 @@ if ($needsDrivers) {
                 driver_id,
                 total_documents,
                 license_submitted
-                    + CASE WHEN id_submitted > 0 OR (aadhaar_submitted > 0 AND pan_submitted > 0) THEN 1 ELSE 0 END
+                    + aadhaar_submitted
+                    + pan_submitted
                     + rc_submitted
-                    + insurance_submitted AS submitted_required_documents,
+                    AS submitted_required_documents,
                 license_verified
-                    + CASE WHEN id_verified > 0 OR (aadhaar_verified > 0 AND pan_verified > 0) THEN 1 ELSE 0 END
+                    + aadhaar_verified
+                    + pan_verified
                     + rc_verified
-                    + insurance_verified AS verified_required_documents,
+                    AS verified_required_documents,
                 pending_documents,
                 verified_documents,
                 rejected_documents
@@ -280,16 +297,12 @@ if ($needsDrivers) {
                     COUNT(*) AS total_documents,
                     MAX(CASE WHEN document_type = 'license' THEN 1 ELSE 0 END) AS license_submitted,
                     MAX(CASE WHEN document_type = 'license' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS license_verified,
-                    MAX(CASE WHEN document_type = 'id_proof' THEN 1 ELSE 0 END) AS id_submitted,
-                    MAX(CASE WHEN document_type = 'id_proof' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS id_verified,
                     MAX(CASE WHEN document_type = 'aadhaar' THEN 1 ELSE 0 END) AS aadhaar_submitted,
                     MAX(CASE WHEN document_type = 'aadhaar' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS aadhaar_verified,
                     MAX(CASE WHEN document_type = 'pan' THEN 1 ELSE 0 END) AS pan_submitted,
                     MAX(CASE WHEN document_type = 'pan' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS pan_verified,
                     MAX(CASE WHEN document_type = 'vehicle_rc' THEN 1 ELSE 0 END) AS rc_submitted,
                     MAX(CASE WHEN document_type = 'vehicle_rc' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS rc_verified,
-                    MAX(CASE WHEN document_type = 'insurance' THEN 1 ELSE 0 END) AS insurance_submitted,
-                    MAX(CASE WHEN document_type = 'insurance' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS insurance_verified,
                     SUM(CASE WHEN verification_status = 'pending' THEN 1 ELSE 0 END) AS pending_documents,
                     SUM(CASE WHEN verification_status = 'verified' THEN 1 ELSE 0 END) AS verified_documents,
                     SUM(CASE WHEN verification_status = 'rejected' THEN 1 ELSE 0 END) AS rejected_documents
@@ -842,31 +855,22 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
 </script>
 
 <div class="admin-command-center" data-admin-command-center>
-    <section class="admin-hero-panel">
-        <div>
-            <span class="driver-kicker">Operational Control</span>
-            <h1>RideSync Command Center</h1>
-            <p>Monitor mobility activity, route demand, live rides, reports, and operational risks from one calm workspace.</p>
-        </div>
-        <div class="admin-hero-actions">
-            <a class="btn btn-secondary" href="/ridesync/pages/admin_dashboard.php?section=rides">Ride Operations</a>
-            <a class="btn btn-primary" href="/ridesync/pages/admin_dashboard.php?section=reports">Triage Reports</a>
-        </div>
-    </section>
+    <?php if (!$needsProfiles): ?>
+        <section class="admin-hero-panel">
+            <div>
+                <span class="driver-kicker">Operational Control</span>
+                <h1>RideSync Command Center</h1>
+                <p>Monitor mobility activity, route demand, live rides, reports, and operational risks from one calm workspace.</p>
+            </div>
+            <div class="admin-hero-actions">
+                <a class="btn btn-secondary" href="/ridesync/pages/admin_dashboard.php?section=rides">Ride Operations</a>
+                <a class="btn btn-primary" href="/ridesync/pages/admin_dashboard.php?section=reports">Triage Reports</a>
+            </div>
+        </section>
+    <?php endif; ?>
 
     <?php ridesync_flash('admin_success', 'alert-success'); ?>
     <?php ridesync_flash('admin_error', 'alert-error'); ?>
-
-    <nav class="admin-section-tabs" aria-label="Admin dashboard sections">
-        <?php foreach ($adminSectionTabs as $tabKey => $tab): ?>
-            <a class="<?php echo $section === $tabKey ? 'is-active' : ''; ?>" href="<?php echo htmlspecialchars(ridesync_admin_section_url($tabKey, $globalSearch)); ?>">
-                <span><?php echo htmlspecialchars($tab['label']); ?></span>
-                <?php if ($tab['count'] !== null): ?>
-                    <strong><?php echo (int) $tab['count']; ?></strong>
-                <?php endif; ?>
-            </a>
-        <?php endforeach; ?>
-    </nav>
 
     <?php if ($globalSearch !== ''): ?>
         <section class="admin-command-card admin-search-results">
@@ -901,33 +905,35 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
         </section>
     <?php endif; ?>
 
-    <section class="admin-priority-grid">
-        <article class="admin-op-card is-primary">
-            <span>Total Users</span>
-            <strong data-admin-metric="total_users"><?php echo ridesync_admin_int($metrics, 'total_users'); ?></strong>
-            <small>Registered riders and community members</small>
-        </article>
-        <article class="admin-op-card">
-            <span>Drivers</span>
-            <strong data-admin-metric="total_drivers"><?php echo ridesync_admin_int($metrics, 'total_drivers'); ?></strong>
-            <small><b data-admin-metric="online_drivers"><?php echo ridesync_admin_int($metrics, 'online_drivers'); ?></b> online now</small>
-        </article>
-        <article class="admin-op-card">
-            <span>Live Rides</span>
-            <strong data-admin-metric="live_rides"><?php echo ridesync_admin_int($metrics, 'live_rides'); ?></strong>
-            <small><b data-admin-metric="open_rides"><?php echo ridesync_admin_int($metrics, 'open_rides'); ?></b> open rides</small>
-        </article>
-        <article class="admin-op-card is-warning">
-            <span>Ride Requests</span>
-            <strong><?php echo $pendingRequests; ?></strong>
-            <small>Join and direct ride requests waiting</small>
-        </article>
-        <article class="admin-op-card is-danger">
-            <span>Reports</span>
-            <strong data-admin-metric="active_reports"><?php echo ridesync_admin_int($metrics, 'active_reports'); ?></strong>
-            <small>Open or under review</small>
-        </article>
-    </section>
+    <?php if (!$needsProfiles): ?>
+        <section class="admin-priority-grid">
+            <article class="admin-op-card is-primary">
+                <span>Total Users</span>
+                <strong data-admin-metric="total_users"><?php echo ridesync_admin_int($metrics, 'total_users'); ?></strong>
+                <small>Registered riders and community members</small>
+            </article>
+            <article class="admin-op-card">
+                <span>Drivers</span>
+                <strong data-admin-metric="total_drivers"><?php echo ridesync_admin_int($metrics, 'total_drivers'); ?></strong>
+                <small><b data-admin-metric="online_drivers"><?php echo ridesync_admin_int($metrics, 'online_drivers'); ?></b> online now</small>
+            </article>
+            <article class="admin-op-card">
+                <span>Live Rides</span>
+                <strong data-admin-metric="live_rides"><?php echo ridesync_admin_int($metrics, 'live_rides'); ?></strong>
+                <small><b data-admin-metric="open_rides"><?php echo ridesync_admin_int($metrics, 'open_rides'); ?></b> open rides</small>
+            </article>
+            <article class="admin-op-card is-warning">
+                <span>Ride Requests</span>
+                <strong><?php echo $pendingRequests; ?></strong>
+                <small>Join and direct ride requests waiting</small>
+            </article>
+            <article class="admin-op-card is-danger">
+                <span>Reports</span>
+                <strong data-admin-metric="active_reports"><?php echo ridesync_admin_int($metrics, 'active_reports'); ?></strong>
+                <small>Open or under review</small>
+            </article>
+        </section>
+    <?php endif; ?>
 
     <?php if ($isOverviewSection): ?>
         <section class="admin-connection-grid">
@@ -1039,6 +1045,66 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                     <div><span>Audit Activity</span><strong><?php echo ridesync_admin_int($metrics, 'audit_24h'); ?></strong></div>
                 </div>
             </article>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($needsProfiles): ?>
+        <section class="admin-profile-showcase" aria-labelledby="adminProfilesTitle">
+            <div class="admin-profile-showcase-head">
+                <div>
+                    <span class="driver-kicker">Admin Profiles</span>
+                    <h2 id="adminProfilesTitle">Leadership Command Team</h2>
+                    <p>Three administrators coordinating operations, design quality, technical stability, and platform support for RideSync.</p>
+                </div>
+                <span class="admin-profile-count"><?php echo count($adminProfiles); ?> Admins</span>
+            </div>
+
+            <div class="admin-profile-grid">
+                <?php foreach ($adminProfiles as $profile): ?>
+                    <article class="admin-profile-card is-<?php echo htmlspecialchars($profile['accent']); ?>">
+                        <div class="admin-profile-avatar"<?php echo !empty($profile['image_zoom']) || !empty($profile['image_position']) || !empty($profile['image_shift_y']) || !empty($profile['avatar_background']) ? ' style="' . htmlspecialchars(trim((!empty($profile['image_zoom']) ? '--profile-image-scale: ' . $profile['image_zoom'] . '; ' : '') . (!empty($profile['image_position']) ? '--profile-image-position: ' . $profile['image_position'] . '; ' : '') . (!empty($profile['image_shift_y']) ? '--profile-image-shift-y: ' . $profile['image_shift_y'] . '; ' : '') . (!empty($profile['avatar_background']) ? '--profile-avatar-bg: ' . $profile['avatar_background'] . ';' : ''))) . '"' : ''; ?>>
+                            <?php if (!empty($profile['image'])): ?>
+                                <img src="<?php echo htmlspecialchars($profile['image']); ?>" alt="<?php echo htmlspecialchars($profile['name']); ?>">
+                            <?php else: ?>
+                                <span aria-hidden="true"><?php echo htmlspecialchars($profile['initials']); ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="admin-profile-card-body">
+                            <h3><?php echo htmlspecialchars($profile['name']); ?></h3>
+                            <span class="admin-profile-role"><?php echo htmlspecialchars($profile['role']); ?></span>
+                            <div class="admin-profile-traits" aria-label="<?php echo htmlspecialchars($profile['name']); ?> strengths">
+                                <?php foreach ($profile['traits'] as $trait): ?>
+                                    <span><?php echo htmlspecialchars($trait); ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                            <p><?php echo htmlspecialchars($profile['description']); ?></p>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="admin-profile-motive">
+                <div class="admin-profile-motive-copy">
+                    <span class="driver-kicker">RideSync Motive</span>
+                    <h3>Building a safer, smarter campus mobility network</h3>
+                    <p>RideSync was created to make everyday travel easier for students and trusted drivers by bringing ride posting, ride discovery, driver verification, direct requests, live status, fare visibility, reports, and admin oversight into one connected platform. The motive is not only to help people find rides faster, but to make each ride more accountable, transparent, and manageable from start to finish.</p>
+                    <p>The admin team’s responsibility is to keep that network dependable. Every profile, document, request, report, and operational signal exists to protect the community, reduce confusion, improve coordination, and help RideSync grow into a reliable mobility system that can support real users at real scale.</p>
+                </div>
+                <div class="admin-profile-motive-grid" aria-label="RideSync operating principles">
+                    <div>
+                        <strong>Trust First</strong>
+                        <span>Verified driver records, document checks, reporting workflows, and admin review paths keep the platform accountable.</span>
+                    </div>
+                    <div>
+                        <strong>Fast Coordination</strong>
+                        <span>Riders, drivers, and admins stay connected through direct requests, ride states, notifications, and operational dashboards.</span>
+                    </div>
+                    <div>
+                        <strong>Clear Operations</strong>
+                        <span>Each workflow is designed to reduce manual confusion and give the team a clean view of demand, activity, risks, and support needs.</span>
+                    </div>
+                </div>
+            </div>
         </section>
     <?php endif; ?>
 

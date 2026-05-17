@@ -224,7 +224,7 @@ if ($action === 'driver_full_approval') {
     $documentSummary = ridesync_driver_required_document_summary($state['documents'] ?? []);
 
     if (!$documentSummary['complete']) {
-        $_SESSION['admin_error'] = "License, identity proof (ID proof or Aadhaar + PAN), vehicle RC, and insurance must be submitted before full approval.";
+        $_SESSION['admin_error'] = "Driving license, Aadhaar card, PAN card, and vehicle RC must be submitted before full approval.";
         ridesync_admin_redirect();
     }
 

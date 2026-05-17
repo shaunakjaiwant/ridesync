@@ -2,9 +2,11 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
+require_once __DIR__ . '/../includes/view_helper.php';
 require_once __DIR__ . '/../includes/services/NotificationService.php';
 
 function ridesync_notification_redirect() {
+    ridesync_forget_notification_count_cache();
     $actor = $_POST['actor_type'] ?? '';
     $suffix = in_array($actor, ['user', 'driver'], true) ? '?actor_type=' . urlencode($actor) : '';
     header("Location: /ridesync/pages/notifications.php" . $suffix);

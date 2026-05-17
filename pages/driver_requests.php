@@ -14,25 +14,26 @@ $stmt = mysqli_prepare($conn,
     "SELECT rr.*, u.name AS rider_name, u.college AS rider_college
      FROM driver_ride_requests rr
      LEFT JOIN users u ON u.id = rr.rider_user_id
-     WHERE rr.driver_id = ? AND rr.request_status = 'pending'
-     ORDER BY rr.requested_at ASC"
+     WHERE rr.driver_id = ? AND rr.request_status IN ('pending', 'accepted')
+     ORDER BY
+        CASE rr.request_status WHEN 'pending' THEN 0 ELSE 1 END,
+        COALESCE(rr.responded_at, rr.requested_at) ASC,
+        rr.requested_at ASC"
 );
 mysqli_stmt_bind_param($stmt, "i", $driverId);
 mysqli_stmt_execute($stmt);
-$requests = mysqli_stmt_get_result($stmt);
-$directRequestCount = mysqli_num_rows($requests);
-
-$stmt = mysqli_prepare($conn,
-    "SELECT rr.*, u.name AS rider_name, u.college AS rider_college
-     FROM driver_ride_requests rr
-     LEFT JOIN users u ON u.id = rr.rider_user_id
-     WHERE rr.driver_id = ? AND rr.request_status = 'accepted'
-     ORDER BY rr.responded_at ASC, rr.requested_at ASC"
-);
-mysqli_stmt_bind_param($stmt, "i", $driverId);
-mysqli_stmt_execute($stmt);
-$activeRequests = mysqli_stmt_get_result($stmt);
-$activeRequestCount = mysqli_num_rows($activeRequests);
+$requestRows = mysqli_stmt_get_result($stmt);
+$requests = [];
+$activeRequests = [];
+while ($request = mysqli_fetch_assoc($requestRows)) {
+    if ($request['request_status'] === 'accepted') {
+        $activeRequests[] = $request;
+    } else {
+        $requests[] = $request;
+    }
+}
+$directRequestCount = count($requests);
+$activeRequestCount = count($activeRequests);
 
 require_once __DIR__ . '/../includes/driver_header.php';
 ?>
@@ -64,7 +65,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
         <p class="driver-empty">No direct requests right now.</p>
     <?php else: ?>
         <div class="driver-request-grid">
-            <?php while ($request = mysqli_fetch_assoc($requests)): ?>
+            <?php foreach ($requests as $request): ?>
                 <article class="driver-request-card">
                     <span class="driver-kicker">New request</span>
                     <h2><?php echo htmlspecialchars($request['pickup']); ?> <span class="route-arrow">&rarr;</span> <?php echo htmlspecialchars($request['drop_location']); ?></h2>
@@ -93,7 +94,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
                         </form>
                     </div>
                 </article>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
     <?php endif; ?>
 </section>
@@ -111,7 +112,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
         <p class="driver-empty">No accepted direct trips waiting for completion.</p>
     <?php else: ?>
         <div class="driver-request-grid">
-            <?php while ($request = mysqli_fetch_assoc($activeRequests)): ?>
+            <?php foreach ($activeRequests as $request): ?>
                 <article class="driver-request-card">
                     <span class="driver-kicker">Accepted trip</span>
                     <h2><?php echo htmlspecialchars($request['pickup']); ?> <span class="route-arrow">&rarr;</span> <?php echo htmlspecialchars($request['drop_location']); ?></h2>
@@ -132,7 +133,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
                         </form>
                     </div>
                 </article>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
     <?php endif; ?>
 </section>

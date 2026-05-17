@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/view_helper.php';
 
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['driver_id'])) {
     header("Location: /ridesync/index.php");
@@ -22,21 +23,24 @@ $notifications = [];
 $unreadCount = 0;
 $readCount = 0;
 
-$notificationsTable = mysqli_query($conn, "SHOW TABLES LIKE 'notifications'");
-if ($notificationsTable && mysqli_num_rows($notificationsTable) > 0) {
+try {
     $sql = "SELECT * FROM notifications WHERE {$actorColumn} = ? ORDER BY created_at DESC LIMIT 60";
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $actorId);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    while ($row = mysqli_fetch_assoc($result)) {
-        $notifications[] = $row;
-        if ((int) $row['is_read'] === 0) {
-            $unreadCount++;
-        } else {
-            $readCount++;
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "i", $actorId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($result)) {
+            $notifications[] = $row;
+            if ((int) $row['is_read'] === 0) {
+                $unreadCount++;
+            } else {
+                $readCount++;
+            }
         }
     }
+} catch (Throwable $exception) {
+    $notifications = [];
 }
 
 if ($isDriver) {

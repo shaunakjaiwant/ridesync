@@ -10,6 +10,14 @@ if (str_starts_with(strtolower($providedToken), 'bearer ')) {
     $providedToken = trim(substr($providedToken, 7));
 }
 
+if ($expectedToken === '' && ridesync_app_env() === 'production') {
+    if (!headers_sent()) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=utf-8');
+    }
+    exit("forbidden\n");
+}
+
 if ($expectedToken !== '' && !hash_equals($expectedToken, $providedToken)) {
     if (!headers_sent()) {
         http_response_code(403);
@@ -35,7 +43,40 @@ function metric_line($name, $value, array $labels = []) {
 }
 
 function metric_count($conn, $table, $where = '1=1') {
+    static $allowedTables = [
+        'users' => true,
+        'driver_accounts' => true,
+        'rides' => true,
+        'reports' => true,
+        'driver_verification_sessions' => true,
+    ];
+    static $allowedPredicates = [
+        '1=1' => true,
+        "status = 'active'" => true,
+        "status = 'inactive'" => true,
+        "status = 'suspended'" => true,
+        "status = 'open'" => true,
+        "status = 'closed'" => true,
+        "status = 'cancelled'" => true,
+        "report_status IN ('open', 'reviewing')" => true,
+        "status = 'queued'" => true,
+        "status = 'processing'" => true,
+        "status = 'verified'" => true,
+        "status = 'suspicious'" => true,
+        "status = 'fake_tampered'" => true,
+        "status = 'needs_manual_review'" => true,
+        "status = 'failed'" => true,
+    ];
+
     if (!$conn instanceof mysqli || !ridesync_table_exists($conn, $table)) {
+        return 0;
+    }
+
+    if (!isset($allowedTables[$table]) || !isset($allowedPredicates[$where])) {
+        ridesync_log('warning', 'Rejected unsafe metrics query shape', [
+            'table' => $table,
+            'where' => $where,
+        ]);
         return 0;
     }
 

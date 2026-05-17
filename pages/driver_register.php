@@ -89,70 +89,70 @@ require_once __DIR__ . '/../includes/public_header.php';
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="document_reference">License Document Reference</label>
-            <input type="text" id="document_reference" name="document_reference" maxlength="255" placeholder="File name, document ID, or note" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'document_reference'); ?>">
+            <label for="document_reference">License Document Reference (required)</label>
+            <input type="text" id="document_reference" name="document_reference" maxlength="255" placeholder="Required: file name, document ID, or note" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'document_reference'); ?>">
             <label class="sr-only" for="license_file">Upload license document</label>
             <input type="file" id="license_file" name="license_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="aadhaar_reference">Aadhaar Card Reference</label>
-            <input type="text" id="aadhaar_reference" name="aadhaar_reference" maxlength="255" placeholder="Masked Aadhaar note or uploaded file reference" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'aadhaar_reference'); ?>">
+            <label for="aadhaar_reference">Aadhaar Card Reference (required)</label>
+            <input type="text" id="aadhaar_reference" name="aadhaar_reference" maxlength="255" placeholder="Required: masked Aadhaar note or uploaded file reference" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'aadhaar_reference'); ?>">
             <label class="sr-only" for="aadhaar_file">Upload Aadhaar card</label>
             <input type="file" id="aadhaar_file" name="aadhaar_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="pan_reference">PAN Card Reference</label>
-            <input type="text" id="pan_reference" name="pan_reference" maxlength="255" placeholder="PAN note or uploaded file reference" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'pan_reference'); ?>">
+            <label for="pan_reference">PAN Card Reference (required)</label>
+            <input type="text" id="pan_reference" name="pan_reference" maxlength="255" placeholder="Required: PAN note or uploaded file reference" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'pan_reference'); ?>">
             <label class="sr-only" for="pan_file">Upload PAN card</label>
             <input type="file" id="pan_file" name="pan_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="id_proof_reference">ID Proof Reference</label>
+            <label for="id_proof_reference">ID Proof Reference (optional)</label>
             <input type="text" id="id_proof_reference" name="id_proof_reference" maxlength="255" placeholder="Student/local ID, Aadhaar note, or uploaded file reference" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'id_proof_reference'); ?>">
             <label class="sr-only" for="id_proof_file">Upload ID proof document</label>
             <input type="file" id="id_proof_file" name="id_proof_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="vehicle_rc_reference">Vehicle RC Reference</label>
-            <input type="text" id="vehicle_rc_reference" name="vehicle_rc_reference" maxlength="255" placeholder="RC document ID, file name, or note" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'vehicle_rc_reference'); ?>">
+            <label for="vehicle_rc_reference">Vehicle RC Reference (required)</label>
+            <input type="text" id="vehicle_rc_reference" name="vehicle_rc_reference" maxlength="255" placeholder="Required: RC document ID, file name, or note" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'vehicle_rc_reference'); ?>">
             <label class="sr-only" for="vehicle_rc_file">Upload vehicle RC document</label>
             <input type="file" id="vehicle_rc_file" name="vehicle_rc_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="insurance_reference">Insurance Reference</label>
+            <label for="insurance_reference">Insurance Reference (optional)</label>
             <input type="text" id="insurance_reference" name="insurance_reference" maxlength="255" placeholder="Insurance policy/file reference" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'insurance_reference'); ?>">
             <label class="sr-only" for="insurance_file">Upload insurance document</label>
             <input type="file" id="insurance_file" name="insurance_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="selfie_reference">Selfie Reference</label>
+            <label for="selfie_reference">Selfie Reference (optional)</label>
             <input type="text" id="selfie_reference" name="selfie_reference" maxlength="255" placeholder="Selfie file reference or note" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'selfie_reference'); ?>">
             <label class="sr-only" for="selfie_file">Upload selfie</label>
             <input type="file" id="selfie_file" name="selfie_file" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="vehicle_image_reference">Vehicle Image Reference</label>
+            <label for="vehicle_image_reference">Vehicle Image Reference (optional)</label>
             <input type="text" id="vehicle_image_reference" name="vehicle_image_reference" maxlength="255" placeholder="Vehicle image file reference or note" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'vehicle_image_reference'); ?>">
             <label class="sr-only" for="vehicle_image_file">Upload vehicle image</label>
             <input type="file" id="vehicle_image_file" name="vehicle_image_file" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="other_document_reference">Other Verification Document</label>
+            <label for="other_document_reference">Other Verification Document (optional)</label>
             <input type="text" id="other_document_reference" name="other_document_reference" maxlength="255" placeholder="Any extra verification file or note" value="<?php echo ridesync_driver_register_old_value($driverRegisterOld, 'other_document_reference'); ?>">
             <label class="sr-only" for="other_file">Upload other verification document</label>
             <input type="file" id="other_file" name="other_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
         </div>
 
         <div class="form-group form-group-wide">
-            <label for="verification_details">Verification Details</label>
+            <label for="verification_details">Verification Details (optional)</label>
             <textarea id="verification_details" name="verification_details" placeholder="Add any detail needed for verification."><?php echo ridesync_driver_register_old_value($driverRegisterOld, 'verification_details'); ?></textarea>
         </div>
 

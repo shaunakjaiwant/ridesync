@@ -16,13 +16,48 @@ function ridesync_driver_document_types() {
     ];
 }
 
+function ridesync_driver_required_document_types() {
+    return [
+        'license' => 'Driving License',
+        'aadhaar' => 'Aadhaar Card',
+        'pan' => 'PAN Card',
+        'vehicle_rc' => 'Vehicle RC',
+    ];
+}
+
+function ridesync_driver_optional_document_types() {
+    return array_diff_key(ridesync_driver_document_types(), ridesync_driver_required_document_types());
+}
+
 function ridesync_driver_document_label($type) {
     $types = ridesync_driver_document_types();
     return $types[(string) $type] ?? ucwords(str_replace('_', ' ', (string) $type));
 }
 
 function ridesync_driver_document_core_types() {
-    return ['license', 'aadhaar', 'pan', 'vehicle_rc', 'insurance', 'selfie', 'vehicle_image'];
+    return array_keys(ridesync_driver_required_document_types());
+}
+
+function ridesync_driver_document_upload_selected($fieldName) {
+    return isset($_FILES[$fieldName])
+        && ($_FILES[$fieldName]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+}
+
+function ridesync_driver_missing_required_document_labels(array $references, array $uploadFields, array $existingReferences = []) {
+    $missing = [];
+
+    foreach (ridesync_driver_required_document_types() as $type => $label) {
+        $reference = trim((string) ($references[$type] ?? ''));
+        $existingReference = trim((string) ($existingReferences[$type] ?? ''));
+        $uploadField = (string) ($uploadFields[$type] ?? '');
+        $hasUpload = $uploadField !== '' && ridesync_driver_document_upload_selected($uploadField);
+
+        if ($reference === '' && $existingReference === '' && !$hasUpload) {
+            $missing[] = $label;
+        }
+    }
+
+    return $missing;
 }
 
 function ridesync_driver_document_reference_is_file($reference) {

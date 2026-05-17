@@ -13,9 +13,9 @@ $scriptNonce = htmlspecialchars(ridesync_csp_nonce(), ENT_QUOTES, 'UTF-8');
 <?php if ($needsMapAssets): ?>
 <script nonce="<?php echo $scriptNonce; ?>" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <?php endif; ?>
-<script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/script.js"></script>
+<script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/script.js?v=<?php echo ridesync_script_version('js/script.js'); ?>"></script>
 <?php if ($needsMapPicker): ?>
-<script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/map_picker.js?v=<?php echo filemtime(__DIR__ . '/../js/map_picker.js'); ?>"></script>
+<script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/map_picker.js?v=<?php echo ridesync_script_version('js/map_picker.js'); ?>"></script>
 <?php endif; ?>
 </body>
 </html>

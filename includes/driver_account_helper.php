@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/matching_helper.php';
+require_once __DIR__ . '/driver_document_helper.php';
 
 function ridesync_driver_schema_ready($conn) {
     static $ready = null;
@@ -18,16 +19,35 @@ function ridesync_driver_schema_ready($conn) {
         'driver_ride_history',
     ];
 
-    $ready = true;
-    foreach ($required as $table) {
-        $safeTable = mysqli_real_escape_string($conn, $table);
-        $result = mysqli_query($conn, "SHOW TABLES LIKE '{$safeTable}'");
-        if (!$result || mysqli_num_rows($result) === 0) {
-            $ready = false;
-            break;
-        }
+    $placeholders = implode(',', array_fill(0, count($required), '?'));
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT TABLE_NAME
+         FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME IN ({$placeholders})"
+    );
+    if (!$stmt) {
+        $ready = false;
+        return $ready;
     }
 
+    $types = str_repeat('s', count($required));
+    $bindValues = $required;
+    $bindParams = [$types];
+    foreach ($bindValues as $index => $value) {
+        $bindParams[] = &$bindValues[$index];
+    }
+    call_user_func_array([$stmt, 'bind_param'], $bindParams);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    $found = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $found[strtolower((string) $row['TABLE_NAME'])] = true;
+    }
+
+    $ready = count($found) === count($required);
     return $ready;
 }
 
@@ -49,7 +69,7 @@ function ridesync_fetch_driver_account($conn, $driverId) {
     return mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 }
 
-function ridesync_fetch_driver_state($conn, $driverId) {
+function ridesync_fetch_driver_state($conn, $driverId, array $options = []) {
     $state = [
         'schema_ready' => ridesync_driver_schema_ready($conn),
         'account' => null,
@@ -71,69 +91,135 @@ function ridesync_fetch_driver_state($conn, $driverId) {
         return $state;
     }
 
-    $state['account'] = ridesync_fetch_driver_account($conn, $driverId);
-
-    $stmt = mysqli_prepare($conn, "SELECT * FROM driver_account_profiles WHERE driver_id = ? LIMIT 1");
-    mysqli_stmt_bind_param($stmt, "i", $driverId);
-    mysqli_stmt_execute($stmt);
-    $state['profile'] = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-
-    $stmt = mysqli_prepare($conn, "SELECT * FROM driver_account_vehicles WHERE driver_id = ? LIMIT 1");
-    mysqli_stmt_bind_param($stmt, "i", $driverId);
-    mysqli_stmt_execute($stmt);
-    $state['vehicle'] = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-
-    $stmt = mysqli_prepare($conn,
-        "SELECT *
-         FROM driver_account_documents
-         WHERE driver_id = ?
-         ORDER BY id DESC"
-    );
-    mysqli_stmt_bind_param($stmt, "i", $driverId);
-    mysqli_stmt_execute($stmt);
-    $documents = mysqli_stmt_get_result($stmt);
-    while ($document = mysqli_fetch_assoc($documents)) {
-        $type = $document['document_type'];
-        if (!isset($state['documents'][$type])) {
-            $state['documents'][$type] = $document;
-        }
-    }
-
-    $stmt = mysqli_prepare($conn, "SELECT status, current_lat, current_lng FROM driver_account_availability WHERE driver_id = ? LIMIT 1");
-    mysqli_stmt_bind_param($stmt, "i", $driverId);
-    mysqli_stmt_execute($stmt);
-    $availability = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    if ($availability) {
-        $state['availability'] = $availability['status'];
-        $state['current_lat'] = $availability['current_lat'];
-        $state['current_lng'] = $availability['current_lng'];
-    }
-
-    $stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM driver_ride_requests WHERE driver_id = ? AND request_status = 'pending'");
-    mysqli_stmt_bind_param($stmt, "i", $driverId);
-    mysqli_stmt_execute($stmt);
-    $state['pending_requests'] = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
+    $includeDocuments = (bool) ($options['documents'] ?? true);
 
     $stmt = mysqli_prepare($conn,
         "SELECT
-            COALESCE(SUM(CASE WHEN DATE(completed_at) = CURDATE() THEN fare END), 0) AS today_earnings,
-            COALESCE(SUM(CASE WHEN YEARWEEK(completed_at, 1) = YEARWEEK(CURDATE(), 1) THEN fare END), 0) AS week_earnings,
-            COALESCE(SUM(fare), 0) AS total_earnings,
-            COUNT(*) AS completed_trips
-         FROM driver_ride_history
-         WHERE driver_id = ?"
+            d.id AS account_id,
+            d.name AS account_name,
+            d.email AS account_email,
+            d.phone AS account_phone,
+            d.status AS account_status,
+            d.onboarding_status AS account_onboarding_status,
+            d.created_at AS account_created_at,
+            d.updated_at AS account_updated_at,
+            p.id AS profile_id,
+            p.license_number AS profile_license_number,
+            p.verification_details AS profile_verification_details,
+            p.verification_status AS profile_verification_status,
+            p.created_at AS profile_created_at,
+            p.updated_at AS profile_updated_at,
+            v.id AS vehicle_id,
+            v.vehicle_type,
+            v.vehicle_number,
+            v.seating_capacity,
+            v.created_at AS vehicle_created_at,
+            v.updated_at AS vehicle_updated_at,
+            a.status AS availability_status,
+            a.current_lat,
+            a.current_lng
+         FROM driver_accounts d
+         LEFT JOIN driver_account_profiles p ON p.driver_id = d.id
+         LEFT JOIN driver_account_vehicles v ON v.driver_id = d.id
+         LEFT JOIN driver_account_availability a ON a.driver_id = d.id
+         WHERE d.id = ?
+         LIMIT 1"
     );
     mysqli_stmt_bind_param($stmt, "i", $driverId);
     mysqli_stmt_execute($stmt);
-    $earnings = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    if ($earnings) {
-        $state['today_earnings'] = (float) $earnings['today_earnings'];
-        $state['week_earnings'] = (float) $earnings['week_earnings'];
-        $state['total_earnings'] = (float) $earnings['total_earnings'];
-        $state['completed_trips'] = (int) $earnings['completed_trips'];
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+    if ($row) {
+        $state['account'] = [
+            'id' => $row['account_id'],
+            'name' => $row['account_name'],
+            'email' => $row['account_email'],
+            'phone' => $row['account_phone'],
+            'status' => $row['account_status'],
+            'onboarding_status' => $row['account_onboarding_status'],
+            'created_at' => $row['account_created_at'],
+            'updated_at' => $row['account_updated_at'],
+        ];
+
+        if ($row['profile_id'] !== null) {
+            $state['profile'] = [
+                'id' => $row['profile_id'],
+                'driver_id' => $driverId,
+                'license_number' => $row['profile_license_number'],
+                'verification_details' => $row['profile_verification_details'],
+                'verification_status' => $row['profile_verification_status'],
+                'created_at' => $row['profile_created_at'],
+                'updated_at' => $row['profile_updated_at'],
+            ];
+        }
+
+        if ($row['vehicle_id'] !== null) {
+            $state['vehicle'] = [
+                'id' => $row['vehicle_id'],
+                'driver_id' => $driverId,
+                'vehicle_type' => $row['vehicle_type'],
+                'vehicle_number' => $row['vehicle_number'],
+                'seating_capacity' => $row['seating_capacity'],
+                'created_at' => $row['vehicle_created_at'],
+                'updated_at' => $row['vehicle_updated_at'],
+            ];
+        }
+
+        if ($row['availability_status'] !== null) {
+            $state['availability'] = $row['availability_status'];
+            $state['current_lat'] = $row['current_lat'];
+            $state['current_lng'] = $row['current_lng'];
+        }
     }
 
-    $state['active_workload'] = ridesync_driver_active_workload_count($conn, $driverId);
+    $stmt = mysqli_prepare($conn,
+        "SELECT
+            (SELECT COUNT(*)
+             FROM driver_ride_requests
+             WHERE driver_id = ? AND request_status = 'pending') AS pending_requests,
+            (SELECT COUNT(*)
+             FROM driver_ride_requests
+             WHERE driver_id = ? AND request_status = 'accepted')
+            +
+            (SELECT COUNT(*)
+             FROM ride_live_status
+             WHERE driver_id = ? AND live_status IN ('driver_assigned', 'arriving', 'active')) AS active_workload,
+            COALESCE(SUM(CASE WHEN DATE(completed_at) = CURDATE() THEN fare END), 0) AS today_earnings,
+            COALESCE(SUM(CASE WHEN YEARWEEK(completed_at, 1) = YEARWEEK(CURDATE(), 1) THEN fare END), 0) AS week_earnings,
+            COALESCE(SUM(fare), 0) AS total_earnings,
+            COUNT(driver_ride_history.id) AS completed_trips
+         FROM driver_ride_history
+         WHERE driver_id = ?"
+    );
+    mysqli_stmt_bind_param($stmt, "iiii", $driverId, $driverId, $driverId, $driverId);
+    mysqli_stmt_execute($stmt);
+    $metrics = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    if ($metrics) {
+        $state['pending_requests'] = (int) ($metrics['pending_requests'] ?? 0);
+        $state['active_workload'] = (int) ($metrics['active_workload'] ?? 0);
+        $state['today_earnings'] = (float) ($metrics['today_earnings'] ?? 0);
+        $state['week_earnings'] = (float) ($metrics['week_earnings'] ?? 0);
+        $state['total_earnings'] = (float) ($metrics['total_earnings'] ?? 0);
+        $state['completed_trips'] = (int) ($metrics['completed_trips'] ?? 0);
+    }
+
+    if ($includeDocuments) {
+        $stmt = mysqli_prepare($conn,
+            "SELECT *
+             FROM driver_account_documents
+             WHERE driver_id = ?
+             ORDER BY id DESC"
+        );
+        mysqli_stmt_bind_param($stmt, "i", $driverId);
+        mysqli_stmt_execute($stmt);
+        $documents = mysqli_stmt_get_result($stmt);
+        while ($document = mysqli_fetch_assoc($documents)) {
+            $type = $document['document_type'];
+            if (!isset($state['documents'][$type])) {
+                $state['documents'][$type] = $document;
+            }
+        }
+    }
 
     return $state;
 }
@@ -238,19 +324,13 @@ function ridesync_driver_document_verified($documents, $type) {
 }
 
 function ridesync_driver_identity_submitted($documents) {
-    return ridesync_driver_document_submitted($documents, 'id_proof')
-        || (
-            ridesync_driver_document_submitted($documents, 'aadhaar')
-            && ridesync_driver_document_submitted($documents, 'pan')
-        );
+    return ridesync_driver_document_submitted($documents, 'aadhaar')
+        && ridesync_driver_document_submitted($documents, 'pan');
 }
 
 function ridesync_driver_identity_verified($documents) {
-    return ridesync_driver_document_verified($documents, 'id_proof')
-        || (
-            ridesync_driver_document_verified($documents, 'aadhaar')
-            && ridesync_driver_document_verified($documents, 'pan')
-        );
+    return ridesync_driver_document_verified($documents, 'aadhaar')
+        && ridesync_driver_document_verified($documents, 'pan');
 }
 
 function ridesync_driver_required_document_summary($documents) {
@@ -260,20 +340,20 @@ function ridesync_driver_required_document_summary($documents) {
             'submitted' => ridesync_driver_document_submitted($documents, 'license'),
             'verified' => ridesync_driver_document_verified($documents, 'license'),
         ],
-        'identity' => [
-            'label' => 'Identity proof',
-            'submitted' => ridesync_driver_identity_submitted($documents),
-            'verified' => ridesync_driver_identity_verified($documents),
+        'aadhaar' => [
+            'label' => 'Aadhaar Card',
+            'submitted' => ridesync_driver_document_submitted($documents, 'aadhaar'),
+            'verified' => ridesync_driver_document_verified($documents, 'aadhaar'),
+        ],
+        'pan' => [
+            'label' => 'PAN Card',
+            'submitted' => ridesync_driver_document_submitted($documents, 'pan'),
+            'verified' => ridesync_driver_document_verified($documents, 'pan'),
         ],
         'vehicle_rc' => [
             'label' => 'Vehicle RC',
             'submitted' => ridesync_driver_document_submitted($documents, 'vehicle_rc'),
             'verified' => ridesync_driver_document_verified($documents, 'vehicle_rc'),
-        ],
-        'insurance' => [
-            'label' => 'Insurance',
-            'submitted' => ridesync_driver_document_submitted($documents, 'insurance'),
-            'verified' => ridesync_driver_document_verified($documents, 'insurance'),
         ],
     ];
 

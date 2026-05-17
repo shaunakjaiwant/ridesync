@@ -29,8 +29,7 @@ $matches = $stmt->get_result();
 $stmt->close();
 
 $driverRequests = null;
-$driverRequestsTable = mysqli_query($conn, "SHOW TABLES LIKE 'driver_ride_requests'");
-if ($driverRequestsTable && mysqli_num_rows($driverRequestsTable) > 0) {
+try {
     $stmt = $conn->prepare("
         SELECT rr.*,
                d.name AS driver_name
@@ -40,10 +39,14 @@ if ($driverRequestsTable && mysqli_num_rows($driverRequestsTable) > 0) {
         ORDER BY rr.requested_at DESC
         LIMIT 20
     ");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $driverRequests = $stmt->get_result();
-    $stmt->close();
+    if ($stmt) {
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $driverRequests = $stmt->get_result();
+        $stmt->close();
+    }
+} catch (Throwable $exception) {
+    $driverRequests = null;
 }
 ?>
 

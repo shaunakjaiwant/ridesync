@@ -4,7 +4,7 @@ require_once __DIR__ . '/../includes/driver_account_helper.php';
 
 ridesync_require_driver_login();
 $driverId = (int) $_SESSION['driver_id'];
-$state = ridesync_fetch_driver_state($conn, $driverId);
+$state = ridesync_fetch_driver_state($conn, $driverId, ['documents' => false]);
 
 $stmt = mysqli_prepare($conn,
     "SELECT DATE(completed_at) AS ride_day, COUNT(*) AS trips, COALESCE(SUM(fare), 0) AS earnings

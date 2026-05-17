@@ -3,19 +3,12 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/asset_helper.php';
 require_once __DIR__ . '/view_helper.php';
 $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
-$cssFiles = glob(__DIR__ . '/../css/*.css') ?: [__DIR__ . '/../css/style.css'];
-$styleVersion = max(array_map('filemtime', $cssFiles));
+$styleVersion = ridesync_stylesheet_version();
 $unreadNotifications = 0;
 $needsMapAssets = ridesync_page_needs_map_assets();
 
 if (isset($_SESSION['user_id'])) {
-    $notificationsTable = mysqli_query($conn, "SHOW TABLES LIKE 'notifications'");
-    if ($notificationsTable && mysqli_num_rows($notificationsTable) > 0) {
-        $stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM notifications WHERE user_id = ? AND is_read = 0");
-        mysqli_stmt_bind_param($stmt, "i", $_SESSION['user_id']);
-        mysqli_stmt_execute($stmt);
-        $unreadNotifications = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'] ?? 0);
-    }
+    $unreadNotifications = ridesync_unread_notification_count($conn, 'user_id', (int) $_SESSION['user_id']);
 }
 ?>
 <!DOCTYPE html>
@@ -24,11 +17,17 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RideSync</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <?php if ($needsMapAssets): ?>
+    <link rel="preconnect" href="https://unpkg.com">
+    <?php endif; ?>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/ridesync/logo-mark.png">
     <?php if ($needsMapAssets): ?>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <?php endif; ?>
+    <link rel="stylesheet" href="/ridesync/css/theme.css?v=<?php echo $styleVersion; ?>">
     <link rel="stylesheet" href="/ridesync/css/style.css?v=<?php echo $styleVersion; ?>">
 </head>
 <body class="rider-app app-shell">

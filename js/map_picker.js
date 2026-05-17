@@ -60,7 +60,7 @@
             }).setView([12.9141, 74.8560], 11);
 
             addTiles(map);
-            setTimeout(function () { map.invalidateSize(); }, 150);
+            bindMapResize(canvas, map);
 
             picker.querySelectorAll('[data-map-mode]').forEach(function (button) {
                 button.addEventListener('click', function () {
@@ -376,6 +376,7 @@
             addTiles(map);
             L.marker(origin, { icon: makePinIcon('A', 'origin') }).addTo(map).bindPopup(canvas.dataset.origin || 'Departure');
             L.marker(destination, { icon: makePinIcon('D', 'destination') }).addTo(map).bindPopup(canvas.dataset.destination || 'Destination');
+            bindMapResize(canvas, map);
 
             fetchRoute(origin, destination).then(function (route) {
                 var routeLayer = L.polyline(route.latlngs, {
@@ -385,9 +386,30 @@
                     lineCap: 'round'
                 }).addTo(map);
                 map.fitBounds(routeLayer.getBounds(), { padding: [28, 28] });
-                setTimeout(function () { map.invalidateSize(); }, 150);
             });
         });
+    }
+
+    function bindMapResize(canvas, map) {
+        if (!canvas || !map) return;
+
+        var timer = null;
+        var refresh = function () {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                map.invalidateSize();
+            }, 120);
+        };
+
+        window.addEventListener('resize', refresh, { passive: true });
+        window.addEventListener('orientationchange', refresh, { passive: true });
+
+        if (window.ResizeObserver) {
+            var observer = new ResizeObserver(refresh);
+            observer.observe(canvas);
+        }
+
+        setTimeout(refresh, 150);
     }
 
     function addTiles(map) {

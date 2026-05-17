@@ -16,33 +16,24 @@ $userId = $_SESSION['user_id'];
 
 // ---- FETCH STATS ----
 
-// Total rides posted by this user
-$stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM rides WHERE user_id = ?");
-mysqli_stmt_bind_param($stmt, "i", $userId);
-mysqli_stmt_execute($stmt);
-$ridesPosted = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
-
-// Total open rides by this user
-$stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM rides WHERE user_id = ? AND status = 'open'");
-mysqli_stmt_bind_param($stmt, "i", $userId);
-mysqli_stmt_execute($stmt);
-$openRides = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
-
-// Total match requests this user has sent
-$stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM matches WHERE matched_user_id = ?");
-mysqli_stmt_bind_param($stmt, "i", $userId);
-mysqli_stmt_execute($stmt);
-$requestsSent = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
-
-// Pending requests ON this user's rides (people waiting for approval)
+// Dashboard counters in one round trip instead of four separate requests.
 $stmt = mysqli_prepare($conn,
-    "SELECT COUNT(*) AS total FROM matches m
-     JOIN rides r ON m.ride_id = r.id
-     WHERE r.user_id = ? AND m.status = 'pending'"
+    "SELECT
+        (SELECT COUNT(*) FROM rides WHERE user_id = ?) AS rides_posted,
+        (SELECT COUNT(*) FROM rides WHERE user_id = ? AND status = 'open') AS open_rides,
+        (SELECT COUNT(*) FROM matches WHERE matched_user_id = ?) AS requests_sent,
+        (SELECT COUNT(*)
+         FROM matches m
+         JOIN rides r ON m.ride_id = r.id
+         WHERE r.user_id = ? AND m.status = 'pending') AS pending_incoming"
 );
-mysqli_stmt_bind_param($stmt, "i", $userId);
+mysqli_stmt_bind_param($stmt, "iiii", $userId, $userId, $userId, $userId);
 mysqli_stmt_execute($stmt);
-$pendingIncoming = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'];
+$dashboardStats = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
+$ridesPosted = (int) ($dashboardStats['rides_posted'] ?? 0);
+$openRides = (int) ($dashboardStats['open_rides'] ?? 0);
+$requestsSent = (int) ($dashboardStats['requests_sent'] ?? 0);
+$pendingIncoming = (int) ($dashboardStats['pending_incoming'] ?? 0);
 
 // ---- RECENT RIDES POSTED BY USER ----
 $stmt = mysqli_prepare($conn,
@@ -225,8 +216,8 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
 
 <!-- Quick Actions -->
 <div class="quick-actions">
-    <a href="/ridesync/pages/post_ride.php" class="btn btn-primary">+ Post a Ride</a>
-    <a href="/ridesync/pages/search_rides.php" class="btn btn-secondary">🔍 Search Rides</a>
+    <a href="/ridesync/pages/post_ride.php" class="btn btn-primary">Post a Ride</a>
+    <a href="/ridesync/pages/search_rides.php" class="btn btn-secondary">Search Rides</a>
 </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

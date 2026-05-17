@@ -13,7 +13,7 @@ services:
       RIDESYNC_DB_PORT: 3306
       RIDESYNC_DB_NAME: ridesync_db
       RIDESYNC_DB_USER: ridesync_app
-      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:?Set RIDESYNC_DB_PASSWORD before starting RideSync}
       RIDESYNC_DB_CONNECT_TIMEOUT: ${RIDESYNC_DB_CONNECT_TIMEOUT:-5}
       RIDESYNC_COOKIE_SECURE: "false"
       RIDESYNC_TRUST_PROXY: "true"
@@ -29,7 +29,7 @@ services:
       RIDESYNC_VERIFICATION_INLINE_FALLBACK: "false"
       RIDESYNC_REDIS_URL: redis://redis:6379/2
       RIDESYNC_WEBSOCKET_URL: ${RIDESYNC_WEBSOCKET_URL:-ws://localhost:8081/ridesync/ws}
-      RIDESYNC_WS_SHARED_TOKEN: ${RIDESYNC_WS_SHARED_TOKEN:-ridesync-dev-websocket-token-change-me}
+      RIDESYNC_WS_SHARED_TOKEN: ${RIDESYNC_WS_SHARED_TOKEN:?Set RIDESYNC_WS_SHARED_TOKEN before starting RideSync}
     depends_on:
       mysql:
         condition: service_healthy
@@ -55,7 +55,7 @@ services:
       RIDESYNC_DB_PORT: 3306
       RIDESYNC_DB_NAME: ridesync_db
       RIDESYNC_DB_USER: ridesync_app
-      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:?Set RIDESYNC_DB_PASSWORD before starting RideSync}
       RIDESYNC_DB_CONNECT_TIMEOUT: ${RIDESYNC_DB_CONNECT_TIMEOUT:-5}
       RIDESYNC_STORAGE_DIR: /var/www/html/ridesync/storage
       RIDESYNC_DOCUMENT_ENCRYPTION_KEY: ${RIDESYNC_DOCUMENT_ENCRYPTION_KEY:-}
@@ -89,7 +89,7 @@ services:
       RIDESYNC_DB_PORT: 3306
       RIDESYNC_DB_NAME: ridesync_db
       RIDESYNC_DB_USER: ridesync_app
-      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:?Set RIDESYNC_DB_PASSWORD before starting RideSync}
       RIDESYNC_DB_CONNECT_TIMEOUT: ${RIDESYNC_DB_CONNECT_TIMEOUT:-5}
       RIDESYNC_STORAGE_DIR: /var/www/html/ridesync/storage
       RIDESYNC_REDIS_URL: redis://redis:6379/2
@@ -114,12 +114,12 @@ services:
     environment:
       RIDESYNC_WS_PORT: 8081
       RIDESYNC_WS_POLL_MS: ${RIDESYNC_WS_POLL_MS:-1500}
-      RIDESYNC_WS_SHARED_TOKEN: ${RIDESYNC_WS_SHARED_TOKEN:-ridesync-dev-websocket-token-change-me}
+      RIDESYNC_WS_SHARED_TOKEN: ${RIDESYNC_WS_SHARED_TOKEN:?Set RIDESYNC_WS_SHARED_TOKEN before starting RideSync}
       RIDESYNC_DB_HOST: mysql
       RIDESYNC_DB_PORT: 3306
       RIDESYNC_DB_NAME: ridesync_db
       RIDESYNC_DB_USER: ridesync_app
-      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:?Set RIDESYNC_DB_PASSWORD before starting RideSync}
     depends_on:
       mysql:
         condition: service_healthy
@@ -142,8 +142,8 @@ services:
     environment:
       MYSQL_DATABASE: ridesync_db
       MYSQL_USER: ridesync_app
-      MYSQL_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
-      MYSQL_ROOT_PASSWORD: ${RIDESYNC_DB_ROOT_PASSWORD:-ridesync_root_change_me}
+      MYSQL_PASSWORD: ${RIDESYNC_DB_PASSWORD:?Set RIDESYNC_DB_PASSWORD before starting RideSync}
+      MYSQL_ROOT_PASSWORD: ${RIDESYNC_DB_ROOT_PASSWORD:?Set RIDESYNC_DB_ROOT_PASSWORD before starting RideSync}
     command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     volumes:
       - ridesync_mysql:/var/lib/mysql

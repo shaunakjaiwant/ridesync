@@ -1,0 +1,38 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(\.codex-live|\.github|ai_verification_service|config|database|docs|includes|ops|storage|tests|tools|websocket_gateway)(/|$) - [F,L]
+</IfModule>
+
+<FilesMatch "(^\.|\.env$|\.env\.|\.ini$|\.log$|\.sql$|\.bak$|\.key$|^composer\.(json|lock)$|^package(-lock)?\.json$|^docker-compose.*\.ya?ml$|^Dockerfile$)">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
+    Header unset X-Content-Type-Options
+    Header always unset X-Content-Type-Options
+    Header always set X-Content-Type-Options "nosniff"
+    Header unset X-Frame-Options
+    Header always unset X-Frame-Options
+    Header always set X-Frame-Options "DENY"
+    Header unset Referrer-Policy
+    Header always unset Referrer-Policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    <FilesMatch "\.(css|js|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$">
+        Header set Cache-Control "public, max-age=604800, immutable"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/png "access plus 7 days"
+    ExpiresByType image/jpeg "access plus 7 days"
+    ExpiresByType image/gif "access plus 7 days"
+    ExpiresByType image/webp "access plus 7 days"
+    ExpiresByType image/svg+xml "access plus 7 days"
+</IfModule>

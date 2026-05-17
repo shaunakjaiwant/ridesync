@@ -19,6 +19,8 @@ __pycache__/
 
 # Local database and runtime artifacts
 storage/backups/
+storage/cache/*
+!storage/cache/.gitkeep
 storage/logs/*
 !storage/logs/.gitkeep
 storage/rate_limits/*
@@ -37,6 +39,7 @@ qa_artifacts/
 qa-artifacts/
 
 # Test/load tool output
+.codex-live/
 k6-results/
 playwright-report/
 test-results/

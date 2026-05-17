@@ -22,28 +22,23 @@ $profilePhoto = trim($user['profile_photo'] ?? '');
 $profilePhotoUrl = $profilePhoto !== '' ? '/ridesync/' . ltrim($profilePhoto, '/') : '';
 $initial = strtoupper(substr($user['name'] ?? 'U', 0, 1));
 
-// Fetch stats
-$ride_count = $conn->prepare("SELECT COUNT(*) as c FROM rides WHERE user_id = ?");
-$ride_count->bind_param("i", $user_id);
-$ride_count->execute();
-$total_rides = $ride_count->get_result()->fetch_assoc()['c'];
-$ride_count->close();
-
-$match_count = $conn->prepare("SELECT COUNT(*) as c FROM matches WHERE matched_user_id = ?");
-$match_count->bind_param("i", $user_id);
-$match_count->execute();
-$total_matches = $match_count->get_result()->fetch_assoc()['c'];
-$match_count->close();
-
-$accepted_count = $conn->prepare("SELECT COUNT(*) as c FROM matches WHERE matched_user_id = ? AND status = 'accepted'");
-$accepted_count->bind_param("i", $user_id);
-$accepted_count->execute();
-$total_accepted = $accepted_count->get_result()->fetch_assoc()['c'];
-$accepted_count->close();
+// Fetch stats in one round trip instead of three separate count queries.
+$statsStmt = $conn->prepare("
+    SELECT
+        (SELECT COUNT(*) FROM rides WHERE user_id = ?) AS total_rides,
+        (SELECT COUNT(*) FROM matches WHERE matched_user_id = ?) AS total_matches,
+        (SELECT COUNT(*) FROM matches WHERE matched_user_id = ? AND status = 'accepted') AS total_accepted
+");
+$statsStmt->bind_param("iii", $user_id, $user_id, $user_id);
+$statsStmt->execute();
+$profileStats = $statsStmt->get_result()->fetch_assoc() ?: [];
+$statsStmt->close();
+$total_rides = (int) ($profileStats['total_rides'] ?? 0);
+$total_matches = (int) ($profileStats['total_matches'] ?? 0);
+$total_accepted = (int) ($profileStats['total_accepted'] ?? 0);
 
 $verification = null;
-$verificationTable = mysqli_query($conn, "SHOW TABLES LIKE 'user_verifications'");
-if ($verificationTable && mysqli_num_rows($verificationTable) > 0) {
+try {
     $stmt = $conn->prepare("
         SELECT *
         FROM user_verifications
@@ -55,6 +50,8 @@ if ($verificationTable && mysqli_num_rows($verificationTable) > 0) {
     $stmt->execute();
     $verification = $stmt->get_result()->fetch_assoc();
     $stmt->close();
+} catch (Throwable $exception) {
+    $verification = null;
 }
 
 $verificationStatus = $verification['status'] ?? 'not_started';

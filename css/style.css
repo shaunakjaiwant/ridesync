@@ -1,2 +1,2048 @@
-/* RideSync consolidated stylesheet. Legacy slices were folded into theme.css. */
-@import url("/ridesync/css/theme.css");
+/* RideSync responsive application layer. Base tokens and components are loaded
+   through theme.css before this file in each shared header. */
+
+/* Responsive application layer: desktop keeps the command-center layout, while
+   phone-sized viewports get a compact app shell and bottom navigation. */
+.mobile-only {
+    display: none !important;
+}
+
+.desktop-only {
+    display: initial !important;
+}
+
+@media (max-width: 767px) {
+    :root {
+        --mobile-shell-gap: 12px;
+        --mobile-bottom-nav-height: 76px;
+    }
+
+    html {
+        overflow-x: hidden;
+    }
+
+    .mobile-only {
+        display: initial !important;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    body,
+    .public-app,
+    .rider-app,
+    .driver-app,
+    .admin-app {
+        min-width: 0;
+        overflow-x: hidden;
+        background: #f8fafc;
+        font-size: 14px;
+        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .navbar,
+    .driver-navbar,
+    .public-navbar {
+        position: sticky;
+        top: 0;
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 58px;
+        gap: 10px;
+        padding: 8px 12px;
+        border-bottom-color: rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        overflow: visible;
+        transform: none;
+        filter: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .nav-left,
+    .driver-brand {
+        min-width: 0;
+    }
+
+    .nav-logo,
+    .public-logo,
+    .driver-brand a,
+    .admin-logo-link {
+        min-height: 42px;
+        gap: 8px;
+        padding: 0;
+    }
+
+    .logo-img {
+        width: 48px;
+        height: 34px;
+        flex-basis: 48px;
+    }
+
+    .brand-copy strong {
+        font-size: 0.86rem;
+    }
+
+    .brand-copy span {
+        display: none;
+    }
+
+    .nav-right,
+    .driver-nav-actions {
+        grid-column: 2;
+        grid-row: 1;
+        justify-content: flex-end;
+        width: auto;
+        gap: 6px;
+    }
+
+    .nav-right .btn,
+    .driver-nav-actions .btn {
+        min-height: 36px;
+        padding: 7px 9px;
+        font-size: 0.78rem;
+    }
+
+    .nav-inline-form {
+        width: auto;
+    }
+
+    .rider-app .nav-links,
+    .driver-app .driver-nav-links {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 120;
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(64px, 1fr);
+        justify-content: stretch;
+        gap: 0;
+        min-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+        margin: 0;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+        border: 0;
+        border-top: 1px solid rgba(15, 23, 42, 0.1);
+        border-radius: 18px 18px 0 0;
+        background: rgba(255, 255, 255, 0.985);
+        box-shadow: 0 -14px 34px rgba(15, 23, 42, 0.13);
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .rider-app .nav-links::-webkit-scrollbar,
+    .driver-app .driver-nav-links::-webkit-scrollbar {
+        display: none;
+    }
+
+    .rider-app .nav-links li,
+    .driver-app .driver-nav-links li {
+        display: flex;
+        min-width: 0;
+    }
+
+    .rider-app .nav-links a,
+    .driver-app .driver-nav-links a {
+        position: relative;
+        width: 100%;
+        min-height: 54px;
+        padding: 6px 4px 5px;
+        border-radius: 12px;
+        flex-direction: column;
+        gap: 5px;
+        white-space: normal;
+        color: #475569;
+        font-size: 0.68rem;
+        font-weight: 850;
+        line-height: 1.08;
+        text-align: center;
+    }
+
+    .rider-app .nav-links a::before,
+    .driver-app .driver-nav-links a::before {
+        content: "";
+        width: 18px;
+        height: 3px;
+        border-radius: 999px;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .rider-app .nav-links a.is-active,
+    .driver-app .driver-nav-links a.is-active {
+        background: transparent;
+        color: #1d4ed8;
+    }
+
+    .rider-app .nav-links a.is-active::before,
+    .driver-app .driver-nav-links a.is-active::before {
+        background: #2563eb;
+    }
+
+    .nav-badge {
+        position: absolute;
+        top: 3px;
+        right: 9px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        font-size: 0.66rem;
+    }
+
+    .main-content,
+    .driver-main,
+    .public-app .main-content,
+    .admin-command-shell .admin-main {
+        width: 100%;
+        max-width: 100%;
+        min-height: auto;
+        padding: 16px var(--mobile-shell-gap) 28px;
+    }
+
+    .site-footer {
+        width: 100%;
+        padding: 16px var(--mobile-shell-gap) calc(20px + var(--mobile-bottom-nav-height));
+        font-size: 0.78rem;
+    }
+
+    .page-header,
+    .driver-page-header,
+    .admin-section-header,
+    .admin-card-head,
+    .driver-panel-header,
+    .map-picker-header,
+    .notification-toolbar,
+    .ride-manage-header,
+    .match-card-top,
+    .smart-card-top,
+    .fare-preview-card,
+    .live-status-header {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .page-header h1,
+    .driver-page-header h1,
+    .admin-hero-panel h1,
+    .public-app .page-header h1 {
+        font-size: 1.46rem;
+        line-height: 1.12;
+        overflow-wrap: anywhere;
+        text-wrap: balance;
+    }
+
+    .page-header p,
+    .driver-page-header p,
+    .admin-hero-panel p {
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+    }
+
+    .form-container,
+    .dashboard-section,
+    .ride-card,
+    .match-card,
+    .ride-manage-card,
+    .ride-detail-card,
+    .search-filter-card,
+    .notification-panel,
+    .driver-panel,
+    .driver-empty-card,
+    .driver-request-card,
+    .driver-opportunity-card,
+    .driver-notice-card,
+    .driver-home-card,
+    .insight-panel,
+    .map-picker-card,
+    .ride-map-detail-card,
+    .admin-command-card,
+    .admin-op-card,
+    .admin-connection-card,
+    .admin-risk-card,
+    .admin-search-column,
+    .admin-review-card,
+    .admin-report-card,
+    .admin-profile-showcase,
+    .admin-profile-card,
+    .admin-hero-panel {
+        border-radius: 10px;
+        padding: 14px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .form-container {
+        width: 100%;
+        max-width: none;
+        margin-right: 0;
+        margin-left: 0;
+    }
+
+    .page-header,
+    .role-card-grid,
+    .role-card,
+    .form-container,
+    .dashboard-section,
+    .notification-panel,
+    .driver-panel,
+    .admin-command-card,
+    .admin-profile-showcase {
+        max-width: 100%;
+    }
+
+    .form-container form,
+    .ride-form-container,
+    .auth-register-form form,
+    .driver-profile-form form,
+    .admin-report-form,
+    .admin-decision-panel,
+    .profile-photo-editor {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .form-group,
+    .form-group-wide {
+        grid-column: auto;
+        min-width: 0;
+    }
+
+    input,
+    select,
+    textarea {
+        width: 100%;
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    input[type="file"] {
+        padding: 8px;
+        line-height: 1.4;
+    }
+
+    textarea {
+        min-height: 104px;
+    }
+
+    .btn,
+    .quick-actions .btn,
+    .form-container .btn,
+    .ride-card-footer .btn,
+    .driver-action-row .btn,
+    .driver-request-actions .btn,
+    .admin-actions .btn,
+    .admin-actions form,
+    .notification-toolbar-form,
+    .notification-toolbar-form .btn,
+    .notification-item-actions,
+    .notification-item-actions form,
+    .notification-item-actions .btn {
+        width: 100%;
+        min-height: 44px;
+        white-space: normal;
+    }
+
+    .nav-right,
+    .driver-nav-actions {
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 7px;
+        max-width: 190px;
+    }
+
+    .nav-right .btn,
+    .driver-nav-actions .btn,
+    .nav-right .nav-inline-form,
+    .driver-nav-actions .nav-inline-form {
+        width: auto;
+        min-width: 0;
+    }
+
+    .nav-right .btn,
+    .driver-nav-actions .btn {
+        min-height: 34px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        line-height: 1;
+        box-shadow: none;
+    }
+
+    .nav-right .btn-user {
+        border-color: rgba(37, 99, 235, 0.18);
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .nav-right .btn-logout,
+    .driver-nav-actions .btn-logout {
+        border-color: rgba(220, 38, 38, 0.18);
+        background: #fff7f7;
+        color: #b91c1c;
+    }
+
+    .dashboard-stats,
+    .driver-metrics-grid,
+    .insight-metrics-grid,
+    .dashboard-grid,
+    .dashboard-intelligence,
+    .insights-grid,
+    .role-card-grid,
+    .driver-profile-grid,
+    .driver-request-grid,
+    .driver-opportunity-card,
+    .driver-opportunity-list,
+    .ride-cards,
+    .matches-grid,
+    .admin-command-grid,
+    .admin-command-grid.is-lower,
+    .admin-priority-grid,
+    .admin-connection-grid,
+    .admin-risk-grid,
+    .admin-review-grid,
+    .admin-report-list,
+    .admin-profile-grid,
+    .admin-search-grid,
+    .admin-kyc-grid,
+    .admin-kyc-queue,
+    .smart-search-grid,
+    .hybrid-driver-panel,
+    .wait-logic-grid,
+    .fare-summary-grid,
+    .ride-detail-route,
+    .ride-detail-info,
+    .live-counts,
+    .ride-timeline,
+    .rating-grid,
+    .fare-explainer-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .dashboard-stats,
+    .driver-metrics-grid,
+    .insight-metrics-grid {
+        gap: 10px;
+    }
+
+    .driver-opportunity-side {
+        justify-items: stretch;
+        text-align: left;
+    }
+
+    .driver-list-item,
+    .admin-feed-item,
+    .admin-route-row,
+    .admin-health-stack div,
+    .admin-detail-list div,
+    .admin-drawer-fields div,
+    .admin-document-card .admin-detail-list.compact div {
+        grid-template-columns: 1fr !important;
+        gap: 4px;
+    }
+
+    .smart-search-actions,
+    .driver-action-row,
+    .ride-card-footer,
+    .match-card-footer,
+    .admin-actions,
+    .admin-row-actions,
+    .ride-manage-actions,
+    .match-actions,
+    .safety-actions {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ride-card-footer form,
+    .match-card-footer form,
+    .ride-manage-actions form,
+    .match-actions form,
+    .admin-row-actions form,
+    .admin-actions form {
+        display: block !important;
+        width: 100%;
+    }
+
+    .smart-search-grid .form-group,
+    .smart-search-actions,
+    .map-picker-card,
+    .ride-map-detail-card {
+        min-width: 0;
+    }
+
+    .ride-map,
+    .admin-live-map,
+    .compact-map-picker .ride-map {
+        min-height: 260px;
+        max-height: 60vh;
+    }
+
+    .map-picker-tools {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .map-location-suggestions,
+    .smart-search-suggestions {
+        max-height: 240px;
+        overflow-y: auto;
+    }
+
+    .admin-command-shell {
+        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        inset: auto 0 0 0;
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 120;
+        display: block;
+        width: auto;
+        min-height: 0;
+        height: auto;
+        max-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+        margin: 0;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+        border-radius: 18px 18px 0 0;
+        background: rgba(17, 24, 39, 0.985);
+        box-shadow: 0 -14px 34px rgba(15, 23, 42, 0.22);
+        overflow: visible;
+    }
+
+    .admin-sidebar-top,
+    .admin-sidebar-bottom {
+        display: none;
+    }
+
+    .admin-side-nav {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(74px, 1fr);
+        gap: 4px;
+        padding-top: 0;
+        border-top: 0;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-side-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .admin-side-nav a {
+        min-height: 54px;
+        padding: 6px 8px 5px;
+        flex-direction: column;
+        border-radius: 12px;
+        color: #cbd5e1;
+        font-size: 0.66rem;
+        text-align: center;
+    }
+
+    .admin-side-nav a.is-active {
+        background: #ffffff;
+        color: #111827;
+    }
+
+    .admin-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin: 0;
+        padding: 10px 12px;
+        border-radius: 0;
+        border-right: 0;
+        border-left: 0;
+        background: rgba(255, 255, 255, 0.96);
+    }
+
+    .admin-topbar,
+    .admin-command-shell .admin-main,
+    .admin-command-shell .site-footer {
+        margin-left: 0;
+    }
+
+    .admin-topbar-right {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .admin-mobile-profile-link.mobile-only {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 7px 12px;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 0.78rem;
+        font-weight: 900;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .admin-global-search {
+        grid-template-columns: 1fr;
+        min-height: 44px;
+        padding: 8px 10px;
+    }
+
+    .admin-global-search > span,
+    .admin-global-search kbd,
+    .admin-system-pill,
+    .admin-profile-chip {
+        display: none;
+    }
+
+    .admin-table-wrap {
+        overflow-x: auto;
+        border-radius: 10px;
+        overscroll-behavior: contain;
+        border: 0;
+        background: transparent;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-smart-table {
+        display: block;
+        min-width: 0;
+        border-spacing: 0;
+    }
+
+    .admin-smart-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .admin-smart-table tbody {
+        display: grid;
+        gap: 10px;
+    }
+
+    .admin-smart-table tr,
+    .admin-smart-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-smart-table tbody tr {
+        overflow: hidden;
+        border: 1px solid rgba(219, 227, 238, 0.95);
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .admin-smart-table th,
+    .admin-smart-table td {
+        padding: 10px;
+        font-size: 0.78rem;
+    }
+
+    .admin-smart-table td {
+        display: grid;
+        grid-template-columns: minmax(92px, 0.36fr) minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.86);
+    }
+
+    .admin-smart-table td:last-child {
+        border-bottom: 0;
+    }
+
+    .admin-smart-table td::before {
+        content: attr(data-label);
+        color: #64748b;
+        font-size: 0.68rem;
+        font-weight: 900;
+        line-height: 1.25;
+        text-transform: uppercase;
+    }
+
+    .admin-smart-table td.admin-table-empty {
+        display: block;
+        text-align: center;
+    }
+
+    .admin-smart-table td.admin-table-empty::before {
+        display: none;
+    }
+
+    .admin-drawer-panel {
+        width: 100%;
+        max-width: none;
+        padding: 18px;
+        border-left: 0;
+    }
+
+    .admin-kyc-hero {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .admin-kyc-score {
+        justify-items: start;
+        text-align: left;
+    }
+
+    .admin-review-top,
+    .admin-analysis-head,
+    .admin-profile-showcase-head,
+    .admin-check-grid div,
+    .admin-face-result {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .admin-profile-showcase {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .admin-profile-showcase h2 {
+        font-size: 1.34rem;
+    }
+
+    .admin-profile-grid {
+        gap: 12px;
+    }
+
+    .admin-profile-card {
+        min-height: 0;
+        padding: 16px;
+    }
+
+    .admin-profile-motive {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 18px;
+        padding: 16px;
+    }
+
+    .admin-profile-avatar {
+        width: 92px;
+        height: 92px;
+        font-size: 1.32rem;
+    }
+
+    .admin-document-preview {
+        max-height: 260px;
+    }
+
+    .notification-item {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .notification-dot {
+        display: none;
+    }
+
+    .notification-item-actions {
+        width: 100%;
+    }
+}
+
+@media (min-width: 768px) {
+    .navbar,
+    .driver-navbar,
+    .admin-sidebar,
+    .admin-topbar {
+        transition: width 0.18s ease, margin 0.18s ease, padding 0.18s ease;
+    }
+}
+
+/* Dense-screen mobile refinements for ride discovery, trip detail, and driver work. */
+@media (max-width: 767px) {
+    .rider-app .nav-links a::before,
+    .driver-app .driver-nav-links a::before {
+        display: block;
+        color: transparent;
+        font-size: 0;
+        line-height: 0;
+    }
+
+    .rider-app .nav-links a.is-active::before,
+    .driver-app .driver-nav-links a.is-active::before {
+        background: #2563eb;
+    }
+
+    .smart-search-page,
+    .search-page {
+        width: 100%;
+    }
+
+    .smart-filter-card {
+        padding: 12px;
+    }
+
+    .smart-search-grid {
+        gap: 10px;
+    }
+
+    .compact-map-picker {
+        margin-top: 12px;
+        padding: 12px;
+    }
+
+    .map-picker-header h2,
+    .driver-panel-header h2 {
+        font-size: 1rem;
+    }
+
+    .map-picker-header p,
+    .driver-panel-header p,
+    .page-header p {
+        line-height: 1.45;
+    }
+
+    .map-picker-tools {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .map-picker-tools .btn {
+        min-height: 40px;
+        padding: 8px 10px;
+        font-size: 0.78rem;
+    }
+
+    .map-picker-status,
+    .map-distance-summary,
+    .fare-slider-output {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .smart-engine-summary,
+    .smart-wait-card,
+    .hybrid-fallback-card,
+    .smart-match-detail-card,
+    .safety-card,
+    .fare-intel-header,
+    .live-status-header,
+    .live-status-actions,
+    .ride-detail-actions {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .smart-engine-summary,
+    .smart-wait-card,
+    .hybrid-fallback-card,
+    .fare-intel-card,
+    .safety-card,
+    .report-card,
+    .rating-card,
+    .ride-detail-poster,
+    .ride-detail-riders,
+    .smart-match-detail-card {
+        padding: 14px;
+        border-radius: 10px;
+    }
+
+    .smart-engine-score,
+    .hybrid-fare,
+    .fare-live-badge {
+        align-self: stretch;
+        justify-content: space-between;
+        width: 100%;
+        text-align: left;
+    }
+
+    .demand-signal-form,
+    .hybrid-request-form,
+    .live-status-actions form,
+    .ride-detail-actions form,
+    .safety-actions,
+    .safety-actions .btn {
+        width: 100%;
+    }
+
+    .smart-ride-cards,
+    .ride-cards {
+        gap: 12px;
+    }
+
+    .smart-card-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .ride-card-route,
+    .driver-opportunity-card h3,
+    .route-point strong,
+    .ride-detail-route,
+    .fare-preview-card p,
+    .smart-match-breakdown small,
+    .status-badge,
+    .nav-badge,
+    .driver-opportunity-status,
+    .admin-status-pill,
+    .admin-table-wrap {
+        overflow-wrap: anywhere;
+    }
+
+    .ride-card-route {
+        font-size: 1rem;
+        line-height: 1.3;
+    }
+
+    .match-score-ring {
+        width: 70px;
+        height: 70px;
+        flex: 0 0 70px;
+    }
+
+    .match-score-ring strong {
+        font-size: 1rem;
+    }
+
+    .match-score-ring span {
+        font-size: 0.62rem;
+    }
+
+    .smart-match-breakdown {
+        gap: 7px;
+    }
+
+    .smart-match-breakdown small {
+        display: block;
+        line-height: 1.45;
+    }
+
+    .fare-preview-card {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .ride-card-footer form,
+    .ride-card-footer .status-badge {
+        width: 100%;
+    }
+
+    .ride-detail-card {
+        gap: 14px;
+    }
+
+    .ride-detail-route {
+        padding: 12px;
+    }
+
+    .route-line {
+        height: 22px;
+    }
+
+    .ride-map-detail-card {
+        padding: 12px;
+    }
+
+    .live-counts {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .live-counts span {
+        min-width: 0;
+        padding: 10px;
+    }
+
+    .ride-timeline {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(92px, 1fr)) !important;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .timeline-step {
+        min-width: 92px;
+        padding: 10px 8px;
+    }
+
+    .timeline-step strong {
+        font-size: 0.74rem;
+        line-height: 1.25;
+    }
+
+    .fare-map-surface {
+        min-height: 210px;
+    }
+
+    .fare-map-legend,
+    .fare-trust-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .fare-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .fare-metric {
+        padding: 12px;
+    }
+
+    .fare-metric strong {
+        font-size: 1.05rem;
+    }
+
+    .rating-form,
+    .report-form {
+        gap: 10px;
+    }
+
+    .rating-form .btn,
+    .report-form .btn {
+        width: 100%;
+    }
+
+    .driver-home-card {
+        gap: 12px;
+    }
+
+    .driver-home-card h1 {
+        font-size: 1.42rem;
+        line-height: 1.14;
+    }
+
+    .driver-home-card form,
+    .driver-toggle {
+        width: 100%;
+    }
+
+    .driver-metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px;
+    }
+
+    .driver-metric {
+        min-width: 0;
+        padding: 12px;
+    }
+
+    .driver-metric:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .driver-metric strong {
+        font-size: 1.08rem;
+        overflow-wrap: anywhere;
+    }
+
+    .driver-action-row {
+        gap: 8px;
+    }
+
+    .driver-panel-header .btn {
+        width: 100%;
+    }
+
+    .driver-opportunity-list {
+        gap: 10px;
+    }
+
+    .driver-opportunity-card {
+        gap: 12px;
+        padding: 13px;
+    }
+
+    .driver-opportunity-main,
+    .driver-opportunity-side {
+        min-width: 0;
+    }
+
+    .driver-opportunity-status {
+        width: fit-content;
+        max-width: 100%;
+    }
+
+    .driver-opportunity-side {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 7px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .driver-opportunity-side form,
+    .driver-opportunity-side .btn {
+        width: 100%;
+    }
+
+    .admin-side-nav a {
+        min-width: 74px;
+    }
+}
+
+/* Phones in landscape can report a wide CSS viewport, so use input style and
+   short-height checks to keep the admin panel in the mobile shell. */
+@media (hover: none) and (max-width: 1024px), (pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+    :root {
+        --mobile-bottom-nav-height: 76px;
+    }
+
+    body.admin-app {
+        min-width: 0;
+        overflow-x: hidden;
+        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .admin-command-shell {
+        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .admin-command-shell .admin-main,
+    .admin-command-shell .site-footer,
+    .admin-topbar {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .admin-command-shell .admin-main {
+        padding: 12px 10px 28px;
+    }
+
+    .admin-command-center {
+        gap: 12px;
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        inset: auto 0 0 0;
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 120;
+        display: block;
+        width: auto;
+        min-height: 0;
+        height: auto;
+        max-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+        margin: 0;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+        border-radius: 18px 18px 0 0;
+        background: rgba(17, 24, 39, 0.985);
+        box-shadow: 0 -14px 34px rgba(15, 23, 42, 0.22);
+        overflow: visible;
+    }
+
+    .admin-sidebar-top,
+    .admin-sidebar-bottom {
+        display: none;
+    }
+
+    .admin-side-nav {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(74px, 1fr);
+        gap: 4px;
+        padding-top: 0;
+        border-top: 0;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-side-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .admin-side-nav a {
+        min-width: 74px;
+        min-height: 54px;
+        padding: 6px 8px 5px;
+        flex-direction: column;
+        border-radius: 12px;
+        color: #cbd5e1;
+        font-size: 0.66rem;
+        text-align: center;
+    }
+
+    .admin-side-nav a.is-active {
+        background: #ffffff;
+        color: #111827;
+    }
+
+    .admin-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin: 0;
+        padding: 8px 10px;
+        border-right: 0;
+        border-left: 0;
+        border-radius: 0;
+        background: rgba(255, 255, 255, 0.96);
+    }
+
+    .admin-topbar-right {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .admin-mobile-profile-link.mobile-only {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 7px 12px;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 0.78rem;
+        font-weight: 900;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .admin-global-search {
+        grid-template-columns: 1fr;
+        min-height: 42px;
+        padding: 7px 10px;
+    }
+
+    .admin-global-search > span,
+    .admin-global-search kbd,
+    .admin-system-pill,
+    .admin-profile-chip {
+        display: none;
+    }
+
+    .admin-hero-panel {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+        padding: 14px;
+    }
+
+    .admin-hero-panel h1 {
+        font-size: 1.36rem;
+        line-height: 1.12;
+    }
+
+    .admin-hero-panel p {
+        font-size: 0.9rem;
+        line-height: 1.45;
+    }
+
+    .admin-hero-actions {
+        justify-content: stretch;
+        margin-left: 0;
+    }
+
+    .admin-hero-actions .btn {
+        flex: 1 1 150px;
+        min-height: 40px;
+    }
+
+    .admin-priority-grid,
+    .admin-connection-grid,
+    .admin-command-grid,
+    .admin-command-grid.is-lower,
+    .admin-risk-grid,
+    .admin-review-grid,
+    .admin-report-list,
+    .admin-profile-grid,
+    .admin-search-grid,
+    .admin-kyc-grid,
+    .admin-kyc-queue {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+
+    .admin-command-card,
+    .admin-op-card,
+    .admin-connection-card,
+    .admin-risk-card,
+    .admin-search-column,
+    .admin-review-card,
+    .admin-report-card,
+    .admin-profile-showcase,
+    .admin-profile-card {
+        border-radius: 10px;
+        padding: 14px;
+    }
+
+    .admin-profile-showcase-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .admin-profile-showcase h2 {
+        font-size: 1.34rem;
+    }
+
+    .admin-profile-card {
+        min-height: 0;
+    }
+
+    .admin-profile-motive {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 18px;
+        padding: 16px;
+    }
+
+    .admin-profile-avatar {
+        width: 92px;
+        height: 92px;
+        font-size: 1.32rem;
+    }
+
+    .admin-op-card {
+        min-height: 108px;
+    }
+
+    .admin-live-map {
+        min-height: 260px;
+    }
+
+    .admin-table-wrap {
+        overflow-x: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .notification-item {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .notification-dot {
+        display: none;
+    }
+}
+
+@media (hover: none) and (max-width: 1024px) and (orientation: landscape), (pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+    .admin-priority-grid,
+    .admin-connection-grid,
+    .admin-profile-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* Admin mobile command surface. This intentionally overrides the generic
+   responsive rules above so the admin panel feels designed for phones. */
+@media (max-width: 767px), (hover: none) and (max-width: 1024px), (pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+    body.admin-app {
+        --mobile-bottom-nav-height: 84px;
+        background:
+            linear-gradient(180deg, #eef5fb 0, #f8fafc 280px, #eef2f7 100%);
+    }
+
+    .admin-command-shell .admin-main {
+        padding: 14px 10px 30px;
+    }
+
+    .admin-command-center {
+        gap: 12px;
+    }
+
+    .admin-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin: 0;
+        padding: 10px 12px 12px;
+        border: 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 0 0 22px 22px;
+        background: rgba(248, 250, 252, 0.96);
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .admin-topbar-right {
+        order: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        justify-content: stretch;
+        width: 100%;
+    }
+
+    .admin-mobile-profile-link.mobile-only {
+        display: grid !important;
+        grid-template-columns: 36px minmax(0, 1fr);
+        align-items: center;
+        justify-content: start;
+        gap: 10px;
+        min-height: 48px;
+        min-width: 0;
+        width: 100%;
+        padding: 6px 10px 6px 7px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 16px;
+        background: #eef2f7;
+        color: #111827;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
+    }
+
+    .admin-mobile-profile-orb {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border: 1px solid rgba(250, 204, 21, 0.42);
+        border-radius: 12px;
+        background: rgba(250, 204, 21, 0.12);
+        color: #fef3c7;
+        font-size: 0.78rem;
+        font-weight: 950;
+    }
+
+    .admin-mobile-profile-copy {
+        display: grid;
+        min-width: 0;
+        gap: 2px;
+    }
+
+    .admin-mobile-profile-copy strong,
+    .admin-mobile-profile-copy small {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .admin-mobile-profile-copy strong {
+        color: #111827;
+        font-size: 0.9rem;
+        font-weight: 950;
+        line-height: 1.05;
+    }
+
+    .admin-mobile-profile-copy small {
+        color: #2563eb;
+        font-size: 0.68rem;
+        font-weight: 850;
+        letter-spacing: 0;
+        text-transform: uppercase;
+    }
+
+    .admin-topbar-right form {
+        width: auto;
+        margin: 0;
+    }
+
+    .admin-topbar-right .btn-logout {
+        width: auto;
+        min-height: 42px;
+        padding: 8px 12px;
+        border-radius: 14px;
+        background: #fff7f7;
+        box-shadow: none;
+        white-space: nowrap;
+    }
+
+    .admin-logo-link,
+    .admin-profile-chip,
+    .admin-system-pill {
+        display: none !important;
+    }
+
+    .admin-global-search {
+        order: 2;
+        min-height: 48px;
+        padding: 0 13px;
+        border: 1px solid rgba(37, 99, 235, 0.16);
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-global-search input {
+        min-height: 46px;
+        font-size: 16px;
+    }
+
+    .admin-hero-panel {
+        gap: 14px;
+        margin: 0;
+        padding: 18px;
+        border: 0;
+        border-radius: 20px;
+        background:
+            linear-gradient(135deg, #111827 0%, #1e3a8a 56%, #2563eb 100%);
+        color: #ffffff;
+        box-shadow: 0 20px 46px rgba(15, 23, 42, 0.24);
+    }
+
+    .admin-hero-panel .driver-kicker,
+    .admin-hero-panel h1,
+    .admin-hero-panel p {
+        color: #ffffff;
+    }
+
+    .admin-hero-panel .driver-kicker {
+        opacity: 0.72;
+    }
+
+    .admin-hero-panel p {
+        color: #dbeafe;
+    }
+
+    .admin-hero-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        width: 100%;
+    }
+
+    .admin-hero-actions .btn {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 14px;
+    }
+
+    .admin-hero-actions .btn-secondary {
+        border-color: rgba(255, 255, 255, 0.28);
+        background: rgba(255, 255, 255, 0.95);
+    }
+
+    .admin-priority-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px;
+    }
+
+    .admin-op-card {
+        min-height: 112px;
+        padding: 14px;
+        border: 1px solid rgba(219, 227, 238, 0.9);
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-op-card strong {
+        font-size: 1.48rem;
+    }
+
+    .admin-op-card span {
+        font-size: 0.68rem;
+        line-height: 1.25;
+    }
+
+    .admin-op-card p {
+        font-size: 0.76rem;
+        line-height: 1.4;
+    }
+
+    .admin-command-card,
+    .admin-connection-card,
+    .admin-risk-card,
+    .admin-search-column,
+    .admin-review-card,
+    .admin-report-card,
+    .admin-profile-showcase {
+        border-radius: 16px;
+        border-color: rgba(219, 227, 238, 0.92);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+    }
+
+    .admin-risk-card {
+        min-height: 0;
+    }
+
+    .admin-section {
+        margin-top: 18px;
+    }
+
+    .admin-section-header {
+        margin-bottom: 10px;
+    }
+
+    .admin-sidebar {
+        max-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 0;
+        border-radius: 24px 24px 0 0;
+        background: rgba(8, 13, 24, 0.97);
+        box-shadow: 0 -18px 42px rgba(15, 23, 42, 0.28);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+    }
+
+    .admin-side-nav {
+        gap: 6px;
+        grid-auto-columns: minmax(68px, 1fr);
+        scroll-snap-type: x proximity;
+    }
+
+    .admin-side-nav a {
+        min-width: 68px;
+        min-height: 58px;
+        padding: 7px 8px;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        color: #aab4c2;
+        font-size: 0.62rem;
+        font-weight: 950;
+        scroll-snap-align: center;
+    }
+
+    .admin-side-nav a::before {
+        content: "";
+        display: block;
+        width: 18px;
+        height: 3px;
+        margin: 0 auto 5px;
+        border-radius: 999px;
+        background: transparent;
+    }
+
+    .admin-side-nav a.is-active {
+        border-color: rgba(255, 255, 255, 0.84);
+        background: #ffffff;
+        color: #111827;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+        transform: translateY(-2px);
+    }
+
+    .admin-side-nav a.is-active::before {
+        background: #2563eb;
+    }
+
+    .admin-table-wrap {
+        border-radius: 16px;
+    }
+
+    .admin-smart-table tbody {
+        gap: 12px;
+    }
+
+    .admin-smart-table tbody tr {
+        border-radius: 16px;
+        border-color: rgba(219, 227, 238, 0.95);
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-smart-table td {
+        grid-template-columns: minmax(84px, 0.34fr) minmax(0, 1fr);
+        padding: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .admin-priority-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .admin-hero-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Rider and driver mobile app surfaces. Keep these scoped away from the admin
+   shell, which also carries the driver-app class for shared admin styling. */
+@media (max-width: 767px) {
+    body.rider-app,
+    body.driver-app:not(.admin-app) {
+        --mobile-bottom-nav-height: 86px;
+        background:
+            linear-gradient(180deg, #eef7fb 0, #f8fafc 270px, #eef2f7 100%);
+    }
+
+    .rider-app .main-content,
+    .driver-app:not(.admin-app) .driver-main {
+        padding: 14px 10px 30px;
+    }
+
+    .rider-app .navbar,
+    .driver-app:not(.admin-app) .driver-navbar {
+        position: sticky;
+        top: 0;
+        z-index: 45;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        min-height: 0;
+        padding: 10px 12px 12px;
+        border: 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 0 0 22px 22px;
+        background: rgba(248, 250, 252, 0.96);
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .rider-app .nav-left,
+    .driver-app:not(.admin-app) .driver-brand {
+        width: 100%;
+    }
+
+    .rider-app .nav-logo,
+    .driver-app:not(.admin-app) .driver-brand .nav-logo {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        align-items: center;
+        gap: 11px;
+        width: 100%;
+        min-height: 54px;
+        padding: 7px 12px 7px 8px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 18px;
+        background: #eef2f7;
+        color: #111827;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
+    }
+
+    .driver-app:not(.admin-app) .driver-brand .nav-logo {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    .rider-app .nav-logo .logo-img,
+    .driver-app:not(.admin-app) .driver-brand .logo-img {
+        width: 44px;
+        height: 36px;
+        flex-basis: 44px;
+        filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.22));
+    }
+
+    .rider-app .brand-copy,
+    .driver-app:not(.admin-app) .brand-copy {
+        display: grid;
+        min-width: 0;
+    }
+
+    .rider-app .brand-copy strong,
+    .driver-app:not(.admin-app) .brand-copy strong {
+        overflow: hidden;
+        color: #111827;
+        font-size: 0.98rem;
+        font-weight: 950;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rider-app .brand-copy span,
+    .driver-app:not(.admin-app) .brand-copy span {
+        display: block;
+        overflow: hidden;
+        color: #2563eb;
+        font-size: 0.7rem;
+        font-weight: 850;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .rider-app .nav-right,
+    .driver-app:not(.admin-app) .driver-nav-actions {
+        display: grid;
+        grid-column: 1;
+        grid-row: 2;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+        max-width: none;
+    }
+
+    .driver-app:not(.admin-app) .driver-nav-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .rider-app .nav-right .btn,
+    .driver-app:not(.admin-app) .driver-nav-actions .btn {
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 12px;
+        border-radius: 14px;
+        box-shadow: none;
+        font-size: 0.82rem;
+        white-space: nowrap;
+    }
+
+    .rider-app .nav-right .btn-user {
+        border-color: rgba(37, 99, 235, 0.18);
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .rider-app .nav-right .btn-logout,
+    .driver-app:not(.admin-app) .driver-nav-actions .btn-logout {
+        border-color: rgba(220, 38, 38, 0.18);
+        background: #fff7f7;
+        color: #b91c1c;
+    }
+
+    .rider-app .nav-links,
+    .driver-app:not(.admin-app) .driver-nav-links {
+        inset: auto 0 0 0;
+        top: auto;
+        min-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+        max-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 0;
+        border-radius: 24px 24px 0 0;
+        background: rgba(8, 13, 24, 0.97);
+        box-shadow: 0 -18px 42px rgba(15, 23, 42, 0.28);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        gap: 6px;
+        grid-auto-columns: minmax(68px, 1fr);
+        scroll-snap-type: x proximity;
+    }
+
+    .driver-app:not(.admin-app) .driver-nav-links {
+        grid-auto-columns: minmax(82px, 1fr);
+    }
+
+    .rider-app .nav-links a,
+    .driver-app:not(.admin-app) .driver-nav-links a {
+        min-height: 58px;
+        padding: 7px 8px;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        color: #aab4c2;
+        font-size: 0.62rem;
+        font-weight: 950;
+        scroll-snap-align: center;
+    }
+
+    .driver-app:not(.admin-app) .driver-nav-links a {
+        font-size: 0.64rem;
+    }
+
+    .rider-app .nav-links a::before,
+    .driver-app:not(.admin-app) .driver-nav-links a::before {
+        display: block;
+        width: 18px;
+        height: 3px;
+        margin: 0 auto 5px;
+        border-radius: 999px;
+        background: transparent;
+    }
+
+    .rider-app .nav-links a.is-active,
+    .driver-app:not(.admin-app) .driver-nav-links a.is-active {
+        border-color: rgba(255, 255, 255, 0.84);
+        background: #ffffff;
+        color: #111827;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+        transform: translateY(-2px);
+    }
+
+    .rider-app .nav-links a.is-active::before {
+        background: #2563eb;
+    }
+
+    .driver-app:not(.admin-app) .driver-nav-links a.is-active::before {
+        background: #2563eb;
+    }
+
+    .rider-app .nav-badge,
+    .driver-app:not(.admin-app) .nav-badge {
+        top: 5px;
+        right: 7px;
+        border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .rider-app .page-header,
+    .driver-app:not(.admin-app) .driver-page-header {
+        display: grid;
+        align-items: start;
+        gap: 10px;
+        margin: 0 0 14px;
+        padding: 18px;
+        border: 0;
+        border-radius: 20px;
+        background:
+            linear-gradient(135deg, #111827 0%, #1e3a8a 56%, #2563eb 100%);
+        color: #ffffff;
+        box-shadow: 0 20px 46px rgba(15, 23, 42, 0.24);
+    }
+
+    .driver-app:not(.admin-app) .driver-page-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+        background:
+            linear-gradient(135deg, #0f172a 0%, #1e3a8a 62%, #2563eb 100%);
+    }
+
+    .rider-app .page-header h1,
+    .driver-app:not(.admin-app) .driver-page-header h1,
+    .rider-app .page-header p,
+    .driver-app:not(.admin-app) .driver-page-header p,
+    .rider-app .page-header .fare-kicker,
+    .driver-app:not(.admin-app) .driver-page-header .driver-kicker {
+        color: #ffffff;
+    }
+
+    .rider-app .page-header p,
+    .driver-app:not(.admin-app) .driver-page-header p {
+        color: #dbeafe;
+    }
+
+    .rider-app .page-header h1,
+    .driver-app:not(.admin-app) .driver-page-header h1 {
+        font-size: 1.48rem;
+    }
+
+    .driver-app:not(.admin-app) .driver-status-pill {
+        align-self: start;
+        border-color: rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+    }
+
+    .rider-app .dashboard-stats,
+    .driver-app:not(.admin-app) .driver-metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px;
+    }
+
+    .rider-app .dashboard-stats .stat-box:last-child,
+    .driver-app:not(.admin-app) .driver-metric:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .rider-app .stat-box,
+    .driver-app:not(.admin-app) .driver-metric {
+        min-height: 112px;
+        padding: 14px;
+        border: 1px solid rgba(219, 227, 238, 0.9);
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    .driver-app:not(.admin-app) .driver-metric:first-child::before,
+    .driver-app:not(.admin-app) .driver-metric:nth-child(2)::before {
+        background: #2563eb;
+    }
+
+    .rider-app .stat-number,
+    .driver-app:not(.admin-app) .driver-metric strong {
+        font-size: 1.48rem;
+    }
+
+    .rider-app .stat-label,
+    .driver-app:not(.admin-app) .driver-metric span {
+        font-size: 0.68rem;
+        line-height: 1.25;
+    }
+
+    .rider-app .dashboard-section,
+    .rider-app .ride-card,
+    .rider-app .match-card,
+    .rider-app .ride-manage-card,
+    .rider-app .search-filter-card,
+    .rider-app .notification-panel,
+    .rider-app .form-container,
+    .driver-app:not(.admin-app) .driver-panel,
+    .driver-app:not(.admin-app) .driver-request-card,
+    .driver-app:not(.admin-app) .driver-opportunity-card,
+    .driver-app:not(.admin-app) .driver-notice-card,
+    .driver-app:not(.admin-app) .form-container {
+        border-radius: 16px;
+        border-color: rgba(219, 227, 238, 0.92);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+    }
+
+    .driver-app:not(.admin-app) .driver-home-card {
+        gap: 14px;
+        margin: 0 0 14px;
+        padding: 18px;
+        border: 0;
+        border-radius: 20px;
+        background:
+            linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(37, 99, 235, 0.9));
+        color: #ffffff;
+        box-shadow: 0 20px 46px rgba(15, 23, 42, 0.2);
+    }
+
+    .driver-app:not(.admin-app) .driver-home-card .driver-kicker,
+    .driver-app:not(.admin-app) .driver-home-card h2,
+    .driver-app:not(.admin-app) .driver-home-card p {
+        color: #ffffff;
+    }
+
+    .driver-app:not(.admin-app) .driver-home-card p {
+        color: #dbeafe;
+    }
+
+    .driver-app:not(.admin-app) .driver-toggle {
+        min-height: 48px;
+        border-radius: 14px;
+    }
+
+    .rider-app .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .rider-app .quick-actions .btn {
+        min-height: 46px;
+        border-radius: 14px;
+    }
+
+    .rider-app .leaflet-control-zoom a,
+    .driver-app:not(.admin-app) .leaflet-control-zoom a {
+        width: 42px;
+        height: 42px;
+        line-height: 42px;
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .rider-app .dashboard-stats,
+    .driver-app:not(.admin-app) .driver-metrics-grid,
+    .rider-app .quick-actions {
+        grid-template-columns: 1fr !important;
+    }
+}

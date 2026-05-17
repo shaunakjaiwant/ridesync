@@ -871,11 +871,11 @@ function ridesync_verification_process_session($conn, $sessionId) {
         } else {
             $similarity = 0.0;
             $faceStatus = 'not_available';
-            $faceScore = 58.0;
+            $faceScore = 100.0;
         }
         ridesync_verification_insert_face_match($conn, $sessionId, $selfieId, $idDocId, $similarity, 82.0, $faceStatus, [
             'engine' => 'mocked-facenet-compatible',
-            'reason' => $faceStatus === 'not_available' ? 'Selfie or document face image not submitted.' : 'Embedding comparison completed.',
+            'reason' => $faceStatus === 'not_available' ? 'Optional selfie not submitted; face match skipped.' : 'Embedding comparison completed.',
         ]);
 
         ridesync_verification_update_stage($conn, $sessionId, 'api_validation', 'Provider validation checks completed.');
@@ -891,20 +891,12 @@ function ridesync_verification_process_session($conn, $sessionId) {
         $fraudScore = max(0, 100 - $fraudPenalty);
 
         $confidenceScore = (int) round(($ocrScore * 0.25) + ($apiScore * 0.30) + ($faceScore * 0.20) + ($fraudScore * 0.25));
-        $submittedTypes = array_map(static fn($doc) => $doc['document_type'], $bundle['documents']);
-        $hasIdentityDoc = in_array('id_proof', $submittedTypes, true)
-            || (in_array('aadhaar', $submittedTypes, true) && in_array('pan', $submittedTypes, true));
+        $submittedTypes = array_unique(array_map(static fn($doc) => $doc['document_type'], $bundle['documents']));
         $missingCore = [];
-        foreach (['license', 'vehicle_rc', 'insurance'] as $coreType) {
+        foreach (ridesync_driver_document_core_types() as $coreType) {
             if (!in_array($coreType, $submittedTypes, true)) {
                 $missingCore[] = ridesync_driver_document_label($coreType);
             }
-        }
-        if (!$hasIdentityDoc) {
-            $missingCore[] = 'Aadhaar/PAN or ID Proof';
-        }
-        if (!$selfieId) {
-            $missingCore[] = 'Selfie';
         }
 
         $reasons = array_values(array_unique(array_filter(array_merge(
@@ -919,7 +911,7 @@ function ridesync_verification_process_session($conn, $sessionId) {
         } elseif ($confidenceScore >= 85 && !$hasHighFlag && count($missingCore) === 0) {
             $decision = 'verified';
             $riskLevel = 'low';
-        } elseif (count($missingCore) > 0 || $apiScore < 70 || $faceStatus === 'not_available') {
+        } elseif (count($missingCore) > 0 || $apiScore < 70) {
             $decision = 'needs_manual_review';
             $riskLevel = $confidenceScore >= 70 ? 'medium' : 'high';
         } else {

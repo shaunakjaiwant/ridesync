@@ -22,6 +22,7 @@ if (navLinks) {
 
 // ---------- FORM VALIDATION ----------
 document.addEventListener('DOMContentLoaded', function () {
+    initNavigationPrefetch();
     initEmailValidation();
     initFareSliders();
     initRealtimeEvents();
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initDriverLocationCapture();
     initTripShare();
     initScrollableRegions();
+    initResponsiveDataTables();
     initConfirmActions();
     initAdminPanelFilters();
     initSmartSearchSuggestions();
@@ -209,6 +211,66 @@ document.addEventListener('DOMContentLoaded', function () {
 function isValidEmail(email) {
     email = (email || '').trim();
     return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email);
+}
+
+function initNavigationPrefetch() {
+    var links = document.querySelectorAll('.nav-links a[href], .driver-nav-links a[href], .admin-side-nav a[href], .admin-section-tabs a[href], .nav-right .btn-user[href], .driver-action-row a[href], .quick-actions a[href]');
+    if (!links.length || !document.head) {
+        return;
+    }
+
+    var prefetched = new Set();
+
+    function canPrefetch(link) {
+        if (!link || link.dataset.prefetch === 'off') {
+            return null;
+        }
+
+        var url;
+        try {
+            url = new URL(link.href, window.location.href);
+        } catch (error) {
+            return null;
+        }
+
+        if (url.origin !== window.location.origin || url.href === window.location.href || url.hash) {
+            return null;
+        }
+
+        if (!url.pathname.startsWith('/ridesync/pages/') && !url.pathname.endsWith('/ridesync/index.php')) {
+            return null;
+        }
+
+        return url;
+    }
+
+    function prefetch(link) {
+        var url = canPrefetch(link);
+        if (!url || prefetched.has(url.href)) {
+            return;
+        }
+
+        prefetched.add(url.href);
+        var hint = document.createElement('link');
+        hint.rel = 'prefetch';
+        hint.as = 'document';
+        hint.href = url.href;
+        document.head.appendChild(hint);
+    }
+
+    links.forEach(function (link) {
+        link.addEventListener('pointerenter', function () { prefetch(link); }, { passive: true });
+        link.addEventListener('touchstart', function () { prefetch(link); }, { passive: true });
+        link.addEventListener('focus', function () { prefetch(link); });
+    });
+
+    var runIdle = window.requestIdleCallback || function (callback) {
+        return window.setTimeout(callback, 900);
+    };
+
+    runIdle(function () {
+        Array.prototype.slice.call(links, 0, 5).forEach(prefetch);
+    });
 }
 
 function initEmailValidation() {
@@ -401,20 +463,54 @@ function initDriverLiveStatus() {
 
 function initDriverLocationCapture() {
     var forms = document.querySelectorAll('[data-driver-availability-form]');
-    if (!forms.length || !navigator.geolocation) return;
+    if (!forms.length) return;
 
     forms.forEach(function (form) {
         var status = form.querySelector('[name="status"]');
         if (!status || status.value !== 'online') return;
 
-        navigator.geolocation.getCurrentPosition(function (position) {
-            var lat = form.querySelector('[name="current_lat"]');
-            var lng = form.querySelector('[name="current_lng"]');
-            if (lat) lat.value = position.coords.latitude.toFixed(7);
-            if (lng) lng.value = position.coords.longitude.toFixed(7);
-        }, function () {}, {
-            enableHighAccuracy: true,
-            timeout: 8000
+        form.addEventListener('submit', function (event) {
+            if (form.dataset.locationResolved === 'true' || !navigator.geolocation) {
+                return;
+            }
+
+            event.preventDefault();
+            var submitter = event.submitter || form.querySelector('button[type="submit"]');
+            var originalLabel = submitter ? submitter.textContent : '';
+
+            if (submitter) {
+                submitter.disabled = true;
+                submitter.textContent = 'Finding location...';
+            }
+
+            function continueSubmit() {
+                form.dataset.locationResolved = 'true';
+                if (submitter) {
+                    submitter.disabled = false;
+                    submitter.textContent = originalLabel;
+                }
+
+                if (typeof form.requestSubmit === 'function') {
+                    if (submitter) {
+                        form.requestSubmit(submitter);
+                    } else {
+                        form.requestSubmit();
+                    }
+                } else {
+                    form.submit();
+                }
+            }
+
+            navigator.geolocation.getCurrentPosition(function (position) {
+                var lat = form.querySelector('[name="current_lat"]');
+                var lng = form.querySelector('[name="current_lng"]');
+                if (lat) lat.value = position.coords.latitude.toFixed(7);
+                if (lng) lng.value = position.coords.longitude.toFixed(7);
+                continueSubmit();
+            }, continueSubmit, {
+                enableHighAccuracy: true,
+                timeout: 8000
+            });
         });
     });
 }
@@ -815,9 +911,22 @@ function initSmartSearchSuggestions() {
 
     function positionPopup(input) {
         var rect = input.getBoundingClientRect();
-        popup.style.left = Math.max(10, rect.left) + 'px';
-        popup.style.top = (rect.bottom + 6) + 'px';
-        popup.style.width = Math.max(260, rect.width) + 'px';
+        var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
+        var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
+        var width = Math.min(Math.max(260, rect.width), Math.max(220, viewportWidth - 20));
+        var left = Math.min(Math.max(10, rect.left), Math.max(10, viewportWidth - width - 10));
+        var top = rect.bottom + 6;
+        var availableBelow = viewportHeight - top - 12;
+
+        if (availableBelow < 180 && rect.top > 220) {
+            top = Math.max(10, rect.top - 226);
+            availableBelow = Math.max(180, rect.top - top - 6);
+        }
+
+        popup.style.left = left + 'px';
+        popup.style.top = top + 'px';
+        popup.style.width = width + 'px';
+        popup.style.maxHeight = Math.max(180, Math.min(360, availableBelow)) + 'px';
     }
 
     function hidePopup() {
@@ -994,9 +1103,29 @@ function initAdminMap() {
         }).addTo(map).bindPopup('Dakshina Kannada operating region');
     }
 
-    setTimeout(function () {
-        map.invalidateSize();
-    }, 250);
+    bindMapResize(canvas, map);
+}
+
+function bindMapResize(canvas, map) {
+    if (!canvas || !map) return;
+
+    var timer = null;
+    var refresh = function () {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            map.invalidateSize();
+        }, 120);
+    };
+
+    window.addEventListener('resize', refresh, { passive: true });
+    window.addEventListener('orientationchange', refresh, { passive: true });
+
+    if (window.ResizeObserver) {
+        var observer = new ResizeObserver(refresh);
+        observer.observe(canvas);
+    }
+
+    setTimeout(refresh, 250);
 }
 
 function initScrollableRegions() {
@@ -1005,6 +1134,27 @@ function initScrollableRegions() {
         if (!node.getAttribute('aria-label')) {
             node.setAttribute('aria-label', index === 0 ? 'Scrollable admin data' : 'Scrollable admin data ' + (index + 1));
         }
+    });
+}
+
+function initResponsiveDataTables() {
+    document.querySelectorAll('.admin-smart-table').forEach(function (table) {
+        var headers = Array.prototype.slice.call(table.querySelectorAll('thead th')).map(function (header) {
+            return header.textContent.trim();
+        });
+
+        if (!headers.length) return;
+
+        table.querySelectorAll('tbody tr').forEach(function (row) {
+            row.querySelectorAll('td').forEach(function (cell, index) {
+                if (cell.colSpan > 1 && row.children.length === 1) {
+                    cell.classList.add('admin-table-empty');
+                }
+                if (!cell.dataset.label && headers[index]) {
+                    cell.dataset.label = headers[index];
+                }
+            });
+        });
     });
 }
 
@@ -1218,9 +1368,11 @@ function showFormErrors(form, errors) {
 
     var errorDiv = document.createElement('div');
     errorDiv.className = 'alert alert-error client-errors';
-    errorDiv.innerHTML = errors.map(function (err) {
-        return '<div>' + err + '</div>';
-    }).join('');
+    errors.forEach(function (err) {
+        var item = document.createElement('div');
+        item.textContent = String(err || 'Please check this field.');
+        errorDiv.appendChild(item);
+    });
 
     form.insertBefore(errorDiv, form.firstChild);
 

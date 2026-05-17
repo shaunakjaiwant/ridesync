@@ -129,6 +129,7 @@ foreach ($documents as $doc) {
 }
 
 $requiredDocumentTypes = ridesync_driver_document_types();
+$requiredDocumentKeys = array_keys(ridesync_driver_required_document_types());
 
 $latestDocumentsByType = [];
 foreach ($docsByType as $type => $typeDocuments) {
@@ -137,11 +138,6 @@ foreach ($docsByType as $type => $typeDocuments) {
 $requiredDocumentSummary = ridesync_driver_required_document_summary($latestDocumentsByType);
 $submittedRequiredDocuments = $requiredDocumentSummary['submitted'];
 $verifiedRequiredDocuments = $requiredDocumentSummary['verified'];
-$identityRequirementLabel = ridesync_driver_document_verified($latestDocumentsByType, 'id_proof')
-    ? 'ID proof verified'
-    : (ridesync_driver_document_verified($latestDocumentsByType, 'aadhaar') && ridesync_driver_document_verified($latestDocumentsByType, 'pan')
-        ? 'Aadhaar + PAN verified'
-        : 'Identity proof pending');
 $driverPanelReady = ($driver['profile_verification_status'] ?? '') === 'verified' && $requiredDocumentSummary['ready'];
 $canApproveReadyDriver = !empty($driver['profile_id']) && $requiredDocumentSummary['complete'] && !$driverPanelReady;
 
@@ -237,7 +233,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 <div>
                     <span class="driver-kicker">Weighted Decision Engine</span>
                     <h3>Score Breakdown</h3>
-                    <p>OCR 25%, API validation 30%, face match 20%, fraud analysis 25%.</p>
+                    <p>OCR 25%, API validation 30%, optional face match 20%, fraud analysis 25%.</p>
                 </div>
             </div>
             <div class="admin-score-grid">
@@ -279,7 +275,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
             <div class="admin-review-top">
                 <div>
                     <span class="driver-kicker">Face Matching</span>
-                    <h3>Selfie to ID Comparison</h3>
+                    <h3>Optional Selfie to ID Comparison</h3>
                     <p>Threshold: 82% similarity.</p>
                 </div>
             </div>
@@ -378,7 +374,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 <dt>Required Checks</dt>
                 <dd>
                     <?php echo (int) $verifiedRequiredDocuments; ?>/4 verified, <?php echo (int) $submittedRequiredDocuments; ?>/4 submitted
-                    <small><?php echo htmlspecialchars($identityRequirementLabel); ?></small>
+                    <small>License, Aadhaar, PAN, and Vehicle RC are required.</small>
                 </dd>
             </div>
             <div><dt>Notes</dt><dd><?php echo htmlspecialchars($driver['verification_details'] ?: 'No notes submitted'); ?></dd></div>
@@ -429,10 +425,8 @@ require_once __DIR__ . '/../includes/admin_header.php';
     <div class="admin-document-grid">
         <?php foreach ($requiredDocumentTypes as $type => $label): ?>
             <?php $typeDocs = $docsByType[$type] ?? []; ?>
-            <?php if ($type === 'id_proof' && count($typeDocs) === 0 && ridesync_driver_identity_submitted($latestDocumentsByType)): ?>
-                <?php continue; ?>
-            <?php endif; ?>
             <?php
+            $isRequiredDocument = in_array((string) $type, $requiredDocumentKeys, true);
             $typePending = false;
             foreach ($typeDocs as $typeDoc) {
                 if (($typeDoc['verification_status'] ?? '') === 'pending') {
@@ -445,19 +439,19 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 <div class="admin-review-top">
                     <div>
                         <span class="badge badge-<?php echo count($typeDocs) > 0 ? ($typePending ? 'pending' : 'accepted') : 'closed'; ?>">
-                            <?php echo count($typeDocs) > 0 ? ($typePending ? 'Needs Review' : 'Reviewed') : 'Missing'; ?>
+                            <?php echo count($typeDocs) > 0 ? ($typePending ? 'Needs Review' : 'Reviewed') : ($isRequiredDocument ? 'Missing' : 'Optional'); ?>
                         </span>
                         <h3><?php echo htmlspecialchars($label); ?></h3>
                         <p>
                             <?php echo count($typeDocs) > 0
                                 ? 'Review submitted references and approve or reject each item.'
-                                : 'No reference submitted for this document type.'; ?>
+                                : ($isRequiredDocument ? 'No reference submitted for this required document type.' : 'Optional document not submitted.'); ?>
                         </p>
                     </div>
                 </div>
 
                 <?php if (count($typeDocs) === 0): ?>
-                    <p class="admin-message">No submitted document reference.</p>
+                    <p class="admin-message"><?php echo $isRequiredDocument ? 'No submitted document reference.' : 'Driver can be approved without this optional document.'; ?></p>
                 <?php else: ?>
                     <?php foreach ($typeDocs as $doc): ?>
                         <div class="admin-document-item">

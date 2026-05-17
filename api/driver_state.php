@@ -14,7 +14,7 @@ ridesync_enforce_rate_limit('api:driver_state', 120, 60, 'driver:' . $driverId, 
     'message' => 'Too many driver state checks. Please slow down briefly.',
 ]);
 
-$state = ridesync_fetch_driver_state($conn, $driverId);
+$state = ridesync_fetch_driver_state($conn, $driverId, ['documents' => false]);
 
 ridesync_json_response([
     'ok' => true,

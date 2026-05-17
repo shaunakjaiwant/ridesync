@@ -10,10 +10,27 @@ function ridesync_table_exists($conn, $table) {
     }
 
     static $cache = [];
+    static $loadedAllTables = false;
     $key = strtolower($table);
 
     if (array_key_exists($key, $cache)) {
         return $cache[$key];
+    }
+
+    if (!$loadedAllTables) {
+        $result = mysqli_query(
+            $conn,
+            "SELECT TABLE_NAME
+             FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE()"
+        );
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $cache[strtolower((string) $row['TABLE_NAME'])] = true;
+            }
+            $loadedAllTables = true;
+            return $cache[$key] ?? false;
+        }
     }
 
     $safeTable = mysqli_real_escape_string($conn, $table);
@@ -395,11 +412,9 @@ function ridesync_find_online_driver($conn, $search) {
             JOIN (
                 SELECT driver_id,
                        SUM(CASE WHEN document_type = 'license' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS license_ok,
-                       SUM(CASE WHEN document_type = 'id_proof' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS id_ok,
                        SUM(CASE WHEN document_type = 'aadhaar' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS aadhaar_ok,
                        SUM(CASE WHEN document_type = 'pan' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS pan_ok,
-                       SUM(CASE WHEN document_type = 'vehicle_rc' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS rc_ok,
-                       SUM(CASE WHEN document_type = 'insurance' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS insurance_ok
+                       SUM(CASE WHEN document_type = 'vehicle_rc' AND verification_status = 'verified' THEN 1 ELSE 0 END) AS rc_ok
                 FROM driver_account_documents
                 GROUP BY driver_id
             ) docs ON docs.driver_id = d.id
@@ -408,9 +423,9 @@ function ridesync_find_online_driver($conn, $search) {
               AND a.status = 'online'
               AND p.verification_status = 'verified'
               AND docs.license_ok > 0
-              AND (docs.id_ok > 0 OR (docs.aadhaar_ok > 0 AND docs.pan_ok > 0))
+              AND docs.aadhaar_ok > 0
+              AND docs.pan_ok > 0
               AND docs.rc_ok > 0
-              AND docs.insurance_ok > 0
               AND NOT EXISTS (
                     SELECT 1
                     FROM driver_ride_requests rr

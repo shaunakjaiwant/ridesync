@@ -137,8 +137,39 @@ $stmt = $conn->prepare("
 ");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$rides = $stmt->get_result();
+$ridesResult = $stmt->get_result();
+$rides = [];
+while ($row = $ridesResult->fetch_assoc()) {
+    $rides[] = $row;
+}
 $stmt->close();
+
+$matchRequestsByRide = [];
+$rideIds = array_map(static fn($ride) => (int) $ride['id'], $rides);
+if (count($rideIds) > 0) {
+    $placeholders = implode(',', array_fill(0, count($rideIds), '?'));
+    $types = str_repeat('i', count($rideIds));
+    $m_stmt = $conn->prepare("
+        SELECT m.ride_id, m.id AS match_id, m.status AS match_status, m.match_score, m.route_overlap_percent, m.created_at AS requested_at,
+               u.name, u.email, u.college, u.gender
+        FROM matches m
+        JOIN users u ON m.matched_user_id = u.id
+        WHERE m.ride_id IN ({$placeholders})
+        ORDER BY m.ride_id ASC, m.created_at DESC
+    ");
+    $bindValues = $rideIds;
+    $bindParams = [$types];
+    foreach ($bindValues as $index => $value) {
+        $bindParams[] = &$bindValues[$index];
+    }
+    call_user_func_array([$m_stmt, 'bind_param'], $bindParams);
+    $m_stmt->execute();
+    $matchRows = $m_stmt->get_result();
+    while ($match = $matchRows->fetch_assoc()) {
+        $matchRequestsByRide[(int) $match['ride_id']][] = $match;
+    }
+    $m_stmt->close();
+}
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -153,13 +184,13 @@ require_once __DIR__ . '/../includes/header.php';
 <?php ridesync_flash('match_success', 'alert-success'); ?>
 <?php ridesync_flash('match_error', 'alert-error'); ?>
 
-<?php if ($rides->num_rows === 0): ?>
+<?php if (count($rides) === 0): ?>
     <div class="empty-state">
         <p>You haven't posted any rides yet.</p>
         <a href="/ridesync/pages/post_ride.php" class="btn btn-primary">Post Your First Ride</a>
     </div>
 <?php else: ?>
-    <?php while ($ride = $rides->fetch_assoc()): ?>
+    <?php foreach ($rides as $ride): ?>
         <?php
         $liveStatus = $ride['live_status'] ?? 'searching';
         $hasStartedLifecycle = in_array($liveStatus, ['driver_assigned', 'arriving', 'active', 'completed', 'cancelled'], true);
@@ -224,26 +255,13 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
 
             <!-- Match requests for this ride -->
-            <?php
-            $m_stmt = $conn->prepare("
-                SELECT m.id AS match_id, m.status AS match_status, m.match_score, m.route_overlap_percent, m.created_at AS requested_at,
-                       u.name, u.email, u.college, u.gender
-                FROM matches m
-                JOIN users u ON m.matched_user_id = u.id
-                WHERE m.ride_id = ?
-                ORDER BY m.created_at DESC
-            ");
-            $m_stmt->bind_param("i", $ride['id']);
-            $m_stmt->execute();
-            $match_requests = $m_stmt->get_result();
-            $m_stmt->close();
-            ?>
+            <?php $matchRequests = $matchRequestsByRide[(int) $ride['id']] ?? []; ?>
 
-            <?php if ($match_requests->num_rows > 0): ?>
+            <?php if (count($matchRequests) > 0): ?>
                 <div class="match-requests-section">
-                    <h4>Join Requests (<?php echo $match_requests->num_rows; ?>)</h4>
+                    <h4>Join Requests (<?php echo count($matchRequests); ?>)</h4>
                     <div class="match-list">
-                        <?php while ($m = $match_requests->fetch_assoc()): ?>
+                        <?php foreach ($matchRequests as $m): ?>
                             <div class="match-item">
                                 <div class="match-info">
                                     <strong><?php echo htmlspecialchars($m['name']); ?></strong>
@@ -277,14 +295,14 @@ require_once __DIR__ . '/../includes/header.php';
                                     <?php endif; ?>
                                 </div>
                             </div>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             <?php else: ?>
                 <p class="no-requests">No join requests yet.</p>
             <?php endif; ?>
         </div>
-    <?php endwhile; ?>
+    <?php endforeach; ?>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

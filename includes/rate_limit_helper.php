@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/redirect_helper.php';
 
 if (!function_exists('ridesync_client_ip')) {
     function ridesync_client_ip() {
@@ -135,7 +136,7 @@ function ridesync_enforce_rate_limit($scope, $limit, $windowSeconds, $identity =
             $_SESSION[$flashKey] = $message;
         }
 
-        header('Location: ' . $options['redirect']);
+        header('Location: ' . ridesync_safe_redirect_target($options['redirect'], '/ridesync/index.php'));
         exit;
     }
 

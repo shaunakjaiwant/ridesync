@@ -186,6 +186,25 @@ if ($action === 'update_profile') {
         $existingDocumentReferences[$document['document_type']] = $document['document_reference'];
     }
 
+    $missingRequiredDocuments = ridesync_driver_missing_required_document_labels(
+        [
+            'license' => $documentReference,
+            'aadhaar' => $aadhaarReference,
+            'pan' => $panReference,
+            'vehicle_rc' => $vehicleRcReference,
+        ],
+        [
+            'license' => 'license_file',
+            'aadhaar' => 'aadhaar_file',
+            'pan' => 'pan_file',
+            'vehicle_rc' => 'vehicle_rc_file',
+        ],
+        $existingDocumentReferences
+    );
+    if (count($missingRequiredDocuments) > 0) {
+        ridesync_driver_profile_fail("Upload or enter references for required documents: " . implode(', ', $missingRequiredDocuments) . ".");
+    }
+
     mysqli_begin_transaction($conn);
     $uploadedDocuments = [];
     $replacedDocumentReferences = [];

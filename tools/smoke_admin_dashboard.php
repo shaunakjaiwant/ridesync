@@ -8,7 +8,7 @@ require_once __DIR__ . '/../config/db.php';
 
 $section = $argv[1] ?? 'overview';
 $query = $argv[2] ?? '';
-$allowed = ['overview', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'analytics', 'system'];
+$allowed = ['overview', 'profiles', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'analytics', 'system'];
 if (!in_array($section, $allowed, true)) {
     fwrite(STDERR, "Unsupported section\n");
     exit(1);
@@ -36,9 +36,17 @@ ob_start();
 require __DIR__ . '/../pages/admin_dashboard.php';
 $html = ob_get_clean();
 
-$ok = str_contains($html, 'RideSync Command Center')
-    && str_contains($html, 'admin-command-center')
-    && str_contains($html, 'admin-sidebar');
+$ok = str_contains($html, 'admin-command-center')
+    && str_contains($html, 'admin-sidebar')
+    && !str_contains($html, 'admin-top-nav');
+
+if ($ok && $section === 'profiles') {
+    $ok = str_contains($html, 'admin-profile-showcase')
+        && !str_contains($html, 'RideSync Command Center')
+        && !str_contains($html, 'admin-priority-grid');
+} elseif ($ok) {
+    $ok = str_contains($html, 'RideSync Command Center');
+}
 
 echo $ok ? "[OK] admin {$section} rendered\n" : "[FAIL] admin {$section} render missing expected shell\n";
 exit($ok ? 0 : 1);

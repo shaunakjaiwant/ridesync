@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/redirect_helper.php';
 
 function ridesync_json_response(array $payload, $statusCode = 200, array $headers = []) {
     if (!headers_sent()) {
@@ -34,7 +35,7 @@ function ridesync_require_method($method, $redirect = null) {
     }
 
     if ($redirect !== null) {
-        header('Location: ' . $redirect);
+        header('Location: ' . ridesync_safe_redirect_target($redirect, '/ridesync/index.php'));
         exit;
     }
 
@@ -90,7 +91,7 @@ function ridesync_require_csrf($redirect, $flashKey, $message = 'Invalid request
         $_SESSION[$flashKey] = $message;
     }
 
-    header('Location: ' . $redirect);
+    header('Location: ' . ridesync_safe_redirect_target($redirect, '/ridesync/index.php'));
     exit;
 }
 
