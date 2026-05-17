@@ -3975,3 +3975,582 @@ button:disabled {
         animation-iteration-count: 1 !important;
     }
 }
+
+/* Premium UI refinement layer */
+:root {
+    --surface-raised: rgba(255, 255, 255, 0.94);
+    --surface-glass: rgba(255, 255, 255, 0.78);
+    --ink-soft: #263244;
+    --accent-cyan: #0891b2;
+    --accent-violet: #6d28d9;
+    --accent-gold: #b7791f;
+    --shadow-lift: 0 22px 58px rgba(15, 23, 42, 0.13);
+    --shadow-hover: 0 28px 72px rgba(15, 23, 42, 0.16);
+}
+
+body,
+.public-app,
+.rider-app,
+.driver-app,
+.admin-app {
+    background:
+        linear-gradient(180deg, rgba(239, 246, 255, 0.96) 0, rgba(248, 250, 252, 0.96) 340px, #eef2f7 100%),
+        repeating-linear-gradient(135deg, rgba(37, 99, 235, 0.035) 0 1px, transparent 1px 18px);
+}
+
+.navbar,
+.driver-navbar,
+.public-navbar {
+    border-bottom-color: rgba(148, 163, 184, 0.2);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+.nav-logo,
+.public-logo,
+.driver-brand a,
+.admin-logo-link {
+    padding: 7px 9px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.nav-logo:hover,
+.public-logo:hover,
+.driver-brand a:hover,
+.admin-logo-link:hover {
+    border-color: rgba(37, 99, 235, 0.22);
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.nav-links,
+.driver-nav-links {
+    border-color: rgba(219, 227, 238, 0.86);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), var(--shadow-xs);
+}
+
+.nav-links a,
+.driver-nav-links a,
+.admin-side-nav a {
+    font-weight: 850;
+}
+
+.nav-links a:hover,
+.driver-nav-links a:hover,
+.nav-links a.is-active,
+.driver-nav-links a.is-active {
+    border-color: rgba(37, 99, 235, 0.24);
+    background:
+        linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(219, 234, 254, 0.86));
+    box-shadow: inset 0 -1px 0 rgba(37, 99, 235, 0.08);
+}
+
+.main-content,
+.driver-main,
+.public-app .main-content {
+    padding-top: 38px;
+}
+
+.page-header,
+.driver-page-header {
+    position: relative;
+    max-width: none;
+    min-height: 132px;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 26px 28px;
+    overflow: hidden;
+    border: 1px solid rgba(191, 219, 254, 0.72);
+    border-radius: var(--radius-lg);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.9)),
+        repeating-linear-gradient(90deg, rgba(37, 99, 235, 0.055) 0 1px, transparent 1px 32px);
+    box-shadow: var(--shadow-lift);
+}
+
+.page-header::before,
+.driver-page-header::before,
+.admin-hero-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--accent-cyan), var(--accent-violet));
+}
+
+.page-header h1,
+.driver-page-header h1,
+.admin-hero-panel h1 {
+    color: #0f172a;
+    letter-spacing: 0;
+}
+
+.page-header p,
+.driver-page-header p,
+.admin-hero-panel p {
+    color: #526174;
+    line-height: 1.62;
+}
+
+.card,
+.form-container,
+.dashboard-section,
+.stat-box,
+.stat-card,
+.ride-manage-card,
+.match-card,
+.ride-detail-card,
+.ride-card,
+.search-filter-card,
+.notification-panel,
+.driver-panel,
+.driver-empty-card,
+.driver-request-card,
+.driver-opportunity-card,
+.driver-notice-card,
+.role-card,
+.insight-metric,
+.insight-panel,
+.smart-wait-card,
+.smart-engine-summary,
+.hybrid-fallback-card,
+.fare-preview-card,
+.live-status-card,
+.smart-match-detail-card,
+.map-picker-card,
+.ride-map-detail-card,
+.admin-command-card,
+.admin-op-card,
+.admin-connection-card,
+.admin-risk-card,
+.admin-search-column,
+.admin-review-card,
+.admin-report-card,
+.empty-state {
+    border-color: rgba(219, 227, 238, 0.9);
+    border-radius: var(--radius-md);
+    background:
+        linear-gradient(180deg, var(--surface-raised), #ffffff);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease;
+}
+
+.card:hover,
+.dashboard-section:hover,
+.ride-card:hover,
+.match-card:hover,
+.ride-manage-card:hover,
+.driver-panel:hover,
+.driver-request-card:hover,
+.driver-opportunity-card:hover,
+.role-card:hover,
+.admin-command-card:hover,
+.admin-op-card:hover,
+.admin-connection-card:hover,
+.admin-risk-card:hover {
+    border-color: rgba(147, 197, 253, 0.72);
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
+}
+
+.stat-box,
+.stat-card,
+.driver-metric,
+.insight-metric,
+.fare-metric,
+.admin-op-card {
+    background:
+        linear-gradient(145deg, #ffffff, #f8fbff);
+}
+
+.stat-box::before,
+.stat-card::before,
+.driver-metric::before,
+.admin-op-card::before,
+.admin-risk-card::before {
+    width: 4px;
+    border-radius: 999px;
+}
+
+.stat-number,
+.driver-metric strong,
+.insight-metric strong,
+.admin-op-card strong,
+.route-heat-score strong {
+    color: #101827;
+    font-weight: 900;
+}
+
+.dashboard-section h2,
+.driver-panel h2,
+.admin-card-head h2,
+.notification-toolbar h2,
+.card h2 {
+    color: #101827;
+    letter-spacing: 0;
+}
+
+.mini-ride-item,
+.match-item,
+.route-heat-item,
+.green-score-card > div,
+.wait-logic-grid > div,
+.smart-match-breakdown,
+.notification-item,
+.driver-list-item,
+.admin-feed-item,
+.admin-route-row,
+.admin-health-stack div,
+.admin-drawer-fields div,
+.info-item,
+.verification-current,
+.profile-photo-editor,
+.rating-form,
+.fare-slider-card,
+.fare-explainer-grid details {
+    border-color: rgba(219, 227, 238, 0.9);
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.98));
+}
+
+.mini-ride-item:hover,
+.admin-search-hit:hover {
+    border-color: rgba(37, 99, 235, 0.25);
+    box-shadow: 0 12px 26px rgba(37, 99, 235, 0.1);
+}
+
+.btn {
+    min-height: 40px;
+    border-radius: 10px;
+}
+
+.btn-primary,
+.driver-app .btn-primary,
+.public-app .btn-primary {
+    border-color: #1d4ed8;
+    background:
+        linear-gradient(135deg, #1d4ed8, #2563eb 58%, #0891b2);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary:hover,
+.driver-app .btn-primary:hover,
+.public-app .btn-primary:hover {
+    background:
+        linear-gradient(135deg, #1e40af, #1d4ed8 58%, #0e7490);
+}
+
+.btn-secondary,
+.driver-app .btn-secondary,
+.public-app .btn-secondary,
+.btn-user {
+    border-color: rgba(203, 213, 225, 0.94);
+    background:
+        linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.btn-secondary:hover,
+.driver-app .btn-secondary:hover,
+.public-app .btn-secondary:hover,
+.btn-user:hover {
+    border-color: rgba(37, 99, 235, 0.25);
+    background:
+        linear-gradient(180deg, #eff6ff, #ffffff);
+}
+
+.form-container {
+    padding: 28px;
+    border-color: rgba(191, 219, 254, 0.52);
+}
+
+.form-container h1,
+.form-container h2 {
+    color: #101827;
+    font-weight: 900;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea,
+.rating-form select,
+.rating-form input,
+.admin-report-form select,
+.admin-report-form input,
+.admin-table-tools input,
+.admin-table-tools select,
+.profile-photo-controls input[type="file"] {
+    min-height: 44px;
+    border-color: rgba(203, 213, 225, 0.94);
+    background:
+        linear-gradient(180deg, #ffffff, #fbfdff);
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover,
+.admin-table-tools input:hover,
+.admin-table-tools select:hover {
+    border-color: rgba(37, 99, 235, 0.24);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.rating-form select:focus,
+.rating-form input:focus,
+.admin-report-form select:focus,
+.admin-report-form input:focus,
+.admin-table-tools input:focus,
+.admin-table-tools select:focus {
+    border-color: rgba(37, 99, 235, 0.72);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
+}
+
+.alert {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 16px;
+    padding: 13px 15px;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    font-weight: 750;
+}
+
+.alert-success {
+    border-color: rgba(14, 165, 233, 0.22);
+    background: #f0f9ff;
+    color: #075985;
+}
+
+.alert-error {
+    border-color: rgba(220, 38, 38, 0.2);
+    background: #fff5f5;
+    color: #991b1b;
+}
+
+.empty-state,
+.driver-empty,
+.driver-empty-card {
+    border-style: dashed;
+    border-color: rgba(148, 163, 184, 0.72);
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.98));
+    color: #526174;
+}
+
+.empty-state:not(p),
+.driver-empty-card {
+    text-align: center;
+}
+
+.badge,
+.status-badge,
+.driver-status-pill,
+.driver-opportunity-status,
+.admin-status-pill {
+    border-radius: 999px;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.admin-table-wrap {
+    border-color: rgba(219, 227, 238, 0.95);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.admin-smart-table th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 900;
+}
+
+.admin-smart-table tbody tr {
+    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.admin-smart-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.public-hero {
+    border-color: rgba(147, 197, 253, 0.24);
+    background:
+        linear-gradient(135deg, #0f172a 0%, #1e3a8a 52%, #2563eb 100%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 36px);
+    box-shadow: 0 32px 78px rgba(15, 23, 42, 0.26);
+}
+
+.public-highlights article,
+.role-card {
+    border-color: rgba(191, 219, 254, 0.5);
+}
+
+.admin-sidebar {
+    background:
+        linear-gradient(180deg, #0f172a, #111827 54%, #0b1220);
+}
+
+.admin-topbar {
+    border-color: rgba(219, 227, 238, 0.92);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+}
+
+.admin-global-search {
+    border-color: rgba(203, 213, 225, 0.9);
+    background: #ffffff;
+}
+
+.admin-hero-panel {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(191, 219, 254, 0.72);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.92));
+    box-shadow: var(--shadow-lift);
+}
+
+.admin-profile-showcase {
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.3);
+}
+
+.ride-map,
+.admin-live-map {
+    border-color: rgba(203, 213, 225, 0.95);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 16px 32px rgba(15, 23, 42, 0.08);
+}
+
+.smart-search-suggestions,
+.map-location-suggestions {
+    border-color: rgba(191, 219, 254, 0.8);
+    box-shadow: 0 22px 56px rgba(15, 23, 42, 0.16);
+}
+
+.smart-shortcut-panel {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding: 18px;
+    border: 1px solid rgba(191, 219, 254, 0.72);
+    border-radius: var(--radius-md);
+    background:
+        linear-gradient(135deg, rgba(239, 246, 255, 0.96), rgba(255, 255, 255, 0.98));
+    box-shadow: 0 16px 36px rgba(37, 99, 235, 0.08);
+}
+
+.smart-shortcut-panel-compact {
+    margin-bottom: 16px;
+}
+
+.smart-shortcut-head {
+    display: grid;
+    gap: 4px;
+}
+
+.smart-shortcut-head h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1.22;
+}
+
+.smart-shortcut-head p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.smart-shortcut-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px;
+}
+
+.smart-route-chip {
+    display: grid;
+    gap: 6px;
+    min-height: 118px;
+    padding: 14px;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--text);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.smart-route-chip:hover {
+    border-color: rgba(37, 99, 235, 0.34);
+    box-shadow: 0 16px 34px rgba(37, 99, 235, 0.12);
+    transform: translateY(-2px);
+}
+
+.smart-route-chip span,
+.smart-route-chip small {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 900;
+    line-height: 1.25;
+    text-transform: uppercase;
+}
+
+.smart-route-chip strong {
+    color: var(--text);
+    font-size: 0.96rem;
+    font-weight: 900;
+    line-height: 1.32;
+    overflow-wrap: anywhere;
+}
+
+.smart-route-chip small {
+    color: var(--primary);
+    text-transform: none;
+}
+
+.trust-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin: 8px 0;
+}
+
+.trust-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 6px 10px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 999px;
+    background: rgba(248, 250, 252, 0.92);
+    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.trust-badge-verified {
+    border-color: rgba(37, 99, 235, 0.24);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(14, 165, 233, 0.16));
+    color: #1d4ed8;
+}
+
+.trust-badge-soft {
+    color: var(--muted);
+}
+
+.ride-card .trust-badge-row {
+    margin: 0;
+}
+
+.rider-list .trust-badge-row {
+    margin: 7px 0 0;
+}

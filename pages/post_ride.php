@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/asset_helper.php';
+require_once __DIR__ . '/../includes/rider_experience_helper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
@@ -9,6 +10,20 @@ if (!isset($_SESSION['user_id'])) {
 
 $rideFormOld = $_SESSION['ride_form_old'] ?? [];
 unset($_SESSION['ride_form_old']);
+
+$rebookRideId = isset($_GET['rebook_ride_id']) ? (int) $_GET['rebook_ride_id'] : 0;
+if ($rebookRideId > 0) {
+    $rebookPrefill = ridesync_fetch_rebook_prefill($conn, (int) $_SESSION['user_id'], $rebookRideId);
+    if ($rebookPrefill !== null) {
+        $rideFormOld = array_merge($rebookPrefill, $rideFormOld);
+        $_SESSION['ride_success'] = 'Route loaded. Choose the date/time you want and post again.';
+    } else {
+        $_SESSION['ride_error'] = 'Could not load that previous ride for rebooking.';
+    }
+} elseif (isset($_GET['origin'], $_GET['destination']) && $rideFormOld === []) {
+    $rideFormOld['origin'] = substr(trim((string) $_GET['origin']), 0, 150);
+    $rideFormOld['destination'] = substr(trim((string) $_GET['destination']), 0, 150);
+}
 
 function ridesync_post_ride_old_value(array $oldInput, string $key, string $default = ''): string
 {
@@ -20,6 +35,8 @@ if ($oldSeats < 1 || $oldSeats > 5) {
     $oldSeats = 1;
 }
 
+$routeShortcuts = ridesync_build_rider_route_shortcuts($conn, (int) $_SESSION['user_id'], 6);
+
 ridesync_enable_map_assets();
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -29,6 +46,26 @@ require_once __DIR__ . '/../includes/header.php';
 
     <?php ridesync_flash('ride_error', 'alert-error'); ?>
     <?php ridesync_flash('ride_success', 'alert-success'); ?>
+
+    <?php if (count($routeShortcuts) > 0): ?>
+        <section class="smart-shortcut-panel">
+            <div class="smart-shortcut-head">
+                <span class="fare-kicker">Smart ride suggestions</span>
+                <h2>Post faster from your usual routes</h2>
+                <p>Use a frequent, recent, college, or return route shortcut. You can still edit every field before posting.</p>
+            </div>
+            <div class="smart-shortcut-grid">
+                <?php foreach ($routeShortcuts as $shortcut): ?>
+                    <?php $shortcutExtra = (int) ($shortcut['sample_ride_id'] ?? 0) > 0 ? ['rebook_ride_id' => (int) $shortcut['sample_ride_id']] : []; ?>
+                    <a class="smart-route-chip" href="/ridesync/pages/post_ride.php?<?php echo htmlspecialchars(ridesync_route_query($shortcut, $shortcutExtra)); ?>">
+                        <span><?php echo htmlspecialchars($shortcut['label']); ?></span>
+                        <strong><?php echo htmlspecialchars($shortcut['origin']); ?> &rarr; <?php echo htmlspecialchars($shortcut['destination']); ?></strong>
+                        <small><?php echo htmlspecialchars($shortcut['meta']); ?></small>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
 
     <form action="/ridesync/actions/post_ride_action.php" method="POST">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">

@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/cost_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/asset_helper.php';
+require_once __DIR__ . '/../includes/rider_experience_helper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
@@ -153,6 +154,9 @@ if ($isOwner) {
     ];
 }
 $canReportRide = count($reportTargets) > 0;
+$trustUserIds = array_merge([(int) $ride['user_id']], array_column($acceptedRiderRows, 'id'));
+$userTrustSummaries = ridesync_fetch_user_trust_summaries($conn, $trustUserIds);
+$posterTrust = $userTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_user_trust_summary();
 ?>
 
 <div class="page-header">
@@ -305,6 +309,16 @@ $canReportRide = count($reportTargets) > 0;
     <div class="ride-detail-poster">
         <h3>Posted by</h3>
         <p><strong><?php echo htmlspecialchars($ride['poster_name']); ?></strong></p>
+        <div class="trust-badge-row">
+            <?php if ($posterTrust['verified']): ?>
+                <span class="trust-badge trust-badge-verified">Verified student</span>
+            <?php endif; ?>
+            <?php if ((int) $posterTrust['rating_count'] > 0): ?>
+                <span class="trust-badge">Rated <?php echo number_format((float) $posterTrust['rating_average'], 1); ?>/5</span>
+            <?php else: ?>
+                <span class="trust-badge trust-badge-soft">New rider</span>
+            <?php endif; ?>
+        </div>
         <p><?php echo htmlspecialchars($ride['poster_college']); ?></p>
         <?php if ($existingMatch && $existingMatch['status'] === 'accepted'): ?>
             <p>Email: <?php echo htmlspecialchars($ride['poster_email']); ?></p>
@@ -319,9 +333,20 @@ $canReportRide = count($reportTargets) > 0;
             <?php else: ?>
                 <ul class="rider-list">
                     <?php foreach ($acceptedRiderRows as $rider): ?>
+                        <?php $riderTrust = $userTrustSummaries[(int) $rider['id']] ?? ridesync_default_user_trust_summary(); ?>
                         <li>
                             <strong><?php echo htmlspecialchars($rider['name']); ?></strong>
                             &mdash; <?php echo htmlspecialchars($rider['college']); ?>
+                            <div class="trust-badge-row">
+                                <?php if ($riderTrust['verified']): ?>
+                                    <span class="trust-badge trust-badge-verified">Verified student</span>
+                                <?php endif; ?>
+                                <?php if ((int) $riderTrust['rating_count'] > 0): ?>
+                                    <span class="trust-badge">Rated <?php echo number_format((float) $riderTrust['rating_average'], 1); ?>/5</span>
+                                <?php else: ?>
+                                    <span class="trust-badge trust-badge-soft">New rider</span>
+                                <?php endif; ?>
+                            </div>
                         </li>
                     <?php endforeach; ?>
                 </ul>

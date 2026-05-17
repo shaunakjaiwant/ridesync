@@ -251,6 +251,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <button type="submit" class="btn btn-danger btn-sm">Cancel Ride</button>
                         </form>
                     <?php endif; ?>
+                    <a class="btn btn-secondary btn-sm" href="/ridesync/pages/post_ride.php?rebook_ride_id=<?php echo (int) $ride['id']; ?>">Rebook</a>
                 </div>
             </div>
 

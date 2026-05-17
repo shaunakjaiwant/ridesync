@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/cost_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/intelligence_helper.php';
 require_once __DIR__ . '/../includes/asset_helper.php';
+require_once __DIR__ . '/../includes/rider_experience_helper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
@@ -123,6 +124,7 @@ usort($rides, function ($a, $b) {
     return strcmp($a['travel_date'] . $a['travel_time'], $b['travel_date'] . $b['travel_time']);
 });
 
+$posterTrustSummaries = ridesync_fetch_user_trust_summaries($conn, array_column($rides, 'user_id'));
 $bestScore = count($rides) > 0 ? (float) $rides[0]['smart_match']['score'] : 0;
 $showDriverFallback = $searched && $bestScore < 70;
 $bestDriver = $showDriverFallback ? ridesync_find_online_driver($conn, $searchContext) : null;
@@ -144,6 +146,7 @@ $driverFareBreakdown = calculateDynamicFareBreakdown($filter_origin, $filter_des
 $matchingDemandCount = $searched ? ridesync_count_matching_demand($conn, $searchContext, $user_id) : 0;
 $waitSuggestion = $searched ? ridesync_smart_wait_suggestion($fallbackDistance, $bestScore, $matchingDemandCount, count($rides)) : null;
 $returnTo = $_SERVER['REQUEST_URI'] ?? '/ridesync/pages/search_rides.php';
+$routeShortcuts = ridesync_build_rider_route_shortcuts($conn, $user_id, 6);
 
 ridesync_enable_map_assets();
 require_once __DIR__ . '/../includes/header.php';
@@ -157,6 +160,24 @@ require_once __DIR__ . '/../includes/header.php';
 
     <?php ridesync_flash('match_success', 'alert-success'); ?>
     <?php ridesync_flash('match_error', 'alert-error'); ?>
+
+    <?php if (count($routeShortcuts) > 0): ?>
+        <section class="smart-shortcut-panel smart-shortcut-panel-compact">
+            <div class="smart-shortcut-head">
+                <span class="fare-kicker">Recommended for you</span>
+                <h2>Search from recent routes</h2>
+            </div>
+            <div class="smart-shortcut-grid">
+                <?php foreach ($routeShortcuts as $shortcut): ?>
+                    <a class="smart-route-chip" href="/ridesync/pages/search_rides.php?<?php echo htmlspecialchars(ridesync_route_query($shortcut)); ?>">
+                        <span><?php echo htmlspecialchars($shortcut['label']); ?></span>
+                        <strong><?php echo htmlspecialchars($shortcut['origin']); ?> &rarr; <?php echo htmlspecialchars($shortcut['destination']); ?></strong>
+                        <small><?php echo htmlspecialchars($shortcut['meta']); ?></small>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
 
     <div class="card search-filter-card smart-filter-card">
         <form method="GET" action="" class="search-form">
@@ -329,6 +350,7 @@ require_once __DIR__ . '/../includes/header.php';
                 $match = $ride['smart_match'];
                 $riderCount = min(6, max(2, (int) ($ride['accepted_count'] ?? 0) + 2));
                 $quickFare = calculateDynamicFareBreakdown($ride['origin'], $ride['destination'], $riderCount, $ride['route_distance_km'] ?? null);
+                $posterTrust = $posterTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_user_trust_summary();
                 ?>
                 <div class="ride-card smart-ride-card">
                     <?php
@@ -360,6 +382,16 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php echo htmlspecialchars($ride['poster_name']); ?>
                         &nbsp;&middot;&nbsp;
                         <?php echo htmlspecialchars($ride['poster_college']); ?>
+                    </div>
+                    <div class="trust-badge-row">
+                        <?php if ($posterTrust['verified']): ?>
+                            <span class="trust-badge trust-badge-verified">Verified student</span>
+                        <?php endif; ?>
+                        <?php if ((int) $posterTrust['rating_count'] > 0): ?>
+                            <span class="trust-badge">Rated <?php echo number_format((float) $posterTrust['rating_average'], 1); ?>/5</span>
+                        <?php else: ?>
+                            <span class="trust-badge trust-badge-soft">New rider</span>
+                        <?php endif; ?>
                     </div>
                     <div class="ride-card-details">
                         <?php echo (int) $ride['seats_available']; ?> seat<?php echo (int) $ride['seats_available'] !== 1 ? 's' : ''; ?> available

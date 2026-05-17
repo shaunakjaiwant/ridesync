@@ -2046,3 +2046,135 @@
         grid-template-columns: 1fr !important;
     }
 }
+
+/* Final responsive polish pass */
+@media (min-width: 768px) {
+    .rider-app .page-header,
+    .driver-app:not(.admin-app) .driver-page-header {
+        display: flex;
+        border-radius: 18px;
+    }
+
+    .rider-app .dashboard-stats,
+    .driver-app:not(.admin-app) .driver-metrics-grid,
+    .admin-priority-grid {
+        align-items: stretch;
+    }
+
+    .rider-app .quick-actions .btn,
+    .driver-action-row .btn {
+        min-width: 168px;
+    }
+}
+
+@media (max-width: 767px) {
+    body,
+    .public-app,
+    .rider-app,
+    .driver-app,
+    .admin-app {
+        background:
+            linear-gradient(180deg, #f8fbff 0, #f8fafc 280px, #eef2f7 100%);
+    }
+
+    .navbar,
+    .driver-navbar,
+    .public-navbar,
+    .admin-topbar {
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+    }
+
+    .nav-logo,
+    .public-logo,
+    .driver-brand a,
+    .admin-logo-link {
+        border-radius: 14px;
+        background: #eef2f7;
+    }
+
+    .rider-app .page-header,
+    .driver-app:not(.admin-app) .driver-page-header,
+    .driver-app:not(.admin-app) .driver-home-card {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background:
+            linear-gradient(135deg, #0f172a 0%, #1e3a8a 58%, #2563eb 100%);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.24);
+    }
+
+    .rider-app .page-header::before,
+    .driver-app:not(.admin-app) .driver-page-header::before {
+        height: 3px;
+        background: linear-gradient(90deg, #60a5fa, #ffffff, #93c5fd);
+    }
+
+    .form-container,
+    .dashboard-section,
+    .ride-card,
+    .match-card,
+    .ride-manage-card,
+    .ride-detail-card,
+    .search-filter-card,
+    .notification-panel,
+    .driver-panel,
+    .driver-request-card,
+    .driver-opportunity-card,
+    .driver-notice-card,
+    .admin-command-card,
+    .admin-op-card,
+    .admin-connection-card,
+    .admin-risk-card,
+    .admin-search-column,
+    .admin-review-card,
+    .admin-report-card {
+        border-radius: 18px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.075);
+    }
+
+    .stat-box,
+    .driver-metric {
+        border-radius: 18px;
+    }
+
+    .btn,
+    .driver-toggle {
+        border-radius: 14px;
+        font-weight: 900;
+    }
+
+    .auth-switch-text a {
+        min-height: 46px;
+    }
+
+    .admin-side-nav a {
+        border: 1px solid transparent;
+    }
+
+    .admin-side-nav a.is-active {
+        border-color: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+    }
+
+    .smart-shortcut-panel {
+        padding: 14px;
+        border-radius: 18px;
+    }
+
+    .smart-shortcut-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .smart-route-chip {
+        min-height: 104px;
+        border-radius: 16px;
+    }
+
+    .trust-badge-row {
+        gap: 6px;
+    }
+
+    .trust-badge {
+        min-height: 32px;
+        padding: 7px 10px;
+        font-size: 0.72rem;
+    }
+}
