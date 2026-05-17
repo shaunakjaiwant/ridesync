@@ -163,6 +163,8 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
             ], ridesync_csp_extra_sources('RIDESYNC_CSP_IMG_SRC'));
             $connectSources = array_merge([
                 "'self'",
+                'https://nominatim.openstreetmap.org',
+                'https://router.project-osrm.org',
             ], ridesync_csp_extra_sources('RIDESYNC_CSP_CONNECT_SRC'));
 
             header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src " . implode(' ', array_unique($scriptSources)) . '; style-src ' . implode(' ', array_unique($styleSources)) . "; font-src 'self' https://fonts.gstatic.com data:; img-src " . implode(' ', array_unique($imgSources)) . '; connect-src ' . implode(' ', array_unique($connectSources)) . "; media-src 'self'; worker-src 'self' blob:");

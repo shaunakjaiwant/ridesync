@@ -1426,6 +1426,15 @@ button:disabled {
     background: var(--primary-soft);
 }
 
+.map-location-suggestions button:disabled {
+    cursor: default;
+    color: var(--muted);
+}
+
+.map-location-suggestions button:disabled:hover {
+    background: #ffffff;
+}
+
 .map-pin-icon {
     display: inline-flex;
     align-items: center;

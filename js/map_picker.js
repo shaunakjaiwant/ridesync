@@ -18,13 +18,22 @@
     function initRideMapPickers() {
         document.querySelectorAll('[data-map-picker]').forEach(function (picker) {
             var canvas = picker.querySelector('[data-map-canvas]');
+            var originInput = document.getElementById('origin');
+            var destinationInput = document.getElementById('destination');
+
+            function bindTextOnlySuggestions() {
+                initLocationSuggestions('origin', originInput, null);
+                initLocationSuggestions('destination', destinationInput, null);
+            }
 
             if (!canvas) {
+                bindTextOnlySuggestions();
                 setStatus(picker, 'Map container is unavailable. You can still type locations manually.');
                 return;
             }
 
             if (!window.L) {
+                bindTextOnlySuggestions();
                 markMapUnavailable(canvas, 'Map tools are temporarily unavailable. You can still type locations manually.');
                 picker.querySelectorAll('[data-map-mode], [data-use-current-location], [data-map-search-origin], [data-map-search-destination], [data-map-swap], [data-map-clear]').forEach(function (button) {
                     button.disabled = true;
@@ -33,8 +42,6 @@
                 return;
             }
 
-            var originInput = document.getElementById('origin');
-            var destinationInput = document.getElementById('destination');
             var originLat = picker.querySelector('[data-origin-lat]');
             var originLng = picker.querySelector('[data-origin-lng]');
             var destinationLat = picker.querySelector('[data-destination-lat]');
@@ -169,8 +176,31 @@
                 });
             }
 
-            initLocationSuggestions('origin', originInput);
-            initLocationSuggestions('destination', destinationInput);
+            initLocationSuggestions('origin', originInput, function (selected) {
+                if (!suggestionHasCoordinates(selected)) {
+                    setStatus(picker, 'Suggestion selected. Use Find departure or click the map to set the pin.');
+                    return;
+                }
+
+                var latlng = L.latLng(parseFloat(selected.lat), parseFloat(selected.lon));
+                setPoint('origin', latlng, false);
+                map.setView(latlng, 15);
+                activeMode = 'destination';
+                setActiveMode(picker, activeMode);
+            });
+
+            initLocationSuggestions('destination', destinationInput, function (selected) {
+                if (!suggestionHasCoordinates(selected)) {
+                    setStatus(picker, 'Suggestion selected. Use Find destination or click the map to set the pin.');
+                    return;
+                }
+
+                var latlng = L.latLng(parseFloat(selected.lat), parseFloat(selected.lon));
+                setPoint('destination', latlng, false);
+                map.setView(latlng, 15);
+                activeMode = 'origin';
+                setActiveMode(picker, activeMode);
+            });
 
             restorePointFromHidden('origin', originLat.value, originLng.value);
             restorePointFromHidden('destination', destinationLat.value, destinationLng.value);
@@ -255,62 +285,71 @@
                 });
             }
 
-            function initLocationSuggestions(type, input) {
-                if (!input) return;
+        });
+    }
 
-                var suggestions = document.createElement('div');
-                suggestions.className = 'map-location-suggestions';
-                input.insertAdjacentElement('afterend', suggestions);
-                input.setAttribute('autocomplete', 'off');
+    function initLocationSuggestions(type, input, onSelect) {
+        if (!input || input.dataset.locationSuggestionsBound === 'true') return;
 
-                var timer = null;
-                input.addEventListener('input', function () {
-                    clearTimeout(timer);
-                    var query = input.value.trim();
-                    if (query.length < 3) {
-                        suggestions.innerHTML = '';
-                        suggestions.classList.remove('is-visible');
+        input.dataset.locationSuggestionsBound = 'true';
+        var suggestions = document.createElement('div');
+        suggestions.className = 'map-location-suggestions';
+        input.insertAdjacentElement('afterend', suggestions);
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('aria-autocomplete', 'list');
+        suggestions.setAttribute('role', 'listbox');
+        suggestions.setAttribute('aria-label', type === 'origin' ? 'Departure suggestions' : 'Destination suggestions');
+
+        var timer = null;
+        var requestSequence = 0;
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            requestSequence += 1;
+            var query = input.value.trim();
+            if (query.length < 3) {
+                suggestions.innerHTML = '';
+                suggestions.classList.remove('is-visible');
+                return;
+            }
+
+            var requestId = requestSequence;
+            timer = setTimeout(function () {
+                suggestions.innerHTML = '<button type="button" disabled>Searching locations...</button>';
+                suggestions.classList.add('is-visible');
+
+                fetchLocationSuggestions(query).then(function (results) {
+                    if (requestId !== requestSequence) return;
+
+                    if (!results.length) {
+                        suggestions.innerHTML = '<button type="button" disabled>No suggestions found</button>';
                         return;
                     }
 
-                    timer = setTimeout(function () {
-                        suggestions.innerHTML = '<button type="button">Searching locations...</button>';
-                        suggestions.classList.add('is-visible');
+                    suggestions.innerHTML = results.map(function (item, index) {
+                        return '<button type="button" role="option" data-suggestion-index="' + index + '">' + escapeHtml(item.display_name) + '</button>';
+                    }).join('');
 
-                        fetchLocationSuggestions(query).then(function (results) {
-                            if (!results.length) {
-                                suggestions.innerHTML = '<button type="button">No suggestions found</button>';
-                                return;
+                    suggestions.querySelectorAll('[data-suggestion-index]').forEach(function (button) {
+                        button.addEventListener('click', function () {
+                            var selected = results[parseInt(button.dataset.suggestionIndex, 10)];
+                            input.value = selected.display_name;
+                            suggestions.innerHTML = '';
+                            suggestions.classList.remove('is-visible');
+                            if (typeof onSelect === 'function') {
+                                onSelect(selected);
                             }
-
-                            suggestions.innerHTML = results.map(function (item, index) {
-                                return '<button type="button" data-suggestion-index="' + index + '">' + escapeHtml(item.display_name) + '</button>';
-                            }).join('');
-
-                            suggestions.querySelectorAll('[data-suggestion-index]').forEach(function (button) {
-                                button.addEventListener('click', function () {
-                                    var selected = results[parseInt(button.dataset.suggestionIndex, 10)];
-                                    var latlng = L.latLng(parseFloat(selected.lat), parseFloat(selected.lon));
-                                    input.value = selected.display_name;
-                                    setPoint(type, latlng, false);
-                                    map.setView(latlng, 15);
-                                    suggestions.innerHTML = '';
-                                    suggestions.classList.remove('is-visible');
-                                    activeMode = type === 'origin' ? 'destination' : 'origin';
-                                    setActiveMode(picker, activeMode);
-                                });
-                            });
-                        }).catch(function () {
-                            suggestions.innerHTML = '<button type="button">Could not load suggestions</button>';
                         });
-                    }, 350);
+                    });
+                }).catch(function () {
+                    if (requestId !== requestSequence) return;
+                    suggestions.innerHTML = '<button type="button" disabled>Could not load suggestions</button>';
                 });
+            }, 250);
+        });
 
-                document.addEventListener('click', function (event) {
-                    if (event.target !== input && !suggestions.contains(event.target)) {
-                        suggestions.classList.remove('is-visible');
-                    }
-                });
+        document.addEventListener('click', function (event) {
+            if (event.target !== input && !suggestions.contains(event.target)) {
+                suggestions.classList.remove('is-visible');
             }
         });
     }
@@ -402,18 +441,18 @@
         }
 
         setStatus(picker, 'Searching ' + query + '...');
-        fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query))
-            .then(function (response) { return response.json(); })
+        fetchLocationSuggestions(query)
             .then(function (results) {
-                if (!results.length) {
+                var selected = results.filter(suggestionHasCoordinates)[0] || null;
+                if (!selected) {
                     setStatus(picker, 'No location found. Try a more specific place.');
                     return;
                 }
 
-                var latlng = L.latLng(parseFloat(results[0].lat), parseFloat(results[0].lon));
+                var latlng = L.latLng(parseFloat(selected.lat), parseFloat(selected.lon));
                 setPoint(type, latlng, false);
                 map.setView(latlng, 15);
-                if (input) input.value = results[0].display_name;
+                if (input) input.value = selected.display_name;
             })
             .catch(function () {
                 setStatus(picker, 'Location search failed. You can click the map instead.');
@@ -425,8 +464,33 @@
             ? query
             : query + ' Karnataka India';
 
-        return fetch('https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=in&q=' + encodeURIComponent(normalized))
-            .then(function (response) { return response.json(); });
+        return fetch('/ridesync/api/location_suggestions.php?q=' + encodeURIComponent(query), {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(function (response) {
+                if (!response.ok) throw new Error('Suggestion API failed');
+                return response.json();
+            })
+            .then(function (payload) {
+                var suggestions = payload && Array.isArray(payload.suggestions) ? payload.suggestions : [];
+                if (suggestions.length) return suggestions;
+                throw new Error('Suggestion API returned no results');
+            })
+            .catch(function () {
+                return fetch('https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=in&q=' + encodeURIComponent(normalized))
+                    .then(function (response) { return response.json(); });
+            });
+    }
+
+    function suggestionHasCoordinates(item) {
+        if (!item) return false;
+
+        var lat = parseFloat(item.lat);
+        var lon = parseFloat(item.lon);
+        return isFinite(lat) && isFinite(lon);
     }
 
     function formatINR(value) {
