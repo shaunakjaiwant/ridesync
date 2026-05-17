@@ -1,0 +1,73 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      RIDESYNC_ENV: production
+      RIDESYNC_DEBUG: "false"
+      RIDESYNC_DB_HOST: mysql
+      RIDESYNC_DB_PORT: 3306
+      RIDESYNC_DB_NAME: ridesync_db
+      RIDESYNC_DB_USER: ridesync_app
+      RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+      RIDESYNC_COOKIE_SECURE: "false"
+      RIDESYNC_TRUST_PROXY: "true"
+      RIDESYNC_STORAGE_DIR: /var/www/html/ridesync/storage
+      RIDESYNC_VERIFICATION_SERVICE_URL: http://ai-verification:8011
+      RIDESYNC_KYC_PROVIDER: ${RIDESYNC_KYC_PROVIDER:-mock_compliance_provider}
+      RIDESYNC_REDIS_URL: redis://redis:6379/2
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      ai-verification:
+        condition: service_started
+    volumes:
+      - ridesync_storage:/var/www/html/ridesync/storage
+      - ridesync_uploads:/var/www/html/ridesync/uploads
+    restart: unless-stopped
+
+  ai-verification:
+    build:
+      context: ./ai_verification_service
+      dockerfile: Dockerfile
+    environment:
+      RIDESYNC_KYC_PROVIDER: ${RIDESYNC_KYC_PROVIDER:-mock_compliance_provider}
+      RIDESYNC_KYC_PROVIDER_URL: ${RIDESYNC_KYC_PROVIDER_URL:-}
+      RIDESYNC_KYC_PROVIDER_TOKEN: ${RIDESYNC_KYC_PROVIDER_TOKEN:-}
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ridesync_db
+      MYSQL_USER: ridesync_app
+      MYSQL_PASSWORD: ${RIDESYNC_DB_PASSWORD:-ridesync_change_me}
+      MYSQL_ROOT_PASSWORD: ${RIDESYNC_DB_ROOT_PASSWORD:-ridesync_root_change_me}
+    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - ridesync_mysql:/var/lib/mysql
+      - ./database/ridesync_db.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u ridesync_app -p$${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ridesync_redis:/data
+    restart: unless-stopped
+
+volumes:
+  ridesync_mysql:
+  ridesync_redis:
+  ridesync_storage:
+  ridesync_uploads:

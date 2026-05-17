@@ -451,6 +451,8 @@ schema_add_column($conn, 'driver_ride_requests', 'completed_at', 'TIMESTAMP NULL
 schema_add_column($conn, 'driver_ride_requests', 'route_distance_km', 'DECIMAL(8,2) NULL AFTER estimated_fare');
 schema_add_column($conn, 'driver_ride_requests', 'fare_rate_per_km', "DECIMAL(6,2) NOT NULL DEFAULT 25.60 AFTER route_distance_km");
 schema_add_column($conn, 'driver_ride_requests', 'pricing_version', "VARCHAR(40) NOT NULL DEFAULT 'km_rate_v3_fair_split' AFTER fare_rate_per_km");
+schema_add_column($conn, 'audit_logs', 'source_ip', 'VARCHAR(64) NULL AFTER message');
+schema_add_column($conn, 'audit_logs', 'user_agent', 'VARCHAR(255) NULL AFTER source_ip');
 
 schema_create_wallet_tables($conn);
 schema_update_driver_document_types($conn);
@@ -481,6 +483,7 @@ schema_add_index($conn, 'driver_ride_requests', 'idx_driver_requests_rider_statu
 schema_add_index($conn, 'driver_ride_requests', 'idx_driver_requests_status_requested', 'KEY idx_driver_requests_status_requested (request_status, requested_at)');
 schema_add_index($conn, 'notifications', 'idx_notifications_user_created', 'KEY idx_notifications_user_created (user_id, created_at)');
 schema_add_index($conn, 'notifications', 'idx_notifications_driver_created', 'KEY idx_notifications_driver_created (driver_id, created_at)');
+schema_add_index($conn, 'audit_logs', 'idx_audit_source_time', 'KEY idx_audit_source_time (source_ip, created_at)');
 
 schema_add_fk($conn, 'driver_account_profiles', 'fk_driver_account_profiles_driver', 'driver_id', 'driver_accounts', 'CASCADE');
 schema_add_fk($conn, 'driver_account_vehicles', 'fk_driver_account_vehicles_driver', 'driver_id', 'driver_accounts', 'CASCADE');

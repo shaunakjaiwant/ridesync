@@ -67,6 +67,45 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         return $requestId;
     }
 
+    function ridesync_csp_nonce() {
+        static $nonce = null;
+
+        if ($nonce === null) {
+            $nonce = base64_encode(random_bytes(16));
+        }
+
+        return $nonce;
+    }
+
+    function ridesync_client_ip() {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+        if (ridesync_env_bool('RIDESYNC_TRUST_PROXY', false)) {
+            $forwardedFor = trim((string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+            if ($forwardedFor !== '') {
+                foreach (array_map('trim', explode(',', $forwardedFor)) as $candidate) {
+                    if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                        $ip = $candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return substr((string) $ip, 0, 64);
+    }
+
+    function ridesync_user_agent() {
+        return substr(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 255);
+    }
+
+    function ridesync_csp_extra_sources($envKey) {
+        $sources = array_filter(array_map('trim', explode(',', (string) ridesync_env($envKey, ''))));
+        return array_values(array_filter($sources, static function ($source) {
+            return preg_match('/^(https?:|wss?:|data:|blob:|\'self\')/', $source) === 1;
+        }));
+    }
+
     function ridesync_configure_runtime() {
         date_default_timezone_set((string) ridesync_env('RIDESYNC_TIMEZONE', 'Asia/Kolkata'));
 
@@ -93,13 +132,41 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         header_remove('X-Powered-By');
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: DENY');
+        header('X-Download-Options: noopen');
         header('X-Permitted-Cross-Domain-Policies: none');
+        header('Origin-Agent-Cluster: ?1');
         header('Cross-Origin-Opener-Policy: same-origin');
+        header('Cross-Origin-Resource-Policy: same-site');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
         header('X-Request-Id: ' . ridesync_request_id());
         header('Cache-Control: no-store, private');
-        header("Content-Security-Policy: base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'");
+
+        if (ridesync_env_bool('RIDESYNC_ENABLE_CSP', true)) {
+            $scriptSources = array_merge([
+                "'self'",
+                "'nonce-" . ridesync_csp_nonce() . "'",
+                'https://unpkg.com',
+            ], ridesync_csp_extra_sources('RIDESYNC_CSP_SCRIPT_SRC'));
+            $styleSources = array_merge([
+                "'self'",
+                "'unsafe-inline'",
+                'https://fonts.googleapis.com',
+                'https://unpkg.com',
+            ], ridesync_csp_extra_sources('RIDESYNC_CSP_STYLE_SRC'));
+            $imgSources = array_merge([
+                "'self'",
+                'data:',
+                'blob:',
+                'https://unpkg.com',
+                'https://*.tile.openstreetmap.org',
+            ], ridesync_csp_extra_sources('RIDESYNC_CSP_IMG_SRC'));
+            $connectSources = array_merge([
+                "'self'",
+            ], ridesync_csp_extra_sources('RIDESYNC_CSP_CONNECT_SRC'));
+
+            header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src " . implode(' ', array_unique($scriptSources)) . '; style-src ' . implode(' ', array_unique($styleSources)) . "; font-src 'self' https://fonts.gstatic.com data:; img-src " . implode(' ', array_unique($imgSources)) . '; connect-src ' . implode(' ', array_unique($connectSources)) . "; media-src 'self'; worker-src 'self' blob:");
+        }
 
         if (ridesync_is_https_request()) {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains');

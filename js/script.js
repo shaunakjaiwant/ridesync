@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initDriverLocationCapture();
     initTripShare();
     initScrollableRegions();
+    initConfirmActions();
 
     // --- Registration Form ---
     var regForm = document.querySelector('form[action*="register_action"]');
@@ -852,6 +853,34 @@ function initSubmitGuards() {
                     }
                 });
             }, 0);
+        });
+    });
+}
+
+function initConfirmActions() {
+    document.querySelectorAll('[data-history-back]').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            if (window.history.length > 1) {
+                event.preventDefault();
+                window.history.back();
+            }
+        });
+    });
+
+    document.querySelectorAll('form[data-confirm-message], button[data-confirm-message]').forEach(function (node) {
+        var form = node.tagName === 'FORM' ? node : node.closest('form');
+        if (!form || form.dataset.confirmBound === 'true') return;
+
+        form.dataset.confirmBound = 'true';
+        form.addEventListener('submit', function (event) {
+            var submitter = event.submitter || document.activeElement;
+            var message = (submitter && submitter.dataset && submitter.dataset.confirmMessage)
+                || form.dataset.confirmMessage
+                || 'Continue with this action?';
+
+            if (!window.confirm(message)) {
+                event.preventDefault();
+            }
         });
     });
 }

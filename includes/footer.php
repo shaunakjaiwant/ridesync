@@ -2,6 +2,7 @@
 require_once __DIR__ . '/asset_helper.php';
 $needsMapAssets = ridesync_page_needs_map_assets();
 $needsMapPicker = ridesync_page_needs_map_picker();
+$scriptNonce = htmlspecialchars(ridesync_csp_nonce(), ENT_QUOTES, 'UTF-8');
 ?>
 </main>
 
@@ -10,11 +11,11 @@ $needsMapPicker = ridesync_page_needs_map_picker();
 </footer>
 
 <?php if ($needsMapAssets): ?>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script nonce="<?php echo $scriptNonce; ?>" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <?php endif; ?>
-<script src="/ridesync/js/script.js"></script>
+<script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/script.js"></script>
 <?php if ($needsMapPicker): ?>
-<script src="/ridesync/js/map_picker.js?v=<?php echo filemtime(__DIR__ . '/../js/map_picker.js'); ?>"></script>
+<script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/map_picker.js?v=<?php echo filemtime(__DIR__ . '/../js/map_picker.js'); ?>"></script>
 <?php endif; ?>
 </body>
 </html>

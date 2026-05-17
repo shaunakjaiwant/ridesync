@@ -89,7 +89,7 @@ if ($driverRequestsTable && mysqli_num_rows($driverRequestsTable) > 0) {
                 <?php if ($m['match_status'] === 'pending'): ?>
                     <div class="match-card-footer">
                         <a href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $m['ride_id']; ?>" class="btn btn-small btn-secondary">View Details</a>
-                        <form method="POST" action="/ridesync/actions/match_action.php" onsubmit="return confirm('Cancel this request?');">
+                        <form method="POST" action="/ridesync/actions/match_action.php" data-confirm-message="Cancel this request?">
                             <input type="hidden" name="action" value="cancel">
                             <input type="hidden" name="match_id" value="<?php echo $m['match_id']; ?>">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -134,7 +134,7 @@ if ($driverRequestsTable && mysqli_num_rows($driverRequestsTable) > 0) {
                 </div>
                 <?php if ($request['request_status'] === 'pending'): ?>
                     <div class="match-card-footer">
-                        <form method="POST" action="/ridesync/actions/driver_request_action.php" onsubmit="return confirm('Cancel this driver request?');">
+                        <form method="POST" action="/ridesync/actions/driver_request_action.php" data-confirm-message="Cancel this driver request?">
                             <input type="hidden" name="action_type" value="cancel_pending">
                             <input type="hidden" name="request_id" value="<?php echo (int) $request['id']; ?>">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">

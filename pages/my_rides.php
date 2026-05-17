@@ -206,15 +206,15 @@ require_once __DIR__ . '/../includes/header.php';
                         </form>
                     <?php endif; ?>
                     <?php if ($canDeleteRide): ?>
-                        <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this ride permanently?');">
+                        <form method="POST" style="display:inline;" data-confirm-message="Delete this ride permanently?">
                             <input type="hidden" name="ride_id" value="<?php echo $ride['id']; ?>">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <button type="submit" name="ride_action" value="delete" class="btn btn-small btn-danger">Delete</button>
                         </form>
                     <?php endif; ?>
                     <?php if ($canCancelRide): ?>
-                        <form action="/ridesync/actions/cancel_ride_action.php" method="POST" 
-                              onsubmit="return confirm('Cancel this ride? All match requests will be rejected.');">
+                        <form action="/ridesync/actions/cancel_ride_action.php" method="POST"
+                              data-confirm-message="Cancel this ride? All match requests will be rejected.">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <input type="hidden" name="ride_id" value="<?php echo $ride['id']; ?>">
                             <button type="submit" class="btn btn-danger btn-sm">Cancel Ride</button>

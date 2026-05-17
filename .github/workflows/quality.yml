@@ -1,0 +1,32 @@
+name: RideSync Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      RIDESYNC_SKIP_DB_TESTS: "true"
+      RIDESYNC_ENV: testing
+      RIDESYNC_DEBUG: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mysqli, openssl, fileinfo
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run syntax quality gate
+        run: php tools/quality_gate.php --syntax-only

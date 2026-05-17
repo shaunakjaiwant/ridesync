@@ -387,7 +387,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
         <div class="admin-actions">
             <?php if (!empty($driver['profile_id'])): ?>
                 <?php if ($canApproveReadyDriver): ?>
-                    <form action="/ridesync/actions/admin_action.php" method="POST" onsubmit="return confirm('Approve this driver profile and all submitted required documents?');">
+                    <form action="/ridesync/actions/admin_action.php" method="POST" data-confirm-message="Approve this driver profile and all submitted required documents?">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <input type="hidden" name="action_type" value="driver_full_approval">
                         <input type="hidden" name="driver_id" value="<?php echo (int) $driverId; ?>">

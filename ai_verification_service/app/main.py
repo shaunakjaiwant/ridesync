@@ -20,11 +20,11 @@ try:
 except Exception:  # pragma: no cover - optional runtime dependency
     pytesseract = None
 
-from .providers import MockGovernmentProvider, mask_value, normalize
+from .providers import mask_value, normalize, provider_from_env
 
 
 app = FastAPI(title="RideSync Driver Verification Intelligence", version="1.0.0")
-provider = MockGovernmentProvider()
+provider = provider_from_env()
 
 
 class DriverPayload(BaseModel):

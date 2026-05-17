@@ -723,7 +723,7 @@ if ($section === 'overview') {
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
 
-<script>
+<script nonce="<?php echo htmlspecialchars(ridesync_csp_nonce(), ENT_QUOTES, 'UTF-8'); ?>">
 window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 </script>
 
@@ -1057,7 +1057,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                                         ]); ?>">Inspect</button>
                                         <a class="btn btn-secondary btn-sm" href="<?php echo htmlspecialchars($driverDetailUrl); ?>">Docs</a>
                                         <?php if ($canApproveReadyDriver): ?>
-                                            <form action="/ridesync/actions/admin_action.php" method="POST" onsubmit="return confirm('Approve this driver profile and all submitted required documents?');">
+                                            <form action="/ridesync/actions/admin_action.php" method="POST" data-confirm-message="Approve this driver profile and all submitted required documents?">
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                                 <input type="hidden" name="action_type" value="driver_full_approval">
                                                 <input type="hidden" name="driver_id" value="<?php echo (int) $driver['driver_id']; ?>">
@@ -1077,7 +1077,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                                         <?php endif; ?>
                                         <?php if ($canManageDriverAccounts): ?>
                                             <?php if ($driver['account_status'] !== 'suspended'): ?>
-                                                <form action="/ridesync/actions/admin_action.php" method="POST" onsubmit="return confirm('Suspend this driver account?');">
+                                                <form action="/ridesync/actions/admin_action.php" method="POST" data-confirm-message="Suspend this driver account?">
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                                     <input type="hidden" name="action_type" value="driver_account_status">
                                                     <input type="hidden" name="driver_id" value="<?php echo (int) $driver['driver_id']; ?>">
@@ -1525,20 +1525,32 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
             </div>
             <div class="admin-table-wrap">
                 <table class="admin-smart-table" id="auditTable">
-                    <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Entity</th><th>Message</th></tr></thead>
+                    <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Entity</th><th>Message</th><th>Context</th></tr></thead>
                     <tbody>
                         <?php foreach ($auditRows as $audit): ?>
-                            <?php $auditSearch = ridesync_admin_search_blob([$audit['admin_name'], $audit['action'], $audit['entity_type'], $audit['entity_id'], $audit['message']]); ?>
+                            <?php
+                                $auditIp = $audit['source_ip'] ?? '';
+                                $auditAgent = $audit['user_agent'] ?? '';
+                                $auditSearch = ridesync_admin_search_blob([$audit['admin_name'], $audit['action'], $audit['entity_type'], $audit['entity_id'], $audit['message'], $auditIp, $auditAgent]);
+                            ?>
                             <tr data-search="<?php echo htmlspecialchars($auditSearch); ?>">
                                 <td><?php echo htmlspecialchars(date('M j, g:i A', strtotime($audit['created_at']))); ?></td>
                                 <td><?php echo htmlspecialchars($audit['admin_name'] ?: 'System'); ?></td>
                                 <td><span class="badge badge-open"><?php echo htmlspecialchars(ridesync_admin_status_label($audit['action'])); ?></span></td>
                                 <td><?php echo htmlspecialchars($audit['entity_type'] . ' #' . ($audit['entity_id'] ?? '-')); ?></td>
                                 <td><?php echo htmlspecialchars($audit['message'] ?: 'No message'); ?></td>
+                                <td>
+                                    <?php if ($auditIp !== '' || $auditAgent !== ''): ?>
+                                        <span><?php echo htmlspecialchars($auditIp ?: 'unknown IP'); ?></span>
+                                        <small><?php echo htmlspecialchars($auditAgent !== '' ? $auditAgent : 'No user agent'); ?></small>
+                                    <?php else: ?>
+                                        <span>Not captured</span>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                         <?php if (count($auditRows) === 0): ?>
-                            <tr><td colspan="5" class="admin-table-empty">No audit entries found on this page.</td></tr>
+                            <tr><td colspan="6" class="admin-table-empty">No audit entries found on this page.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>

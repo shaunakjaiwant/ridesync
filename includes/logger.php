@@ -9,7 +9,7 @@ if (!function_exists('ridesync_log')) {
         $redacted = [];
         foreach ($value as $key => $item) {
             $keyString = strtolower((string) $key);
-            if (preg_match('/password|token|secret|cookie|authorization|csrf/', $keyString)) {
+            if (preg_match('/password|token|secret|cookie|authorization|csrf|aadhaar|aadhar|pan|license|document|base64|otp/', $keyString)) {
                 $redacted[$key] = '[redacted]';
                 continue;
             }

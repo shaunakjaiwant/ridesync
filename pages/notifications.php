@@ -72,14 +72,14 @@ if ($isDriver) {
                     </form>
                 <?php endif; ?>
                 <?php if ($readCount > 0): ?>
-                    <form action="/ridesync/actions/notification_action.php" method="POST" class="notification-toolbar-form" onsubmit="return confirm('Clear all read notifications?');">
+                    <form action="/ridesync/actions/notification_action.php" method="POST" class="notification-toolbar-form" data-confirm-message="Clear all read notifications?">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <input type="hidden" name="actor_type" value="<?php echo htmlspecialchars($actorType); ?>">
                         <input type="hidden" name="action_type" value="clear_read">
                         <button type="submit" class="btn btn-secondary btn-sm">Clear Read</button>
                     </form>
                 <?php endif; ?>
-                <form action="/ridesync/actions/notification_action.php" method="POST" class="notification-toolbar-form" onsubmit="return confirm('Clear every notification in this inbox?');">
+                <form action="/ridesync/actions/notification_action.php" method="POST" class="notification-toolbar-form" data-confirm-message="Clear every notification in this inbox?">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="actor_type" value="<?php echo htmlspecialchars($actorType); ?>">
                     <input type="hidden" name="action_type" value="clear_all">
@@ -113,7 +113,7 @@ if ($isDriver) {
                             <button type="submit" class="btn btn-secondary btn-sm">Read</button>
                         </form>
                     <?php endif; ?>
-                        <form action="/ridesync/actions/notification_action.php" method="POST" onsubmit="return confirm('Clear this notification?');">
+                        <form action="/ridesync/actions/notification_action.php" method="POST" data-confirm-message="Clear this notification?">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <input type="hidden" name="actor_type" value="<?php echo htmlspecialchars($actorType); ?>">
                             <input type="hidden" name="action_type" value="clear_one">
