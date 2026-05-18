@@ -11,6 +11,11 @@ const clients = new Set();
 let lastEventId = 0;
 let pool;
 
+function hasStrongSecret(value) {
+  const normalized = String(value || '').trim();
+  return normalized.length >= 32 && !normalized.toLowerCase().startsWith('replace-with');
+}
+
 function dbConfig() {
   return {
     host: process.env.RIDESYNC_DB_HOST || '127.0.0.1',
@@ -131,6 +136,14 @@ async function pollEvents() {
 }
 
 async function main() {
+  if (!hasStrongSecret(secret)) {
+    console.error(JSON.stringify({
+      level: 'fatal',
+      message: 'websocket_secret_not_configured',
+    }));
+    process.exit(1);
+  }
+
   pool = mysql.createPool(dbConfig());
   const server = http.createServer((request, response) => {
     if (request.url === '/health') {

@@ -10,6 +10,8 @@ services:
       - ./ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./ops/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
       - ridesync_prometheus:/prometheus
+    secrets:
+      - ridesync_metrics_token
     depends_on:
       - app
     restart: unless-stopped
@@ -28,3 +30,7 @@ services:
 volumes:
   ridesync_prometheus:
   ridesync_alertmanager:
+
+secrets:
+  ridesync_metrics_token:
+    environment: RIDESYNC_METRICS_TOKEN

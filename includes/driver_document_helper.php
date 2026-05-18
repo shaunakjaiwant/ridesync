@@ -69,8 +69,30 @@ function ridesync_driver_document_reference_is_file($reference) {
 function ridesync_driver_document_crypto_material() {
     $envKey = ridesync_env('RIDESYNC_DOCUMENT_ENCRYPTION_KEY', '');
     if ($envKey !== '') {
+        if (stripos(trim((string) $envKey), 'replace-with') === 0) {
+            if (ridesync_app_env() === 'production') {
+                throw new RuntimeException('Driver document encryption key is not configured.');
+            }
+
+            $envKey = '';
+        }
+    }
+
+    if ($envKey !== '') {
         $decoded = base64_decode($envKey, true);
-        return $decoded !== false && strlen($decoded) >= 32 ? substr($decoded, 0, 32) : hash('sha256', $envKey, true);
+        if ($decoded !== false && strlen($decoded) >= 32) {
+            return substr($decoded, 0, 32);
+        }
+
+        if (ridesync_app_env() === 'production') {
+            throw new RuntimeException('Driver document encryption key must be a base64-encoded 32-byte key.');
+        }
+
+        return hash('sha256', $envKey, true);
+    }
+
+    if (ridesync_app_env() === 'production') {
+        throw new RuntimeException('Driver document encryption key is not configured.');
     }
 
     $keyDir = ridesync_storage_path('secure_driver_documents');
@@ -88,6 +110,14 @@ function ridesync_driver_document_crypto_material() {
     $material = random_bytes(32);
     file_put_contents($keyFile, base64_encode($material), LOCK_EX);
     return $material;
+}
+
+function ridesync_driver_document_crypto_ready(): bool {
+    if (ridesync_base64_key_is_configured(ridesync_env('RIDESYNC_DOCUMENT_ENCRYPTION_KEY', ''), 32)) {
+        return true;
+    }
+
+    return ridesync_app_env() !== 'production';
 }
 
 function ridesync_driver_document_secure_path($reference) {

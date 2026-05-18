@@ -2,7 +2,10 @@
 define('RIDESYNC_ALLOW_DB_FAILURE', true);
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
+
+ridesync_require_method('GET');
 
 $expectedToken = trim((string) ridesync_env('RIDESYNC_METRICS_TOKEN', ''));
 $providedToken = trim((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));

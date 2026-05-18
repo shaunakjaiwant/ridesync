@@ -5,6 +5,8 @@ require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
 
+ridesync_require_method('GET');
+
 if (!isset($_SESSION['admin_id'])) {
     http_response_code(401);
     exit();

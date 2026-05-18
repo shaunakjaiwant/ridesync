@@ -507,4 +507,77 @@ function ridesync_update_live_status($conn, $rideId, $status, $note = null, $dri
 function ridesync_create_notification($conn, $userId, $driverId, $title, $message) {
     return RideSyncNotificationService::create($conn, $userId, $driverId, $title, $message);
 }
+
+function ridesync_reject_pending_matches($conn, int $rideId, ?int $excludedMatchId = null, string $title = 'Ride unavailable', string $message = 'That ride is no longer accepting pending requests.'): int
+{
+    if (!$conn instanceof mysqli || $rideId <= 0) {
+        return 0;
+    }
+
+    if ($excludedMatchId !== null && $excludedMatchId > 0) {
+        $pending = mysqli_prepare($conn,
+            "SELECT id, matched_user_id
+             FROM matches
+             WHERE ride_id = ? AND status = 'pending' AND id <> ?
+             FOR UPDATE"
+        );
+        if (!$pending) {
+            return 0;
+        }
+        mysqli_stmt_bind_param($pending, "ii", $rideId, $excludedMatchId);
+    } else {
+        $pending = mysqli_prepare($conn,
+            "SELECT id, matched_user_id
+             FROM matches
+             WHERE ride_id = ? AND status = 'pending'
+             FOR UPDATE"
+        );
+        if (!$pending) {
+            return 0;
+        }
+        mysqli_stmt_bind_param($pending, "i", $rideId);
+    }
+
+    mysqli_stmt_execute($pending);
+    $result = mysqli_stmt_get_result($pending);
+    $matchedUserIds = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $matchedUserIds[] = (int) $row['matched_user_id'];
+    }
+
+    if ($matchedUserIds === []) {
+        return 0;
+    }
+
+    if ($excludedMatchId !== null && $excludedMatchId > 0) {
+        $upd = mysqli_prepare($conn,
+            "UPDATE matches
+             SET status = 'rejected'
+             WHERE ride_id = ? AND status = 'pending' AND id <> ?"
+        );
+        if (!$upd) {
+            return 0;
+        }
+        mysqli_stmt_bind_param($upd, "ii", $rideId, $excludedMatchId);
+    } else {
+        $upd = mysqli_prepare($conn,
+            "UPDATE matches
+             SET status = 'rejected'
+             WHERE ride_id = ? AND status = 'pending'"
+        );
+        if (!$upd) {
+            return 0;
+        }
+        mysqli_stmt_bind_param($upd, "i", $rideId);
+    }
+
+    mysqli_stmt_execute($upd);
+    $affected = max(0, mysqli_stmt_affected_rows($upd));
+
+    foreach (array_unique($matchedUserIds) as $matchedUserId) {
+        ridesync_create_notification($conn, $matchedUserId, null, $title, $message);
+    }
+
+    return $affected;
+}
 ?>

@@ -31,6 +31,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LiveResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/readiness.php:
     get:
       tags: [Health]
@@ -48,6 +50,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReadinessResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/health.php:
     get:
       tags: [Health]
@@ -67,6 +71,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/metrics.php:
     get:
       tags: [Operations]
@@ -87,6 +93,8 @@ paths:
             text/plain:
               schema:
                 type: string
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/location_suggestions.php:
     get:
       tags: [Suggestions]
@@ -158,6 +166,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/ride_status.php:
     get:
       tags: [RiderDriver]
@@ -188,6 +198,8 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/realtime_events.php:
     get:
       tags: [Realtime]
@@ -221,6 +233,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/realtime_token.php:
     get:
       tags: [Realtime]
@@ -240,6 +254,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/events.php:
     get:
       tags: [Realtime]
@@ -259,6 +275,8 @@ paths:
           description: Rider or driver session is required.
         "429":
           description: Too many live event connections.
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/admin_events.php:
     get:
       tags: [Admin, Realtime]
@@ -280,6 +298,8 @@ paths:
           description: Active admin account is required.
         "429":
           description: Too many admin event connections.
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/driver_verification_status.php:
     get:
       tags: [Admin]
@@ -310,6 +330,8 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/driver_verification_events.php:
     get:
       tags: [Admin, Realtime]
@@ -340,6 +362,8 @@ paths:
           description: Too many verification event streams.
         "503":
           description: Verification schema is unavailable.
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
 components:
   securitySchemes:
     sessionCookie:

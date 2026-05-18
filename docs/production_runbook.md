@@ -10,7 +10,7 @@
 6. Run `php tools/queue_worker.php --once --queue=verification` against staging.
 7. Verify `/ridesync/api/live.php` returns `200`.
 8. Verify `/ridesync/api/readiness.php` returns `200`.
-9. Verify `/ridesync/api/metrics.php` returns Prometheus metrics.
+9. Verify `/ridesync/api/metrics.php` returns Prometheus metrics with `Authorization: Bearer $RIDESYNC_METRICS_TOKEN`.
 10. Confirm GitHub Actions is unblocked and the `RideSync Quality Gate` passes, unless explicitly waived for a non-production merge.
 
 ## Container Deployment
@@ -22,7 +22,9 @@ docker compose up -d
 curl -fsS http://127.0.0.1:8080/ridesync/api/readiness.php
 ```
 
-Set `RIDESYNC_COOKIE_SECURE=true` when the app is served only over HTTPS. If a reverse proxy terminates TLS, set `RIDESYNC_TRUST_PROXY=true` only when that proxy controls `X-Forwarded-*` headers.
+Before starting the stack, replace every `replace-with-*` value in `.env`. Production Compose now fails fast unless `RIDESYNC_DB_PASSWORD`, `RIDESYNC_DB_ROOT_PASSWORD`, `RIDESYNC_DOCUMENT_ENCRYPTION_KEY`, `RIDESYNC_METRICS_TOKEN`, `RIDESYNC_WEBSOCKET_URL`, and `RIDESYNC_WS_SHARED_TOKEN` are set. `RIDESYNC_DOCUMENT_ENCRYPTION_KEY` must be a base64-encoded 32-byte key, for example `openssl rand -base64 32`.
+
+`RIDESYNC_COOKIE_SECURE` defaults to `true` in Compose. Set it to `false` only for local HTTP-only container testing. If a reverse proxy terminates TLS, set `RIDESYNC_TRUST_PROXY=true` only when that proxy controls `X-Forwarded-*` headers.
 
 The compose stack includes:
 
@@ -61,7 +63,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now ridesync-queue-worker.service
 ```
 
-WebSocket clients request a short-lived token from `/ridesync/api/realtime_token.php` and connect to `RIDESYNC_WEBSOCKET_URL`. Keep `RIDESYNC_WS_SHARED_TOKEN` secret and rotate it during incident response.
+WebSocket clients request a short-lived token from `/ridesync/api/realtime_token.php` and connect to `RIDESYNC_WEBSOCKET_URL`. Keep `RIDESYNC_WS_SHARED_TOKEN` at least 32 random characters, keep it secret, and rotate it during incident response.
 
 ## Monitoring And Alerting
 
@@ -75,6 +77,8 @@ Prometheus: `http://127.0.0.1:9090`
 Alertmanager: `http://127.0.0.1:9093`
 
 Alert rules are stored in `ops/monitoring/alerts.yml`. Replace the placeholder webhook in `ops/monitoring/alertmanager.yml` with Slack, PagerDuty, Teams, or your incident webhook before production.
+
+Prometheus receives `RIDESYNC_METRICS_TOKEN` as a Docker secret and sends it as a bearer token. If metrics scrape targets show `403`, confirm the app and monitoring stack were started with the same token value.
 
 ## Backups
 

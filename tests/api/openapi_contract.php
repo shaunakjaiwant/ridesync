@@ -36,6 +36,7 @@ $currentPath = null;
 $inPaths = false;
 $hasMethod = [];
 $hasResponse = [];
+$hasMethodNotAllowed = [];
 
 foreach ($lines as $line) {
     if (preg_match('/^paths:\s*$/', $line)) {
@@ -57,6 +58,7 @@ foreach ($lines as $line) {
         $paths[] = $currentPath;
         $hasMethod[$currentPath] = false;
         $hasResponse[$currentPath] = false;
+        $hasMethodNotAllowed[$currentPath] = false;
         continue;
     }
 
@@ -66,6 +68,10 @@ foreach ($lines as $line) {
 
     if ($currentPath !== null && preg_match('/^      responses:\s*$/', $line)) {
         $hasResponse[$currentPath] = true;
+    }
+
+    if ($currentPath !== null && preg_match('/^        "405":\s*$/', $line)) {
+        $hasMethodNotAllowed[$currentPath] = true;
     }
 }
 
@@ -85,6 +91,15 @@ contract_expect($missingFiles === [], 'OpenAPI paths without PHP files: ' . impl
 foreach ($paths as $path) {
     contract_expect(!empty($hasMethod[$path]), "{$path} has no HTTP method", $failures);
     contract_expect(!empty($hasResponse[$path]), "{$path} has no responses block", $failures);
+    contract_expect(!empty($hasMethodNotAllowed[$path]), "{$path} must document 405 Method Not Allowed", $failures);
+
+    $file = $apiDir . DIRECTORY_SEPARATOR . basename($path);
+    $fileContents = is_file($file) ? file_get_contents($file) : '';
+    contract_expect(
+        is_string($fileContents) && str_contains($fileContents, "ridesync_require_method('GET')"),
+        "{$path} must explicitly reject non-GET methods",
+        $failures
+    );
 }
 
 contract_expect(

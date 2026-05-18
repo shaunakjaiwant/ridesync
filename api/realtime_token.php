@@ -4,6 +4,8 @@ require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
 
+ridesync_require_method('GET');
+
 $audienceType = null;
 $audienceId = 0;
 $rateLimitKey = null;
@@ -35,7 +37,7 @@ ridesync_enforce_rate_limit('api:realtime_token', 60, 60, $rateLimitKey, [
 
 $secret = trim((string) ridesync_env('RIDESYNC_WS_SHARED_TOKEN', ''));
 $wsUrl = trim((string) ridesync_env('RIDESYNC_WEBSOCKET_URL', ''));
-if ($secret === '' || $wsUrl === '') {
+if (!ridesync_secret_is_configured($secret, 32) || $wsUrl === '') {
     ridesync_json_response([
         'ok' => true,
         'enabled' => false,

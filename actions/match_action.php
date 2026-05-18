@@ -40,47 +40,6 @@ function ridesync_match_existing_request_status($conn, $rideId, $userId) {
     return $match['status'] ?? null;
 }
 
-function ridesync_reject_remaining_pending_matches($conn, $rideId, $acceptedMatchId) {
-    $pending = mysqli_prepare($conn,
-        "SELECT id, matched_user_id
-         FROM matches
-         WHERE ride_id = ? AND status = 'pending' AND id <> ?
-         FOR UPDATE"
-    );
-    mysqli_stmt_bind_param($pending, "ii", $rideId, $acceptedMatchId);
-    mysqli_stmt_execute($pending);
-    $result = mysqli_stmt_get_result($pending);
-
-    $matchedUserIds = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $matchedUserIds[] = (int) $row['matched_user_id'];
-    }
-
-    if ($matchedUserIds === []) {
-        return 0;
-    }
-
-    $upd = mysqli_prepare($conn,
-        "UPDATE matches
-         SET status = 'rejected'
-         WHERE ride_id = ? AND status = 'pending' AND id <> ?"
-    );
-    mysqli_stmt_bind_param($upd, "ii", $rideId, $acceptedMatchId);
-    mysqli_stmt_execute($upd);
-
-    foreach ($matchedUserIds as $matchedUserId) {
-        ridesync_create_notification(
-            $conn,
-            $matchedUserId,
-            null,
-            'Ride is full',
-            'That ride is now full, so your pending request was closed.'
-        );
-    }
-
-    return mysqli_stmt_affected_rows($upd);
-}
-
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
     exit();
@@ -275,7 +234,13 @@ if ($action === 'accept' && $match_id > 0) {
     }
 
     if ($rideWillClose) {
-        ridesync_reject_remaining_pending_matches($conn, (int) $match_data['ride_id'], $match_id);
+        ridesync_reject_pending_matches(
+            $conn,
+            (int) $match_data['ride_id'],
+            $match_id,
+            'Ride is full',
+            'That ride is now full, so your pending request was closed.'
+        );
     }
 
     $nextLiveStatus = $match_data['live_status'] === 'driver_assigned' ? 'driver_assigned' : 'matched';

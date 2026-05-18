@@ -14,6 +14,9 @@ rule_files:
 scrape_configs:
   - job_name: ridesync-web
     metrics_path: /ridesync/api/metrics.php
+    authorization:
+      type: Bearer
+      credentials_file: /run/secrets/ridesync_metrics_token
     static_configs:
       - targets:
           - app:80

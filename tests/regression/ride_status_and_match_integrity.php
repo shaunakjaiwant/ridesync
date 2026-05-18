@@ -118,6 +118,30 @@ function rt_call_match_accept($root, $ownerId, $matchId) {
     ]);
 }
 
+function rt_call_my_rides_action($root, $ownerId, $rideId, $rideAction) {
+    $pageFile = $root . DIRECTORY_SEPARATOR . 'pages' . DIRECTORY_SEPARATOR . 'my_rides.php';
+    return rt_run_php([
+        '$_SERVER["REQUEST_METHOD"] = "POST";',
+        '$_SERVER["SCRIPT_NAME"] = "/ridesync/pages/my_rides.php";',
+        '$_SERVER["REMOTE_ADDR"] = "127.0.0.1";',
+        '$_SERVER["HTTP_USER_AGENT"] = "RideSyncRegression/1.0";',
+        'session_id(' . var_export('rtmanage' . bin2hex(random_bytes(8)), true) . ');',
+        'session_start();',
+        '$_SESSION["user_id"] = ' . (int) $ownerId . ';',
+        '$_SESSION["user_name"] = "Regression Owner";',
+        '$_SESSION["_auth_role"] = "rider";',
+        '$_SESSION["_auth_started_at"] = time();',
+        '$_SESSION["_last_seen_at"] = time();',
+        '$_SESSION["_last_rotated_at"] = time();',
+        '$_SESSION["_created_at"] = time();',
+        '$_SESSION["csrf_token"] = "regression-csrf-token";',
+        '$_POST["csrf_token"] = "regression-csrf-token";',
+        '$_POST["ride_action"] = ' . var_export($rideAction, true) . ';',
+        '$_POST["ride_id"] = ' . (int) $rideId . ';',
+        'require ' . var_export($pageFile, true) . ';',
+    ]);
+}
+
 $prefix = 'regression_' . date('YmdHis') . '_' . bin2hex(random_bytes(4));
 
 try {
@@ -181,6 +205,30 @@ try {
     );
     $notification = mysqli_fetch_assoc($notificationResult);
     rt_expect((int) ($notification['total'] ?? 0) >= 1, 'remaining pending rider was not notified that the ride is full', $failures);
+
+    $manualCloseRideId = rt_insert_ride($conn, $ownerId, 2);
+    $manualPendingOneId = rt_insert_match($conn, $manualCloseRideId, $pendingUserId, 'pending');
+    $manualPendingTwoId = rt_insert_match($conn, $manualCloseRideId, $extraUserId, 'pending');
+
+    $closeResponse = rt_call_my_rides_action($root, $ownerId, $manualCloseRideId, 'close');
+    rt_expect($closeResponse['exit_code'] === 0, 'my_rides close subprocess failed: ' . $closeResponse['output'], $failures);
+
+    $manualRideResult = mysqli_query($conn, "SELECT status FROM rides WHERE id = " . (int) $manualCloseRideId);
+    $manualRide = mysqli_fetch_assoc($manualRideResult);
+    rt_expect(($manualRide['status'] ?? '') === 'closed', 'manual close did not close the ride', $failures);
+
+    $manualStatusResult = mysqli_query($conn,
+        "SELECT id, status
+         FROM matches
+         WHERE id IN (" . (int) $manualPendingOneId . ", " . (int) $manualPendingTwoId . ")"
+    );
+    $manualStatuses = [];
+    while ($row = mysqli_fetch_assoc($manualStatusResult)) {
+        $manualStatuses[(int) $row['id']] = $row['status'];
+    }
+
+    rt_expect(($manualStatuses[$manualPendingOneId] ?? '') === 'rejected', 'manual close left first pending match open', $failures);
+    rt_expect(($manualStatuses[$manualPendingTwoId] ?? '') === 'rejected', 'manual close left second pending match open', $failures);
 } finally {
     $escapedPrefix = mysqli_real_escape_string($conn, $prefix . '%');
     mysqli_query($conn, "DELETE FROM users WHERE email LIKE '{$escapedPrefix}'");
@@ -197,5 +245,6 @@ if (!empty($failures)) {
 rt_note('OK', 'ride status rejects pending/rejected matches');
 rt_note('OK', 'accepted match remains authorized');
 rt_note('OK', 'full ride closes remaining pending matches');
+rt_note('OK', 'manual ride close closes pending matches');
 echo PHP_EOL . 'RideSync ride status and match integrity regressions passed.' . PHP_EOL;
 ?>

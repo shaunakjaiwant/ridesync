@@ -493,6 +493,27 @@ function schema_create_realtime_events($conn) {
     );
 }
 
+function schema_reject_stale_pending_matches($conn) {
+    if (!schema_table_exists($conn, 'matches') || !schema_table_exists($conn, 'rides')) {
+        schema_note('SKIP', 'Reject stale pending matches', 'required table missing');
+        return;
+    }
+
+    if (mysqli_query(
+        $conn,
+        "UPDATE matches m
+         JOIN rides r ON r.id = m.ride_id
+         SET m.status = 'rejected'
+         WHERE m.status = 'pending'
+           AND (r.status <> 'open' OR r.seats_available <= 0)"
+    )) {
+        $changed = mysqli_affected_rows($conn);
+        schema_note($changed > 0 ? 'APPLIED' : 'SKIP', 'Reject stale pending matches', $changed . ' row(s)');
+    } else {
+        schema_note('FAIL', 'Reject stale pending matches', mysqli_error($conn));
+    }
+}
+
 schema_add_column($conn, 'ride_routes', 'encoded_polyline', 'LONGTEXT NULL AFTER ride_id');
 schema_add_column($conn, 'route_demand_signals', 'encoded_polyline', 'LONGTEXT NULL AFTER route_distance_km');
 schema_add_column($conn, 'driver_ride_history', 'source_type', "ENUM('direct_request', 'community_ride') NULL AFTER distance_km");
@@ -569,6 +590,8 @@ schema_add_fk($conn, 'wallet_transactions', 'fk_wallet_transactions_wallet', 'wa
 schema_add_fk($conn, 'wallet_transactions', 'fk_wallet_transactions_user', 'user_id', 'users', 'CASCADE');
 schema_add_fk($conn, 'wallet_transactions', 'fk_wallet_transactions_ride', 'ride_id', 'rides', 'SET NULL');
 schema_add_fk($conn, 'wallet_transactions', 'fk_wallet_transactions_driver', 'driver_id', 'driver_accounts', 'SET NULL');
+
+schema_reject_stale_pending_matches($conn);
 
 echo PHP_EOL;
 echo "Schema upgrade finished: {$applied} applied, {$skipped} skipped, {$failed} failed." . PHP_EOL;

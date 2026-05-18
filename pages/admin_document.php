@@ -47,10 +47,15 @@ if (!$documentStream) {
     exit('Document file not available');
 }
 
+$downloadName = preg_replace('/[^A-Za-z0-9._-]/', '_', basename((string) $documentStream['filename']));
+if ($downloadName === '' || $downloadName === '.' || $downloadName === '..') {
+    $downloadName = 'driver-document';
+}
+
 session_write_close();
 header('Content-Type: ' . $documentStream['mime']);
 header('Content-Length: ' . strlen($documentStream['bytes']));
-header('Content-Disposition: inline; filename="' . basename($documentStream['filename']) . '"');
+header('Content-Disposition: inline; filename="' . $downloadName . '"; filename*=UTF-8\'\'' . rawurlencode($downloadName));
 header('Cache-Control: private, max-age=0, must-revalidate');
 echo $documentStream['bytes'];
 exit();

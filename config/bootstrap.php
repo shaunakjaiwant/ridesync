@@ -30,6 +30,29 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         return (int) $value;
     }
 
+    function ridesync_secret_is_configured($value, int $minLength = 32): bool {
+        $value = trim((string) $value);
+        if ($value === '' || strlen($value) < $minLength) {
+            return false;
+        }
+
+        return stripos($value, 'replace-with') !== 0;
+    }
+
+    function ridesync_env_secret_is_configured(string $key, int $minLength = 32): bool {
+        return ridesync_secret_is_configured((string) ridesync_env($key, ''), $minLength);
+    }
+
+    function ridesync_base64_key_is_configured($value, int $minBytes = 32): bool {
+        $value = trim((string) $value);
+        if ($value === '' || stripos($value, 'replace-with') === 0) {
+            return false;
+        }
+
+        $decoded = base64_decode($value, true);
+        return $decoded !== false && strlen($decoded) >= $minBytes;
+    }
+
     function ridesync_app_env() {
         return strtolower((string) ridesync_env('RIDESYNC_ENV', 'local'));
     }

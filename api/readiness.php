@@ -4,6 +4,9 @@ define('RIDESYNC_ALLOW_DB_FAILURE', true);
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
+require_once __DIR__ . '/../includes/driver_document_helper.php';
+
+ridesync_require_method('GET');
 
 $checks = [
     'database' => false,
@@ -12,6 +15,11 @@ $checks = [
     'logs' => false,
     'rate_limits' => false,
     'crypto' => function_exists('openssl_encrypt') && function_exists('random_bytes'),
+    'document_crypto' => ridesync_driver_document_crypto_ready(),
+    'metrics_token' => ridesync_app_env() !== 'production' || ridesync_env_secret_is_configured('RIDESYNC_METRICS_TOKEN', 16),
+    'websocket_config' => ridesync_app_env() !== 'production'
+        || (trim((string) ridesync_env('RIDESYNC_WEBSOCKET_URL', '')) !== ''
+            && ridesync_env_secret_is_configured('RIDESYNC_WS_SHARED_TOKEN', 32)),
 ];
 
 if ($conn instanceof mysqli) {

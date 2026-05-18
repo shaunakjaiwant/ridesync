@@ -123,6 +123,16 @@ foreach ($expectedIndexes as [$table, $index]) {
     smoke_check("index {$index}", mysqli_num_rows(mysqli_stmt_get_result($stmt)) > 0, $table);
 }
 
+$stalePendingResult = mysqli_query($conn,
+    "SELECT COUNT(*) AS total
+     FROM matches m
+     JOIN rides r ON r.id = m.ride_id
+     WHERE m.status = 'pending'
+       AND (r.status <> 'open' OR r.seats_available <= 0)"
+);
+$stalePending = $stalePendingResult ? (int) (mysqli_fetch_assoc($stalePendingResult)['total'] ?? 0) : 0;
+smoke_check('no stale pending matches on unavailable rides', $stalePending === 0, $stalePending . ' found');
+
 $failed = 0;
 foreach ($checks as [$label, $ok, $detail]) {
     echo ($ok ? '[OK] ' : '[FAIL] ') . $label;

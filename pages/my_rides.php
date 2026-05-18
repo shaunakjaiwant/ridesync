@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
+require_once __DIR__ . '/../includes/http_helper.php';
 
 // Must be logged in
 if (!isset($_SESSION['user_id'])) {
@@ -15,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ride_action'])) {
     $ride_id = (int) ($_POST['ride_id'] ?? 0);
     $rideAction = $_POST['ride_action'] ?? '';
 
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+    if (!ridesync_csrf_is_valid()) {
         $_SESSION['error'] = "Invalid request. Please try again.";
         header("Location: /ridesync/pages/my_rides.php");
         exit();
@@ -69,6 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ride_action'])) {
             $stmt->bind_param("ii", $ride_id, $user_id);
             $stmt->execute();
             $stmt->close();
+
+            ridesync_reject_pending_matches(
+                $conn,
+                $ride_id,
+                null,
+                'Ride closed',
+                'That ride was closed by the owner, so your pending request was closed.'
+            );
 
             $nextLiveStatus = !empty($ride['driver_id'])
                 ? 'driver_assigned'

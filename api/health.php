@@ -6,6 +6,8 @@ require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 
+ridesync_require_method('GET');
+
 ridesync_enforce_rate_limit('api:health', 30, 60, ridesync_client_ip(), [
     'json' => true,
     'message' => 'Too many health checks. Please retry shortly.',

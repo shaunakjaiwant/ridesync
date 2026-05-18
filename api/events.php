@@ -5,6 +5,8 @@ require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
 require_once __DIR__ . '/../includes/services/RealtimeEventService.php';
 
+ridesync_require_method('GET');
+
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['driver_id'])) {
     http_response_code(401);
     exit();
