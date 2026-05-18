@@ -44,7 +44,7 @@ if (isset($_SESSION['user_id'])) {
     if ((int) $ride['user_id'] === $userId) {
         $allowed = true;
     } else {
-        $stmt = mysqli_prepare($conn, "SELECT id FROM matches WHERE ride_id = ? AND matched_user_id = ? LIMIT 1");
+        $stmt = mysqli_prepare($conn, "SELECT id FROM matches WHERE ride_id = ? AND matched_user_id = ? AND status = 'accepted' LIMIT 1");
         mysqli_stmt_bind_param($stmt, "ii", $rideId, $userId);
         mysqli_stmt_execute($stmt);
         $allowed = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));

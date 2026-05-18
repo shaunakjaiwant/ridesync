@@ -226,7 +226,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <button type="button" class="btn btn-secondary btn-sm" data-map-clear>Clear</button>
                 </div>
 
-                <div id="smartSearchMap" class="ride-map" data-map-canvas></div>
+                <div id="smartSearchMap" class="ride-map" data-map-canvas role="region" aria-label="Interactive map for choosing pickup and destination"></div>
 
                 <div class="map-picker-status">
                     <span data-map-status>Set pickup and destination for stronger matching.</span>

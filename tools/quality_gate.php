@@ -116,6 +116,8 @@ $requiredOperationalFiles = [
     'tests/load/k6-smoke.js',
     'tests/load/k6-production.js',
     'tests/api/negative_api.php',
+    'tests/api/openapi_contract.php',
+    'tests/regression/ride_status_and_match_integrity.php',
 ];
 
 foreach ($requiredOperationalFiles as $relativePath) {
@@ -144,6 +146,8 @@ if ($skipDb) {
         'php tools/smoke_admin_dashboard.php remove',
         'php tools/smoke_admin_dashboard.php analytics',
         'php tools/smoke_admin_dashboard.php system',
+        'php tests/api/openapi_contract.php',
+        'php tests/regression/ride_status_and_match_integrity.php',
     ] as $command) {
         $output = '';
         $code = qg_run($command, $root, $output);

@@ -99,7 +99,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <button type="button" class="btn btn-secondary btn-sm" data-map-clear>Clear</button>
             </div>
 
-            <div id="rideMapPicker" class="ride-map" data-map-canvas></div>
+            <div id="rideMapPicker" class="ride-map" data-map-canvas role="region" aria-label="Interactive map for setting departure and destination"></div>
 
             <div class="map-picker-status">
                 <span data-map-status>Choose departure, then destination.</span>
