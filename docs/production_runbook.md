@@ -159,6 +159,24 @@ npm run test:load:production
 
 For distributed execution, run the same `tests/load/k6-production.js` script through k6 Cloud, Grafana Cloud k6, or multiple regional runners and compare p95/p99 latency, error rate, and database CPU.
 
+## API Contract And Negative Tests
+
+The API contract is stored at `docs/openapi.yaml`. Treat it as the source of truth for `/ridesync/api/*.php` JSON, SSE, and metrics endpoints.
+
+Run the unauthenticated negative API suite against a running local or staging app:
+
+```bash
+RIDESYNC_BASE_URL=http://127.0.0.1/ridesync npm run test:api:negative
+```
+
+The suite checks public probes, method rejection, auth boundaries, malformed limits, response content types, request ids, and that error responses do not leak PHP, SQL, or stack traces.
+
+## DAST And Screen Readers
+
+Use `docs/dast_security_test_plan.md` for OWASP ZAP baseline, authenticated, and active scan evidence. Use only disposable staging data for active scans.
+
+Use `docs/screen_reader_test_plan.md` for NVDA, VoiceOver, and TalkBack manual accessibility evidence. Production release requires 0 critical/high findings in both DAST and manual screen-reader passes.
+
 ## Physical Device Lab
 
 Use `docs/device_lab_test_plan.md` for Android, iPhone, iPad, and Safari validation. Production release requires real device evidence, not only browser emulation.

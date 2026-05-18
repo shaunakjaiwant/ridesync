@@ -1,0 +1,721 @@
+openapi: 3.1.0
+info:
+  title: RideSync API
+  version: 1.0.0
+  summary: Contract for RideSync public, authenticated, realtime, and operations endpoints.
+  description: >
+    RideSync is primarily a server-rendered PHP application. This contract documents the JSON,
+    SSE, and Prometheus endpoints under /ridesync/api. Form-backed page actions remain outside
+    this REST-style contract and are covered by application QA flows.
+servers:
+  - url: http://127.0.0.1/ridesync
+    description: Local XAMPP
+  - url: https://staging.example.com/ridesync
+    description: Staging placeholder
+tags:
+  - name: Health
+  - name: Suggestions
+  - name: RiderDriver
+  - name: Admin
+  - name: Realtime
+  - name: Operations
+paths:
+  /api/live.php:
+    get:
+      tags: [Health]
+      summary: Liveness probe.
+      responses:
+        "200":
+          description: Application process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveResponse"
+  /api/readiness.php:
+    get:
+      tags: [Health]
+      summary: Readiness probe for database, schema, storage, logs, rate limits, and crypto.
+      responses:
+        "200":
+          description: Service is ready for traffic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
+          description: Service is alive but not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+  /api/health.php:
+    get:
+      tags: [Health]
+      summary: Legacy health probe with database, schema, and storage checks.
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          description: Service is degraded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /api/metrics.php:
+    get:
+      tags: [Operations]
+      summary: Prometheus metrics endpoint.
+      security:
+        - metricsBearer: []
+        - {}
+      responses:
+        "200":
+          description: Prometheus text exposition.
+          content:
+            text/plain:
+              schema:
+                type: string
+        "403":
+          description: Metrics token is missing or invalid.
+          content:
+            text/plain:
+              schema:
+                type: string
+  /api/location_suggestions.php:
+    get:
+      tags: [Suggestions]
+      summary: Public location suggestions.
+      parameters:
+        - $ref: "#/components/parameters/QueryQ"
+      responses:
+        "200":
+          description: Local and provider-backed location suggestions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationSuggestionsResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /api/search_suggestions.php:
+    get:
+      tags: [Admin, Suggestions]
+      summary: Admin global search suggestions.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: context
+          in: query
+          schema:
+            type: string
+            default: admin_global
+        - $ref: "#/components/parameters/QueryQ"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        "200":
+          description: Admin search suggestions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSearchSuggestionsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/driver_state.php:
+    get:
+      tags: [RiderDriver]
+      summary: Current authenticated driver state.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Driver dashboard state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverStateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /api/ride_status.php:
+    get:
+      tags: [RiderDriver]
+      summary: Live ride status for authorized participants or assigned driver.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: ride_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Live ride status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RideStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /api/realtime_events.php:
+    get:
+      tags: [Realtime]
+      summary: Poll realtime event outbox for the authenticated audience.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: after_id
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Realtime events for the current user, driver, or admin.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RealtimeEventsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /api/realtime_token.php:
+    get:
+      tags: [Realtime]
+      summary: Issue a short-lived WebSocket token for the current audience.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: WebSocket token, or disabled reason when gateway is not configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RealtimeTokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /api/events.php:
+    get:
+      tags: [Realtime]
+      summary: SSE stream for authenticated rider or driver activity.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/LastEventId"
+      responses:
+        "200":
+          description: Server-sent ridesync events.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          description: Rider or driver session is required.
+        "429":
+          description: Too many live event connections.
+  /api/admin_events.php:
+    get:
+      tags: [Admin, Realtime]
+      summary: SSE stream for admin dashboard metrics and events.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/LastEventId"
+      responses:
+        "200":
+          description: Server-sent admin events.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          description: Admin session is required.
+        "403":
+          description: Active admin account is required.
+        "429":
+          description: Too many admin event connections.
+  /api/driver_verification_status.php:
+    get:
+      tags: [Admin]
+      summary: Driver AI verification status for admin review.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: driver_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Latest verification session status, or no-session marker.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverVerificationStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/driver_verification_events.php:
+    get:
+      tags: [Admin, Realtime]
+      summary: SSE stream for a driver's verification state.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: driver_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Server-sent driver verification events.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          description: Invalid driver id.
+        "401":
+          description: Admin session is required.
+        "403":
+          description: Active admin account is required.
+        "429":
+          description: Too many verification event streams.
+        "503":
+          description: Verification schema is unavailable.
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+      description: Server session cookie issued by the PHP app after rider, driver, or admin login.
+    metricsBearer:
+      type: http
+      scheme: bearer
+      description: RIDESYNC_METRICS_TOKEN value.
+  parameters:
+    QueryQ:
+      name: q
+      in: query
+      schema:
+        type: string
+        maxLength: 200
+      description: Search query.
+    LastEventId:
+      name: last_event_id
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+  responses:
+    BadRequest:
+      description: Invalid request parameters.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Authentication is required.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Authenticated account is not allowed to access the resource.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    MethodNotAllowed:
+      description: HTTP method is not supported.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ErrorResponse"
+              - type: object
+                properties:
+                  allowed_method:
+                    type: string
+    RateLimited:
+      description: Request rate limit exceeded.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServiceUnavailable:
+      description: Required backing service, schema, or storage is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    RequestId:
+      type: object
+      required: [request_id]
+      properties:
+        request_id:
+          type: string
+    ErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, error]
+          properties:
+            ok:
+              type: boolean
+              const: false
+            error:
+              type: string
+            retry_after:
+              type: integer
+              minimum: 1
+    LiveResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, status, service, environment, timestamp]
+          properties:
+            ok:
+              type: boolean
+              const: true
+            status:
+              type: string
+              enum: [alive]
+            service:
+              type: string
+            environment:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+    HealthResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, status, checks, timestamp]
+          properties:
+            ok:
+              type: boolean
+            status:
+              type: string
+              enum: [healthy, degraded]
+            checks:
+              type: object
+              additionalProperties:
+                type: boolean
+            timestamp:
+              type: string
+              format: date-time
+    ReadinessResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, status, service, environment, checks, timestamp]
+          properties:
+            ok:
+              type: boolean
+            status:
+              type: string
+              enum: [ready, not_ready]
+            service:
+              type: string
+            environment:
+              type: string
+            checks:
+              type: object
+              additionalProperties:
+                type: boolean
+            timestamp:
+              type: string
+              format: date-time
+    LocationSuggestionsResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, query, suggestions]
+          properties:
+            ok:
+              type: boolean
+              const: true
+            query:
+              type: string
+            suggestions:
+              type: array
+              items:
+                $ref: "#/components/schemas/Suggestion"
+    AdminSearchSuggestionsResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, context, query, suggestions]
+          properties:
+            ok:
+              type: boolean
+              const: true
+            context:
+              type: string
+            query:
+              type: string
+            suggestions:
+              type: array
+              items:
+                $ref: "#/components/schemas/Suggestion"
+    Suggestion:
+      type: object
+      additionalProperties: true
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+        meta:
+          type: string
+        url:
+          type: string
+    DriverStateResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, availability, pending_requests, active_workload, is_busy]
+          properties:
+            ok:
+              type: boolean
+              const: true
+            availability:
+              type: object
+              additionalProperties: true
+            pending_requests:
+              type: integer
+            active_workload:
+              type: integer
+            is_busy:
+              type: boolean
+            today_earnings:
+              type: string
+            week_earnings:
+              type: string
+            total_earnings:
+              type: string
+            completed_trips:
+              type: integer
+    RideStatusResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, ride_id, ride_status, live_status, steps]
+          properties:
+            ok:
+              type: boolean
+              const: true
+            ride_id:
+              type: integer
+            ride_status:
+              type: string
+            live_status:
+              type: string
+            live_status_label:
+              type: string
+            seats_available:
+              type: integer
+            accepted_count:
+              type: integer
+            pending_count:
+              type: integer
+            driver_name:
+              type:
+                - string
+                - "null"
+            eta_minutes:
+              type:
+                - integer
+                - "null"
+            note:
+              type:
+                - string
+                - "null"
+            updated_at:
+              type:
+                - string
+                - "null"
+            steps:
+              type: array
+              items:
+                type: object
+                required: [key, label, state]
+                properties:
+                  key:
+                    type: string
+                  label:
+                    type: string
+                  state:
+                    type: string
+                    enum: [done, current, upcoming]
+    RealtimeEvent:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        event_type:
+          type: string
+        audience_type:
+          type: string
+        audience_id:
+          type:
+            - integer
+            - "null"
+        aggregate_type:
+          type:
+            - string
+            - "null"
+        aggregate_id:
+          type:
+            - integer
+            - "null"
+        payload:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+    RealtimeEventsResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, audience_type, last_event_id, events, server_time]
+          properties:
+            ok:
+              type: boolean
+              const: true
+            audience_type:
+              type: string
+              enum: [user, driver, admin]
+            last_event_id:
+              type: integer
+            events:
+              type: array
+              items:
+                $ref: "#/components/schemas/RealtimeEvent"
+            server_time:
+              type: string
+              format: date-time
+    RealtimeTokenResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, enabled]
+          properties:
+            ok:
+              type: boolean
+              const: true
+            enabled:
+              type: boolean
+            reason:
+              type: string
+            ws_url:
+              type: string
+            audience_type:
+              type: string
+              enum: [user, driver, admin]
+            audience_id:
+              type: integer
+            expires_at:
+              type: integer
+            token:
+              type: string
+    DriverVerificationStatusResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, has_session, driver_id]
+          properties:
+            ok:
+              type: boolean
+              const: true
+            has_session:
+              type: boolean
+            driver_id:
+              type: integer
+            session:
+              type: object
+              additionalProperties: true
+            audit:
+              type: array
+              items:
+                type: object
+                additionalProperties: true

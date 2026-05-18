@@ -93,8 +93,11 @@ $requiredOperationalFiles = [
     'api/metrics.php',
     'api/realtime_token.php',
     'docs/device_lab_test_plan.md',
+    'docs/dast_security_test_plan.md',
+    'docs/openapi.yaml',
     'docs/production_ops_validation_report.md',
     'docs/production_runbook.md',
+    'docs/screen_reader_test_plan.md',
     'ops/backup_mysql.sh',
     'ops/restore_mysql.sh',
     'ops/cron/ridesync-backup.cron',
@@ -112,6 +115,7 @@ $requiredOperationalFiles = [
     'websocket_gateway/server.js',
     'tests/load/k6-smoke.js',
     'tests/load/k6-production.js',
+    'tests/api/negative_api.php',
 ];
 
 foreach ($requiredOperationalFiles as $relativePath) {
