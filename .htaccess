@@ -1,8 +1,10 @@
 Options -Indexes
+ServerSignature Off
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^(\.codex-live|\.github|ai_verification_service|config|database|docs|includes|ops|storage|tests|tools|websocket_gateway)(/|$) - [F,L]
+    RewriteRule (^|/)\. - [F,L]
+    RewriteRule ^(ai_verification_service|config|database|docs|includes|ops|storage|tests|tools|websocket_gateway)(/|$) - [F,L]
 </IfModule>
 
 <FilesMatch "(^\.|\.env$|\.env\.|\.ini$|\.log$|\.sql$|\.bak$|\.key$|^composer\.(json|lock)$|^package(-lock)?\.json$|^docker-compose.*\.ya?ml$|^Dockerfile$)">

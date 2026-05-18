@@ -118,6 +118,8 @@ $requiredOperationalFiles = [
     'tests/api/negative_api.php',
     'tests/api/openapi_contract.php',
     'tests/regression/ride_status_and_match_integrity.php',
+    'tests/regression/session_principal_integrity.php',
+    'tests/regression/security_surface_hardening.php',
 ];
 
 foreach ($requiredOperationalFiles as $relativePath) {
@@ -148,6 +150,8 @@ if ($skipDb) {
         'php tools/smoke_admin_dashboard.php system',
         'php tests/api/openapi_contract.php',
         'php tests/regression/ride_status_and_match_integrity.php',
+        'php tests/regression/session_principal_integrity.php',
+        'php tests/regression/security_surface_hardening.php',
     ] as $command) {
         $output = '';
         $code = qg_run($command, $root, $output);

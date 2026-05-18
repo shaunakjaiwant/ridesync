@@ -174,19 +174,14 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
             $scriptSources = array_merge([
                 "'self'",
                 "'nonce-" . ridesync_csp_nonce() . "'",
-                'https://unpkg.com',
             ], ridesync_csp_extra_sources('RIDESYNC_CSP_SCRIPT_SRC'));
             $styleSources = array_merge([
                 "'self'",
-                "'unsafe-inline'",
-                'https://fonts.googleapis.com',
-                'https://unpkg.com',
             ], ridesync_csp_extra_sources('RIDESYNC_CSP_STYLE_SRC'));
             $imgSources = array_merge([
                 "'self'",
                 'data:',
                 'blob:',
-                'https://unpkg.com',
                 'https://*.tile.openstreetmap.org',
             ], ridesync_csp_extra_sources('RIDESYNC_CSP_IMG_SRC'));
             $connectSources = array_merge([
@@ -195,7 +190,7 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
                 'https://router.project-osrm.org',
             ], ridesync_csp_extra_sources('RIDESYNC_CSP_CONNECT_SRC'));
 
-            header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src " . implode(' ', array_unique($scriptSources)) . '; style-src ' . implode(' ', array_unique($styleSources)) . "; font-src 'self' https://fonts.gstatic.com data:; img-src " . implode(' ', array_unique($imgSources)) . '; connect-src ' . implode(' ', array_unique($connectSources)) . "; media-src 'self'; worker-src 'self' blob:");
+            header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src " . implode(' ', array_unique($scriptSources)) . '; style-src ' . implode(' ', array_unique($styleSources)) . "; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src " . implode(' ', array_unique($imgSources)) . '; connect-src ' . implode(' ', array_unique($connectSources)) . "; media-src 'self'; worker-src 'self' blob:");
         }
 
         if (ridesync_is_https_request()) {
@@ -264,8 +259,10 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
 
         $_SESSION['_session_notice'] = $reason;
         $_SESSION['_created_at'] = time();
-        if ($reason === 'expired') {
-            $message = 'Your session expired. Please login again.';
+        if (in_array($reason, ['expired', 'invalid', 'revoked'], true)) {
+            $message = $reason === 'expired'
+                ? 'Your session expired. Please login again.'
+                : 'Your session is no longer valid. Please login again.';
             if ($role === 'admin') {
                 $_SESSION['admin_error'] = $message;
             } elseif ($role === 'driver') {

@@ -1,5 +1,5 @@
 <?php
-function ridesync_asset_version(array $relativePaths): int
+function ridesync_asset_version(array $relativePaths): string
 {
     static $versions = [];
 
@@ -10,19 +10,23 @@ function ridesync_asset_version(array $relativePaths): int
         return $versions[$cacheKey];
     }
 
-    $version = 1;
+    $hashContext = hash_init('sha256');
+    $hasAsset = false;
     foreach ($relativePaths as $relativePath) {
         $path = RIDESYNC_ROOT . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim((string) $relativePath, '/\\'));
         if (is_file($path)) {
-            $version = max($version, (int) filemtime($path));
+            $hasAsset = true;
+            hash_update($hashContext, (string) $relativePath);
+            hash_update_file($hashContext, $path);
         }
     }
 
+    $version = $hasAsset ? substr(hash_final($hashContext), 0, 12) : '1';
     $versions[$cacheKey] = $version;
     return $version;
 }
 
-function ridesync_stylesheet_version(): int
+function ridesync_stylesheet_version(): string
 {
     return ridesync_asset_version([
         'css/style.css',
@@ -30,7 +34,7 @@ function ridesync_stylesheet_version(): int
     ]);
 }
 
-function ridesync_script_version(string $relativePath): int
+function ridesync_script_version(string $relativePath): string
 {
     return ridesync_asset_version([$relativePath]);
 }
