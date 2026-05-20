@@ -221,9 +221,9 @@ if ($action === 'accept' && $match_id > 0) {
     $rideWillClose = (int) $match_data['seats_available'] <= 1;
     $dec = mysqli_prepare($conn,
         "UPDATE rides
-         SET seats_available = seats_available - 1,
-             status = CASE WHEN seats_available - 1 <= 0 THEN 'closed' ELSE status END
-         WHERE id = ? AND seats_available > 0"
+         SET status = CASE WHEN seats_available <= 1 THEN 'closed' ELSE status END,
+             seats_available = GREATEST(CAST(seats_available AS SIGNED) - 1, 0)
+         WHERE id = ? AND status = 'open' AND seats_available > 0"
     );
     mysqli_stmt_bind_param($dec, "i", $match_data['ride_id']);
     mysqli_stmt_execute($dec);

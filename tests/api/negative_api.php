@@ -187,6 +187,22 @@ $cases = [
         'ok' => false,
     ],
     [
+        'name' => 'admin services reject unsafe method before auth',
+        'method' => 'POST',
+        'path' => '/api/admin_services.php',
+        'status' => [405],
+        'json' => true,
+        'ok' => false,
+    ],
+    [
+        'name' => 'admin services require admin session',
+        'method' => 'GET',
+        'path' => '/api/admin_services.php',
+        'status' => [401],
+        'json' => true,
+        'ok' => false,
+    ],
+    [
         'name' => 'driver verification status requires admin session',
         'method' => 'GET',
         'path' => '/api/driver_verification_status.php?driver_id=1',

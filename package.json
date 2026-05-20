@@ -9,17 +9,31 @@
     "test:api:negative": "php tests/api/negative_api.php",
     "test:api:contract": "php tests/api/openapi_contract.php",
     "test:regression": "php tests/regression/ride_status_and_match_integrity.php && php tests/regression/session_principal_integrity.php && php tests/regression/security_surface_hardening.php",
+    "test:ai-service": "python ai_verification_service/scripts/selftest_service.py",
     "test:kyc-provider": "python ai_verification_service/scripts/validate_provider_contract.py",
     "test:load": "k6 run tests/load/k6-smoke.js",
     "test:load:production": "k6 run tests/load/k6-production.js",
+    "postinstall": "npm --prefix websocket_gateway ci --omit=dev",
     "worker:queue": "php tools/queue_worker.php --watch --queue=default",
     "worker:notifications": "php tools/queue_worker.php --watch --queue=notifications",
     "worker:verification": "php tools/queue_worker.php --watch --queue=verification",
     "worker:maintenance": "php tools/prune_runtime_tables.php",
     "ws:gateway": "cd websocket_gateway && npm start",
-    "ws:check": "cd websocket_gateway && npm run check"
+    "ws:check": "cd websocket_gateway && npm run check && npm run startup-check"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shaunak-j/ridesync.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Shaunak-j/ridesync/issues"
+  },
+  "homepage": "https://github.com/Shaunak-j/ridesync#readme"
 }

@@ -300,6 +300,34 @@ paths:
           description: Too many admin event connections.
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
+  /api/admin_services.php:
+    get:
+      tags: [Admin, Operations]
+      summary: Admin-only observability snapshot for AI services, external APIs, queues, and runtime errors.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: force
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+            default: 0
+      responses:
+        "200":
+          description: Current service observability snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminServicesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
   /api/driver_verification_status.php:
     get:
       tags: [Admin]
@@ -560,6 +588,45 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Suggestion"
+    AdminServicesResponse:
+      allOf:
+        - $ref: "#/components/schemas/RequestId"
+        - type: object
+          required: [ok, status, generated_at, summary, services, workflows, api_checks, queues, logs, alerts]
+          properties:
+            ok:
+              type: boolean
+            status:
+              type: string
+              enum: [operational, degraded, critical]
+            generated_at:
+              type: string
+              format: date-time
+            summary:
+              type: object
+              additionalProperties: true
+            services:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            workflows:
+              type: object
+              additionalProperties: true
+            api_checks:
+              type: object
+              additionalProperties: true
+            queues:
+              type: object
+              additionalProperties: true
+            logs:
+              type: object
+              additionalProperties: true
+            alerts:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
     Suggestion:
       type: object
       additionalProperties: true

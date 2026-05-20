@@ -47,7 +47,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
 <?php ridesync_flash('driver_success', 'alert-success'); ?>
 <?php ridesync_flash('driver_error', 'alert-error'); ?>
 
-<section class="driver-home-card">
+<section id="driver-availability" class="driver-home-card">
     <div>
         <span class="driver-kicker">Availability</span>
         <h2>
@@ -114,11 +114,28 @@ require_once __DIR__ . '/../includes/driver_header.php';
     </div>
 </div>
 
-<div class="driver-action-row">
-    <a href="/ridesync/pages/driver_requests.php" class="btn btn-primary">View Requests & Posted Rides</a>
-    <a href="/ridesync/pages/driver_earnings.php" class="btn btn-secondary">View Earnings</a>
-    <a href="/ridesync/pages/driver_history.php" class="btn btn-secondary">View History</a>
-</div>
+<nav class="panel-action-rail driver-command-rail" aria-label="Primary driver actions">
+    <a class="panel-action-card is-primary" href="/ridesync/pages/driver_requests.php">
+        <span>Dispatch</span>
+        <strong>Work Queue</strong>
+        <small>Requests, claims, and active trips.</small>
+    </a>
+    <a class="panel-action-card" href="/ridesync/pages/driver_earnings.php">
+        <span>Settlement</span>
+        <strong>Earnings</strong>
+        <small>Trips, totals, and weekly view.</small>
+    </a>
+    <a class="panel-action-card" href="/ridesync/pages/driver_profile.php">
+        <span>Readiness</span>
+        <strong>Profile</strong>
+        <small>Documents and vehicle details.</small>
+    </a>
+    <a class="panel-action-card" href="/ridesync/pages/notifications.php?actor_type=driver">
+        <span>Alerts</span>
+        <strong>Updates</strong>
+        <small>Unread notices and decisions.</small>
+    </a>
+</nav>
 
 <section class="driver-panel driver-community-panel">
     <div class="driver-panel-header">

@@ -6,9 +6,12 @@ import os
 import re
 import sys
 import time
-import urllib.error
-import urllib.request
+from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from ai_verification_service.app.providers import ProviderRequestError, post_provider_json  # noqa: E402
 
 
 ALLOWED_STATUSES = {"passed", "failed", "needs_review", "not_available"}
@@ -31,35 +34,22 @@ def sample_payload(provider: str) -> dict[str, Any]:
         "driver": {
             "name": "Sandbox Driver",
             "license_number": "******1234",
-            "vehicle_number": "KA20AB1234",
+            "vehicle_number": "******1234",
             "vehicle_type": "Car",
         },
         "extracted": {
             "full_name": "Sandbox Driver",
             "license_number": "******1234",
-            "vehicle_registration_number": "KA20AB1234",
+            "vehicle_registration_number": "******1234",
         },
     }
 
 
 def post_json(url: str, token: str, payload: dict[str, Any], timeout: float) -> tuple[int, dict[str, Any], float]:
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            **({"Authorization": f"Bearer {token}"} if token else {}),
-        },
-        method="POST",
-    )
-
     started = time.perf_counter()
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        body = response.read(1024 * 512).decode("utf-8")
-        elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
-        decoded = json.loads(body) if body else {}
-        return response.status, decoded, elapsed_ms
+    status, decoded = post_provider_json(url, payload, token, timeout)
+    elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+    return status, decoded, elapsed_ms
 
 
 def checks_from_response(response: dict[str, Any]) -> list[dict[str, Any]]:
@@ -127,7 +117,7 @@ def main() -> int:
 
     try:
         status, response, elapsed_ms = post_json(args.url, args.token, sample_payload(args.provider), args.timeout)
-    except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+    except (ProviderRequestError, OSError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({
             "ok": False,
             "provider": args.provider,

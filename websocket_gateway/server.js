@@ -1,7 +1,49 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const http = require('node:http');
+const path = require('node:path');
 const mysql = require('mysql2/promise');
 const WebSocket = require('ws');
+
+function loadDotEnv(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/);
+  for (const rawLine of lines) {
+    let line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+    if (line.startsWith('export ')) {
+      line = line.slice(7).trim();
+    }
+
+    const equalsAt = line.indexOf('=');
+    if (equalsAt === -1) {
+      continue;
+    }
+
+    const key = line.slice(0, equalsAt).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || Object.prototype.hasOwnProperty.call(process.env, key)) {
+      continue;
+    }
+
+    let value = line.slice(equalsAt + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    } else {
+      const commentAt = value.indexOf(' #');
+      if (commentAt !== -1) {
+        value = value.slice(0, commentAt).trimEnd();
+      }
+    }
+    process.env[key] = value;
+  }
+}
+
+loadDotEnv(path.resolve(__dirname, '..', '.env'));
 
 const port = Number(process.env.RIDESYNC_WS_PORT || 8081);
 const pollMs = Math.max(500, Number(process.env.RIDESYNC_WS_POLL_MS || 1500));
@@ -179,10 +221,11 @@ async function main() {
 
   setInterval(pollEvents, pollMs).unref();
   server.listen(port, () => {
+    const address = server.address();
     console.log(JSON.stringify({
       level: 'info',
       message: 'websocket_gateway_started',
-      port,
+      port: address && typeof address === 'object' ? address.port : port,
       path: '/ridesync/ws',
     }));
   });

@@ -99,8 +99,51 @@ foreach (['source_ip', 'user_agent'] as $column) {
     smoke_check("audit log {$column} column", ridesync_column_exists($conn, 'audit_logs', $column));
 }
 
+function smoke_column_type($conn, $table, $column) {
+    $stmt = mysqli_prepare($conn,
+        "SELECT COLUMN_TYPE
+         FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?
+           AND COLUMN_NAME = ?
+         LIMIT 1"
+    );
+    mysqli_stmt_bind_param($stmt, "ss", $table, $column);
+    mysqli_stmt_execute($stmt);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    return strtolower($row['COLUMN_TYPE'] ?? '');
+}
+
+function smoke_column_type_matches($actual, $expected) {
+    $actual = strtolower((string) $actual);
+    if ($expected === 'tinyint unsigned') {
+        return preg_match('/^tinyint(?:\([0-9]+\))? unsigned$/', $actual) === 1;
+    }
+
+    return $actual === $expected;
+}
+
+$expectedColumns = [
+    ['users', 'email', 'varchar(190)'],
+    ['driver_accounts', 'email', 'varchar(190)'],
+    ['admin_users', 'email', 'varchar(190)'],
+    ['rides', 'origin', 'varchar(150)'],
+    ['rides', 'destination', 'varchar(150)'],
+    ['rides', 'seats_available', 'tinyint unsigned'],
+];
+
+foreach ($expectedColumns as [$table, $column, $expectedType]) {
+    $actualType = smoke_column_type($conn, $table, $column);
+    smoke_check(
+        "column {$table}.{$column} type",
+        smoke_column_type_matches($actualType, $expectedType),
+        $actualType ?: 'missing'
+    );
+}
+
 $expectedIndexes = [
     ['rides', 'idx_rides_user_status_time'],
+    ['rides', 'idx_rides_search'],
     ['matches', 'idx_matches_ride_status'],
     ['driver_ride_requests', 'idx_driver_requests_rider_status_time'],
     ['notifications', 'idx_notifications_user_created'],

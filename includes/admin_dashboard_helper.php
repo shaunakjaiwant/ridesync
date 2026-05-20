@@ -103,6 +103,11 @@ function ridesync_admin_count_query($conn, $sql) {
     return (int) ($row['total'] ?? 0);
 }
 
+function ridesync_admin_prepared_count($conn, $sql, $types = '', $params = []) {
+    $rows = ridesync_admin_prepared_rows($conn, $sql, $types, $params);
+    return (int) ($rows[0]['total'] ?? 0);
+}
+
 function ridesync_admin_paginated_rows($conn, $sql, $pagination) {
     return ridesync_admin_query_rows(
         $conn,

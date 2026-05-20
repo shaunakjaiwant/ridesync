@@ -93,6 +93,82 @@ function schema_column_type($conn, $table, $column) {
     return strtolower($row['COLUMN_TYPE'] ?? '');
 }
 
+function schema_identifier($identifier) {
+    if (preg_match('/^[A-Za-z0-9_]+$/', (string) $identifier) !== 1) {
+        throw new InvalidArgumentException('Unsafe identifier: ' . (string) $identifier);
+    }
+
+    return '`' . $identifier . '`';
+}
+
+function schema_max_char_length($conn, $table, $column) {
+    $tableSql = schema_identifier($table);
+    $columnSql = schema_identifier($column);
+    $result = mysqli_query($conn, "SELECT MAX(CHAR_LENGTH({$columnSql})) AS max_len FROM {$tableSql}");
+    if (!$result) {
+        return null;
+    }
+
+    $row = mysqli_fetch_assoc($result);
+    return isset($row['max_len']) ? (int) $row['max_len'] : 0;
+}
+
+function schema_normalize_varchar_column($conn, $table, $column, $length, $suffix) {
+    if (!schema_table_exists($conn, $table) || !schema_column_exists($conn, $table, $column)) {
+        schema_note('SKIP', "Normalize {$table}.{$column}", 'required table or column missing');
+        return;
+    }
+
+    $currentType = schema_column_type($conn, $table, $column);
+    $desiredType = 'varchar(' . (int) $length . ')';
+    if ($currentType === $desiredType) {
+        schema_note('SKIP', "Normalize {$table}.{$column}");
+        return;
+    }
+
+    $maxLength = schema_max_char_length($conn, $table, $column);
+    if ($maxLength !== null && $maxLength > (int) $length) {
+        schema_note('FAIL', "Normalize {$table}.{$column}", "max data length {$maxLength} exceeds {$length}");
+        return;
+    }
+
+    $tableSql = schema_identifier($table);
+    $columnSql = schema_identifier($column);
+    schema_query(
+        $conn,
+        "ALTER TABLE {$tableSql} MODIFY COLUMN {$columnSql} VARCHAR(" . (int) $length . ") {$suffix}",
+        "Normalize {$table}.{$column}"
+    );
+}
+
+function schema_normalize_rides_seats($conn) {
+    if (!schema_table_exists($conn, 'rides') || !schema_column_exists($conn, 'rides', 'seats_available')) {
+        schema_note('SKIP', 'Normalize rides.seats_available', 'required table or column missing');
+        return;
+    }
+
+    $currentType = schema_column_type($conn, 'rides', 'seats_available');
+    if (preg_match('/^tinyint(?:\([0-9]+\))? unsigned$/', $currentType) === 1) {
+        schema_note('SKIP', 'Normalize rides.seats_available');
+        return;
+    }
+
+    $rangeResult = mysqli_query($conn, "SELECT MIN(seats_available) AS min_seats, MAX(seats_available) AS max_seats FROM rides");
+    $range = $rangeResult ? mysqli_fetch_assoc($rangeResult) : null;
+    $minSeats = isset($range['min_seats']) ? (int) $range['min_seats'] : 0;
+    $maxSeats = isset($range['max_seats']) ? (int) $range['max_seats'] : 0;
+    if ($minSeats < 0 || $maxSeats > 255) {
+        schema_note('FAIL', 'Normalize rides.seats_available', "range {$minSeats}-{$maxSeats} cannot fit TINYINT UNSIGNED");
+        return;
+    }
+
+    schema_query(
+        $conn,
+        "ALTER TABLE rides MODIFY COLUMN seats_available TINYINT UNSIGNED NOT NULL DEFAULT 1",
+        'Normalize rides.seats_available'
+    );
+}
+
 function schema_id_type($conn, $table) {
     $type = schema_column_type($conn, $table, 'id');
     return strpos($type, 'unsigned') !== false ? 'INT UNSIGNED' : 'INT';
@@ -493,6 +569,199 @@ function schema_create_realtime_events($conn) {
     );
 }
 
+function schema_create_admin_alert_rules($conn) {
+    schema_query($conn,
+        "CREATE TABLE IF NOT EXISTS admin_alert_rules (
+            id INT NOT NULL AUTO_INCREMENT,
+            rule_key VARCHAR(80) NOT NULL,
+            label VARCHAR(140) NOT NULL,
+            metric_key VARCHAR(120) NOT NULL,
+            operator ENUM('greater_than', 'greater_or_equal', 'equal_to') NOT NULL DEFAULT 'greater_than',
+            threshold DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+            severity ENUM('info', 'warning', 'critical') NOT NULL DEFAULT 'warning',
+            enabled TINYINT(1) NOT NULL DEFAULT 1,
+            cooldown_minutes INT UNSIGNED NOT NULL DEFAULT 15,
+            last_triggered_at TIMESTAMP NULL DEFAULT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_admin_alert_rules_key (rule_key),
+            KEY idx_admin_alert_rules_enabled (enabled, severity)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        'Create admin_alert_rules'
+    );
+
+    if (!schema_table_exists($conn, 'admin_alert_rules')) {
+        return;
+    }
+
+    $defaults = [
+        ['ai_failed_24h', 'AI failures in last 24h', 'workflows.failed_24h', 'greater_than', 0, 'critical', 10],
+        ['stale_processing_jobs', 'Stale processing jobs', 'queues.stale_processing', 'greater_than', 0, 'warning', 10],
+        ['provider_failures', 'Provider validation failures', 'api_checks.failed_24h', 'greater_than', 2, 'warning', 15],
+        ['runtime_errors', 'Runtime errors in logs', 'logs.error_events_24h', 'greater_than', 0, 'warning', 15],
+        ['service_degraded', 'Degraded service count', 'summary.services_degraded', 'greater_than', 0, 'warning', 15],
+        ['service_down', 'Down service count', 'summary.services_down', 'greater_than', 0, 'critical', 5],
+    ];
+
+    foreach ($defaults as $rule) {
+        $ruleKey = $rule[0];
+        $label = $rule[1];
+        $metricKey = $rule[2];
+        $operator = $rule[3];
+        $threshold = (float) $rule[4];
+        $severity = $rule[5];
+        $cooldownMinutes = (int) $rule[6];
+        $stmt = mysqli_prepare(
+            $conn,
+            "INSERT IGNORE INTO admin_alert_rules
+                (rule_key, label, metric_key, operator, threshold, severity, cooldown_minutes)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
+        );
+        if (!$stmt) {
+            schema_note('FAIL', 'Seed admin alert rule ' . $rule[0], mysqli_error($conn));
+            continue;
+        }
+        mysqli_stmt_bind_param($stmt, 'ssssdsi', $ruleKey, $label, $metricKey, $operator, $threshold, $severity, $cooldownMinutes);
+        if (mysqli_stmt_execute($stmt)) {
+            schema_note(mysqli_stmt_affected_rows($stmt) > 0 ? 'APPLIED' : 'SKIP', 'Seed admin alert rule ' . $ruleKey);
+        } else {
+            schema_note('FAIL', 'Seed admin alert rule ' . $ruleKey, mysqli_stmt_error($stmt));
+        }
+    }
+}
+
+function schema_create_admin_notes($conn) {
+    if (!schema_table_exists($conn, 'admin_users')) {
+        schema_note('SKIP', 'Create admin_notes', 'admin_users table missing');
+        return;
+    }
+
+    schema_query($conn,
+        "CREATE TABLE IF NOT EXISTS admin_notes (
+            id INT NOT NULL AUTO_INCREMENT,
+            entity_type ENUM('user', 'driver', 'ride', 'report') NOT NULL,
+            entity_id INT NOT NULL,
+            admin_id INT NULL,
+            note_type ENUM('general', 'risk', 'support', 'compliance') NOT NULL DEFAULT 'general',
+            note_text TEXT NOT NULL,
+            visibility ENUM('internal') NOT NULL DEFAULT 'internal',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_admin_notes_entity (entity_type, entity_id, created_at),
+            KEY idx_admin_notes_admin (admin_id, created_at),
+            CONSTRAINT fk_admin_notes_admin
+                FOREIGN KEY (admin_id) REFERENCES admin_users(id)
+                ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        'Create admin_notes'
+    );
+}
+
+function schema_create_feature_flags($conn) {
+    if (!schema_table_exists($conn, 'admin_users')) {
+        schema_note('SKIP', 'Create feature_flags', 'admin_users table missing');
+        return;
+    }
+
+    schema_query($conn,
+        "CREATE TABLE IF NOT EXISTS feature_flags (
+            id INT NOT NULL AUTO_INCREMENT,
+            flag_key VARCHAR(80) NOT NULL,
+            label VARCHAR(140) NOT NULL,
+            description VARCHAR(255) NOT NULL,
+            module VARCHAR(60) NOT NULL DEFAULT 'core',
+            enabled TINYINT(1) NOT NULL DEFAULT 1,
+            maintenance_mode TINYINT(1) NOT NULL DEFAULT 0,
+            updated_by INT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_feature_flags_key (flag_key),
+            KEY idx_feature_flags_module (module, enabled, maintenance_mode),
+            CONSTRAINT fk_feature_flags_admin
+                FOREIGN KEY (updated_by) REFERENCES admin_users(id)
+                ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        'Create feature_flags'
+    );
+
+    $featureTable = mysqli_query($conn, "SHOW TABLES LIKE 'feature_flags'");
+    if (!$featureTable || mysqli_num_rows($featureTable) === 0) {
+        schema_note('SKIP', 'Seed feature flags', 'feature_flags table missing');
+        return;
+    }
+
+    $defaults = [
+        ['rides_marketplace', 'Ride marketplace', 'Rider ride posting, search, and join-request flows.', 'rides'],
+        ['driver_panel', 'Driver panel', 'Driver availability, requests, documents, and earnings workflows.', 'drivers'],
+        ['ai_verification', 'AI verification', 'AI document analysis, provider checks, and compliance scoring.', 'ai'],
+        ['reports_moderation', 'Reports moderation', 'User report intake, triage, decisions, and audit visibility.', 'trust'],
+        ['payments_wallet', 'Payments and wallet', 'Fare due tracking, cash-paid records, and wallet ledgers.', 'payments'],
+        ['realtime_gateway', 'Realtime gateway', 'Websocket events, polling fallbacks, and live ride status sync.', 'realtime'],
+    ];
+
+    foreach ($defaults as $flag) {
+        $flagKey = $flag[0];
+        $label = $flag[1];
+        $description = $flag[2];
+        $module = $flag[3];
+        $stmt = mysqli_prepare(
+            $conn,
+            "INSERT IGNORE INTO feature_flags (flag_key, label, description, module)
+             VALUES (?, ?, ?, ?)"
+        );
+        if (!$stmt) {
+            schema_note('FAIL', 'Seed feature flag ' . $flagKey, mysqli_error($conn));
+            continue;
+        }
+        mysqli_stmt_bind_param($stmt, 'ssss', $flagKey, $label, $description, $module);
+        if (mysqli_stmt_execute($stmt)) {
+            schema_note(mysqli_stmt_affected_rows($stmt) > 0 ? 'APPLIED' : 'SKIP', 'Seed feature flag ' . $flagKey);
+        } else {
+            schema_note('FAIL', 'Seed feature flag ' . $flagKey, mysqli_stmt_error($stmt));
+        }
+    }
+}
+
+function schema_create_repair_kit_runs($conn) {
+    if (!schema_table_exists($conn, 'admin_users')) {
+        schema_note('SKIP', 'Create repair_kit_runs', 'admin_users table missing');
+        return;
+    }
+
+    schema_query($conn,
+        "CREATE TABLE IF NOT EXISTS repair_kit_runs (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            run_uuid CHAR(36) NOT NULL,
+            admin_id INT NULL,
+            action_key VARCHAR(80) NOT NULL,
+            status ENUM('queued', 'running', 'succeeded', 'failed', 'blocked') NOT NULL DEFAULT 'queued',
+            severity ENUM('info', 'warning', 'critical') NOT NULL DEFAULT 'info',
+            checkpoint_json LONGTEXT NULL,
+            result_json LONGTEXT NULL,
+            log_ciphertext LONGTEXT NOT NULL,
+            log_iv VARCHAR(64) NOT NULL,
+            log_tag VARCHAR(64) NOT NULL,
+            log_hash CHAR(64) NOT NULL,
+            started_at TIMESTAMP NULL DEFAULT NULL,
+            finished_at TIMESTAMP NULL DEFAULT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_repair_kit_runs_uuid (run_uuid),
+            KEY idx_repair_kit_runs_admin_time (admin_id, created_at),
+            KEY idx_repair_kit_runs_status_time (status, created_at),
+            KEY idx_repair_kit_runs_action_time (action_key, created_at),
+            CONSTRAINT fk_repair_kit_runs_admin
+              FOREIGN KEY (admin_id) REFERENCES admin_users(id)
+              ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        'Create repair_kit_runs'
+    );
+}
+
 function schema_reject_stale_pending_matches($conn) {
     if (!schema_table_exists($conn, 'matches') || !schema_table_exists($conn, 'rides')) {
         schema_note('SKIP', 'Reject stale pending matches', 'required table missing');
@@ -530,6 +799,10 @@ schema_update_driver_document_types($conn);
 schema_create_driver_verification_tables($conn);
 schema_create_background_jobs($conn);
 schema_create_realtime_events($conn);
+schema_create_admin_alert_rules($conn);
+schema_create_admin_notes($conn);
+schema_create_feature_flags($conn);
+schema_create_repair_kit_runs($conn);
 
 schema_normalize_fk_column($conn, 'driver_ride_requests', 'rider_user_id', 'users', true);
 schema_normalize_fk_column($conn, 'notifications', 'user_id', 'users', true);
@@ -544,9 +817,17 @@ schema_normalize_fk_column($conn, 'wallet_accounts', 'user_id', 'users', false);
 schema_normalize_fk_column($conn, 'wallet_transactions', 'user_id', 'users', false);
 schema_normalize_fk_column($conn, 'wallet_transactions', 'ride_id', 'rides', true);
 
+schema_normalize_varchar_column($conn, 'users', 'email', 190, 'NOT NULL');
+schema_normalize_varchar_column($conn, 'driver_accounts', 'email', 190, 'NOT NULL');
+schema_normalize_varchar_column($conn, 'admin_users', 'email', 190, 'NOT NULL');
+schema_normalize_varchar_column($conn, 'rides', 'origin', 150, 'NOT NULL');
+schema_normalize_varchar_column($conn, 'rides', 'destination', 150, 'NOT NULL');
+schema_normalize_rides_seats($conn);
+
 schema_add_index($conn, 'driver_account_documents', 'uq_driver_account_documents_type', 'UNIQUE KEY uq_driver_account_documents_type (driver_id, document_type)');
 schema_add_index($conn, 'driver_ride_history', 'uq_driver_ride_history_source', 'UNIQUE KEY uq_driver_ride_history_source (driver_id, source_type, source_id)');
 schema_add_index($conn, 'rides', 'idx_rides_user_status_time', 'KEY idx_rides_user_status_time (user_id, status, travel_date, travel_time)');
+schema_add_index($conn, 'rides', 'idx_rides_search', 'KEY idx_rides_search (status, travel_date, travel_time)');
 schema_add_index($conn, 'matches', 'idx_matches_ride_status', 'KEY idx_matches_ride_status (ride_id, status, created_at)');
 schema_add_index($conn, 'matches', 'idx_matches_user_status', 'KEY idx_matches_user_status (matched_user_id, status, created_at)');
 schema_add_index($conn, 'driver_account_profiles', 'idx_driver_profiles_status', 'KEY idx_driver_profiles_status (verification_status, driver_id)');
@@ -565,6 +846,16 @@ schema_add_index($conn, 'realtime_events', 'idx_realtime_events_aggregate', 'KEY
 schema_add_index($conn, 'realtime_events', 'idx_realtime_events_type_time', 'KEY idx_realtime_events_type_time (event_type, created_at)');
 schema_add_index($conn, 'realtime_events', 'idx_realtime_events_expiry', 'KEY idx_realtime_events_expiry (expires_at)');
 schema_add_index($conn, 'audit_logs', 'idx_audit_source_time', 'KEY idx_audit_source_time (source_ip, created_at)');
+schema_add_index($conn, 'admin_alert_rules', 'uq_admin_alert_rules_key', 'UNIQUE KEY uq_admin_alert_rules_key (rule_key)');
+schema_add_index($conn, 'admin_alert_rules', 'idx_admin_alert_rules_enabled', 'KEY idx_admin_alert_rules_enabled (enabled, severity)');
+schema_add_index($conn, 'admin_notes', 'idx_admin_notes_entity', 'KEY idx_admin_notes_entity (entity_type, entity_id, created_at)');
+schema_add_index($conn, 'admin_notes', 'idx_admin_notes_admin', 'KEY idx_admin_notes_admin (admin_id, created_at)');
+schema_add_index($conn, 'feature_flags', 'uq_feature_flags_key', 'UNIQUE KEY uq_feature_flags_key (flag_key)');
+schema_add_index($conn, 'feature_flags', 'idx_feature_flags_module', 'KEY idx_feature_flags_module (module, enabled, maintenance_mode)');
+schema_add_index($conn, 'repair_kit_runs', 'uq_repair_kit_runs_uuid', 'UNIQUE KEY uq_repair_kit_runs_uuid (run_uuid)');
+schema_add_index($conn, 'repair_kit_runs', 'idx_repair_kit_runs_admin_time', 'KEY idx_repair_kit_runs_admin_time (admin_id, created_at)');
+schema_add_index($conn, 'repair_kit_runs', 'idx_repair_kit_runs_status_time', 'KEY idx_repair_kit_runs_status_time (status, created_at)');
+schema_add_index($conn, 'repair_kit_runs', 'idx_repair_kit_runs_action_time', 'KEY idx_repair_kit_runs_action_time (action_key, created_at)');
 
 schema_add_fk($conn, 'driver_account_profiles', 'fk_driver_account_profiles_driver', 'driver_id', 'driver_accounts', 'CASCADE');
 schema_add_fk($conn, 'driver_account_vehicles', 'fk_driver_account_vehicles_driver', 'driver_id', 'driver_accounts', 'CASCADE');
@@ -584,6 +875,9 @@ schema_add_fk($conn, 'reports', 'fk_reports_reporter', 'reporter_user_id', 'user
 schema_add_fk($conn, 'reports', 'fk_reports_reported_user', 'reported_user_id', 'users', 'SET NULL');
 schema_add_fk($conn, 'reports', 'fk_reports_ride', 'ride_id', 'rides', 'SET NULL');
 schema_add_fk($conn, 'audit_logs', 'fk_audit_logs_admin', 'admin_id', 'admin_users', 'SET NULL');
+schema_add_fk($conn, 'admin_notes', 'fk_admin_notes_admin', 'admin_id', 'admin_users', 'SET NULL');
+schema_add_fk($conn, 'feature_flags', 'fk_feature_flags_admin', 'updated_by', 'admin_users', 'SET NULL');
+schema_add_fk($conn, 'repair_kit_runs', 'fk_repair_kit_runs_admin', 'admin_id', 'admin_users', 'SET NULL');
 schema_add_fk($conn, 'route_demand_signals', 'fk_route_demand_user', 'user_id', 'users', 'CASCADE');
 schema_add_fk($conn, 'wallet_accounts', 'fk_wallet_accounts_user', 'user_id', 'users', 'CASCADE');
 schema_add_fk($conn, 'wallet_transactions', 'fk_wallet_transactions_wallet', 'wallet_id', 'wallet_accounts', 'CASCADE');

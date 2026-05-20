@@ -608,6 +608,101 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS admin_alert_rules (
+  id INT NOT NULL AUTO_INCREMENT,
+  rule_key VARCHAR(80) NOT NULL,
+  label VARCHAR(140) NOT NULL,
+  metric_key VARCHAR(120) NOT NULL,
+  operator ENUM('greater_than', 'greater_or_equal', 'equal_to') NOT NULL DEFAULT 'greater_than',
+  threshold DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  severity ENUM('info', 'warning', 'critical') NOT NULL DEFAULT 'warning',
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  cooldown_minutes INT UNSIGNED NOT NULL DEFAULT 15,
+  last_triggered_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_admin_alert_rules_key (rule_key),
+  KEY idx_admin_alert_rules_enabled (enabled, severity)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS admin_notes (
+  id INT NOT NULL AUTO_INCREMENT,
+  entity_type ENUM('user', 'driver', 'ride', 'report') NOT NULL,
+  entity_id INT NOT NULL,
+  admin_id INT NULL,
+  note_type ENUM('general', 'risk', 'support', 'compliance') NOT NULL DEFAULT 'general',
+  note_text TEXT NOT NULL,
+  visibility ENUM('internal') NOT NULL DEFAULT 'internal',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_admin_notes_entity (entity_type, entity_id, created_at),
+  KEY idx_admin_notes_admin (admin_id, created_at),
+  CONSTRAINT fk_admin_notes_admin
+    FOREIGN KEY (admin_id) REFERENCES admin_users(id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS feature_flags (
+  id INT NOT NULL AUTO_INCREMENT,
+  flag_key VARCHAR(80) NOT NULL,
+  label VARCHAR(140) NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  module VARCHAR(60) NOT NULL DEFAULT 'core',
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  maintenance_mode TINYINT(1) NOT NULL DEFAULT 0,
+  updated_by INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_feature_flags_key (flag_key),
+  KEY idx_feature_flags_module (module, enabled, maintenance_mode),
+  CONSTRAINT fk_feature_flags_admin
+    FOREIGN KEY (updated_by) REFERENCES admin_users(id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO feature_flags (flag_key, label, description, module)
+VALUES
+  ('rides_marketplace', 'Ride marketplace', 'Rider ride posting, search, and join-request flows.', 'rides'),
+  ('driver_panel', 'Driver panel', 'Driver availability, requests, documents, and earnings workflows.', 'drivers'),
+  ('ai_verification', 'AI verification', 'AI document analysis, provider checks, and compliance scoring.', 'ai'),
+  ('reports_moderation', 'Reports moderation', 'User report intake, triage, decisions, and audit visibility.', 'trust'),
+  ('payments_wallet', 'Payments and wallet', 'Fare due tracking, cash-paid records, and wallet ledgers.', 'payments'),
+  ('realtime_gateway', 'Realtime gateway', 'Websocket events, polling fallbacks, and live ride status sync.', 'realtime')
+ON DUPLICATE KEY UPDATE
+  label = VALUES(label),
+  description = VALUES(description),
+  module = VALUES(module);
+
+CREATE TABLE IF NOT EXISTS repair_kit_runs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  run_uuid CHAR(36) NOT NULL,
+  admin_id INT NULL,
+  action_key VARCHAR(80) NOT NULL,
+  status ENUM('queued', 'running', 'succeeded', 'failed', 'blocked') NOT NULL DEFAULT 'queued',
+  severity ENUM('info', 'warning', 'critical') NOT NULL DEFAULT 'info',
+  checkpoint_json LONGTEXT NULL,
+  result_json LONGTEXT NULL,
+  log_ciphertext LONGTEXT NOT NULL,
+  log_iv VARCHAR(64) NOT NULL,
+  log_tag VARCHAR(64) NOT NULL,
+  log_hash CHAR(64) NOT NULL,
+  started_at TIMESTAMP NULL DEFAULT NULL,
+  finished_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_repair_kit_runs_uuid (run_uuid),
+  KEY idx_repair_kit_runs_admin_time (admin_id, created_at),
+  KEY idx_repair_kit_runs_status_time (status, created_at),
+  KEY idx_repair_kit_runs_action_time (action_key, created_at),
+  CONSTRAINT fk_repair_kit_runs_admin
+    FOREIGN KEY (admin_id) REFERENCES admin_users(id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS route_demand_signals (
   id INT NOT NULL AUTO_INCREMENT,
   user_id INT UNSIGNED NOT NULL,

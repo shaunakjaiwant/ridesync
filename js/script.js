@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initFareSliders();
     initRealtimeEvents();
     initAdminCommandCenter();
+    initMobileActiveNavigation();
     initDriverVerificationIntelligence();
     initLiveRideStatus();
     initDriverLiveStatus();
@@ -219,7 +220,16 @@ function initNavigationPrefetch() {
         return;
     }
 
+    var connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var isCoarsePointer = window.matchMedia && window.matchMedia('(hover: none), (pointer: coarse)').matches;
+    var saveData = connection && connection.saveData;
+    var slowConnection = connection && /^(slow-2g|2g)$/i.test(String(connection.effectiveType || ''));
+    if (isCoarsePointer || saveData || slowConnection) {
+        return;
+    }
+
     var prefetched = new Set();
+    var hoverTimers = new WeakMap();
 
     function canPrefetch(link) {
         if (!link || link.dataset.prefetch === 'off') {
@@ -259,17 +269,15 @@ function initNavigationPrefetch() {
     }
 
     links.forEach(function (link) {
-        link.addEventListener('pointerenter', function () { prefetch(link); }, { passive: true });
-        link.addEventListener('touchstart', function () { prefetch(link); }, { passive: true });
+        link.addEventListener('pointerenter', function () {
+            var timer = window.setTimeout(function () { prefetch(link); }, 140);
+            hoverTimers.set(link, timer);
+        }, { passive: true });
+        link.addEventListener('pointerleave', function () {
+            var timer = hoverTimers.get(link);
+            if (timer) window.clearTimeout(timer);
+        }, { passive: true });
         link.addEventListener('focus', function () { prefetch(link); });
-    });
-
-    var runIdle = window.requestIdleCallback || function (callback) {
-        return window.setTimeout(callback, 900);
-    };
-
-    runIdle(function () {
-        Array.prototype.slice.call(links, 0, 5).forEach(prefetch);
     });
 }
 
@@ -583,6 +591,9 @@ function initRealtimeEvents() {
     });
 
     source.onerror = function () {};
+    window.addEventListener('pagehide', function () {
+        source.close();
+    }, { once: true });
 }
 
 function initAdminCommandCenter() {
@@ -594,6 +605,26 @@ function initAdminCommandCenter() {
     initAdminKeyboardSearch();
     initAdminMap();
     initAdminRealtime();
+    initAdminServicesMonitor();
+}
+
+function initMobileActiveNavigation() {
+    if (!window.matchMedia('(max-width: 767px), (hover: none) and (max-width: 1024px)').matches) {
+        return;
+    }
+
+    document.querySelectorAll('.admin-side-nav, .rider-app .nav-links, .driver-app:not(.admin-app) .driver-nav-links').forEach(function (nav) {
+        var active = nav.querySelector('a.is-active');
+        if (!active || typeof active.scrollIntoView !== 'function') return;
+
+        window.requestAnimationFrame(function () {
+            active.scrollIntoView({
+                block: 'nearest',
+                inline: 'center',
+                behavior: 'auto'
+            });
+        });
+    });
 }
 
 function initAdminDrawer() {
@@ -646,8 +677,10 @@ function initAdminDrawer() {
         body.appendChild(actions);
     }
 
-    document.querySelectorAll('.admin-inspect-btn').forEach(function (button) {
-        button.addEventListener('click', function () {
+    document.addEventListener('click', function (event) {
+        var button = event.target && event.target.closest ? event.target.closest('.admin-inspect-btn') : null;
+        if (!button) return;
+        if (!document.body.contains(button)) return;
             var payload = {};
             try {
                 payload = JSON.parse(button.dataset.adminDrawer || '{}');
@@ -663,7 +696,6 @@ function initAdminDrawer() {
 
             drawer.classList.add('is-open');
             drawer.setAttribute('aria-hidden', 'false');
-        });
     });
 
     if (closeButton) closeButton.addEventListener('click', closeDrawer);
@@ -1159,7 +1191,7 @@ function initResponsiveDataTables() {
 }
 
 function initAdminRealtime() {
-    if (!window.EventSource || !document.querySelector('[data-admin-command-center]')) return;
+    if (!window.EventSource || !document.querySelector('[data-admin-feed]')) return;
 
     var source = new EventSource('/ridesync/api/admin_events.php');
     var lastSignature = '';
@@ -1216,6 +1248,312 @@ function initAdminRealtime() {
     });
 
     source.onerror = function () {};
+    window.addEventListener('pagehide', function () {
+        source.close();
+    }, { once: true });
+}
+
+function initAdminServicesMonitor() {
+    var panel = document.querySelector('[data-admin-services]');
+    if (!panel) return;
+
+    var serviceList = panel.querySelector('[data-service-list]');
+    var alertsNode = panel.querySelector('[data-service-alerts]');
+    var workflowsNode = panel.querySelector('[data-service-workflows]');
+    var queuesNode = panel.querySelector('[data-service-queues]');
+    var apiChecksNode = panel.querySelector('[data-service-api-checks]');
+    var logsNode = panel.querySelector('[data-service-logs]');
+    var refreshNode = panel.querySelector('[data-service-last-refresh]');
+    var repairFindingsNode = panel.querySelector('[data-repair-findings]');
+    var repairRunsNode = panel.querySelector('[data-repair-runs]');
+    var currentRequest = null;
+    var refreshTimer = null;
+    var initialTimer = null;
+
+    function statusBadgeClass(status) {
+        if (status === 'operational') return 'accepted';
+        if (status === 'down' || status === 'critical') return 'rejected';
+        return 'pending';
+    }
+
+    function formatValue(value) {
+        if (value === null || typeof value === 'undefined' || value === '') return 'Not available';
+        if (typeof value === 'boolean') return value ? 'yes' : 'no';
+        if (typeof value === 'object') return 'details';
+        return String(value);
+    }
+
+    function labelFor(key) {
+        return String(key || '')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, function (letter) { return letter.toUpperCase(); });
+    }
+
+    function setSummary(summary) {
+        Object.keys(summary || {}).forEach(function (key) {
+            panel.querySelectorAll('[data-service-summary="' + key + '"]').forEach(function (node) {
+                node.textContent = formatValue(summary[key]);
+            });
+        });
+    }
+
+    function renderMetricRows(metrics) {
+        return Object.keys(metrics || {}).slice(0, 4).map(function (key) {
+            return '<div><dt>' + escapeHtml(labelFor(key)) + '</dt><dd>' + escapeHtml(formatValue(metrics[key])) + '</dd></div>';
+        }).join('');
+    }
+
+    function drawerPayload(service) {
+        var fields = {
+            Status: service.status_label || 'Unknown',
+            Group: service.group || 'Service',
+            Summary: service.summary || '',
+            Latency: service.latency_ms === null || typeof service.latency_ms === 'undefined' ? 'Not measured' : service.latency_ms + ' ms',
+            'Checked At': service.checked_at || ''
+        };
+        Object.keys(service.metrics || {}).forEach(function (key) {
+            fields[labelFor(key)] = formatValue(service.metrics[key]);
+        });
+        Object.keys(service.details || {}).forEach(function (key) {
+            fields[labelFor(key)] = formatValue(service.details[key]);
+        });
+
+        return escapeHtml(JSON.stringify({
+            kicker: 'Service',
+            title: service.name || 'Service',
+            fields: fields
+        }));
+    }
+
+    function renderServices(services) {
+        if (!serviceList || !Array.isArray(services)) return;
+
+        serviceList.innerHTML = services.map(function (service) {
+            var status = service.status || 'unknown';
+            var latency = service.latency_ms === null || typeof service.latency_ms === 'undefined' ? 'Not measured' : service.latency_ms + ' ms';
+            var uptime = service.uptime_percent === null || typeof service.uptime_percent === 'undefined' ? 'Not tracked' : service.uptime_percent + '%';
+
+            return '<article class="admin-service-tile is-' + escapeHtml(status) + '" data-service-key="' + escapeHtml(service.key || 'service') + '">'
+                + '<div><span>' + escapeHtml(service.group || 'Service') + '</span><strong>' + escapeHtml(service.name || 'Service') + '</strong></div>'
+                + '<span class="badge badge-' + statusBadgeClass(status) + '">' + escapeHtml(service.status_label || 'Unknown') + '</span>'
+                + '<p>' + escapeHtml(service.summary || 'No summary available.') + '</p>'
+                + '<dl><div><dt>Latency</dt><dd>' + escapeHtml(latency) + '</dd></div>'
+                + '<div><dt>Uptime</dt><dd>' + escapeHtml(uptime) + '</dd></div>'
+                + renderMetricRows(service.metrics || {})
+                + '</dl>'
+                + '<button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="' + drawerPayload(service) + '">Inspect</button>'
+                + '</article>';
+        }).join('');
+    }
+
+    function renderAlerts(alerts) {
+        if (!alertsNode || !Array.isArray(alerts)) return;
+        if (!alerts.length) {
+            alertsNode.innerHTML = '<article class="admin-risk-card is-healthy"><span>Healthy</span><strong>No active service alerts</strong><p>All monitored AI and operations services are within current thresholds.</p></article>';
+            return;
+        }
+
+        alertsNode.innerHTML = alerts.map(function (alert) {
+            var severity = alert.severity === 'critical' ? 'critical' : 'warning';
+            return '<article class="admin-risk-card is-' + severity + '">'
+                + '<span>' + escapeHtml(labelFor(alert.severity || 'warning')) + '</span>'
+                + '<strong>' + escapeHtml(alert.title || 'Service alert') + '</strong>'
+                + '<p>' + escapeHtml(alert.detail || 'Review service details.') + '</p>'
+                + '</article>';
+        }).join('');
+    }
+
+    function renderStack(node, items) {
+        if (!node) return;
+        node.innerHTML = items.map(function (item) {
+            return '<div><span>' + escapeHtml(item.label) + '</span><strong>' + escapeHtml(formatValue(item.value)) + '</strong></div>';
+        }).join('');
+    }
+
+    function renderLogs(logs) {
+        if (!logsNode) return;
+        var recent = logs && Array.isArray(logs.recent) ? logs.recent : [];
+        if (!recent.length) {
+            logsNode.innerHTML = '<div class="admin-feed-item"><div><strong>No recent warning or error logs</strong><p>Runtime logs have no service-level warnings in the current window.</p><small>Live update</small></div></div>';
+            return;
+        }
+
+        logsNode.innerHTML = recent.map(function (log) {
+            var level = String(log.level || 'warning').toUpperCase();
+            var badge = level === 'ERROR' || level === 'CRITICAL' ? 'rejected' : 'pending';
+            return '<div class="admin-feed-item">'
+                + '<span class="admin-feed-dot badge-' + badge + '"></span>'
+                + '<div><strong>' + escapeHtml(level + ' - ' + (log.message || 'Log event')) + '</strong>'
+                + '<p>' + escapeHtml(log.request_id || 'No request id') + '</p>'
+                + '<small>' + escapeHtml(log.timestamp || '') + '</small></div>'
+                + '</div>';
+        }).join('');
+    }
+
+    function setRepairSummary(summary) {
+        Object.keys(summary || {}).forEach(function (key) {
+            panel.querySelectorAll('[data-repair-summary="' + key + '"]').forEach(function (node) {
+                node.textContent = formatValue(summary[key]);
+            });
+        });
+    }
+
+    function renderRepairFindings(findings) {
+        if (!repairFindingsNode || !Array.isArray(findings)) return;
+        if (!findings.length) {
+            repairFindingsNode.innerHTML = '<div class="admin-feed-item"><div><strong>No critical repair findings</strong><p>Core services, schema, queues, storage, security settings, and AI diagnostics are within current scanner thresholds.</p><small>Live update</small></div></div>';
+            return;
+        }
+
+        repairFindingsNode.innerHTML = findings.slice(0, 10).map(function (finding) {
+            var severity = finding.severity || 'info';
+            return '<div class="admin-repair-finding is-' + escapeHtml(severity) + '">'
+                + '<span>' + escapeHtml(labelFor(finding.area || 'System')) + '</span>'
+                + '<strong>' + escapeHtml(finding.title || 'Repair finding') + '</strong>'
+                + '<p>' + escapeHtml(finding.detail || 'Review this repair signal.') + '</p>'
+                + '<small>' + escapeHtml(labelFor(finding.action_key || 'deep_scan')) + '</small>'
+                + '</div>';
+        }).join('');
+    }
+
+    function renderRepairRuns(runs) {
+        if (!repairRunsNode || !Array.isArray(runs)) return;
+        if (!runs.length) {
+            repairRunsNode.innerHTML = '<div class="admin-feed-item"><div><strong>No Repair Kit runs yet</strong><p>Recovery actions will appear here with encrypted payloads, hashes, checkpoints, and admin attribution.</p><small>Waiting for first run</small></div></div>';
+            return;
+        }
+
+        repairRunsNode.innerHTML = runs.slice(0, 8).map(function (run) {
+            var result = run.result || {};
+            var hash = String(run.log_hash || '').slice(0, 12);
+            return '<div class="admin-repair-log-row is-' + escapeHtml(run.status || 'queued') + '">'
+                + '<div><span>' + escapeHtml(String(run.status || 'queued').toUpperCase()) + '</span>'
+                + '<strong>' + escapeHtml(labelFor(run.action_key || 'repair')) + '</strong>'
+                + '<p>' + escapeHtml(result.message || 'Encrypted recovery record captured.') + '</p></div>'
+                + '<small>' + escapeHtml((run.created_at || '') + (hash ? ' / ' + hash : '')) + '</small>'
+                + '</div>';
+        }).join('');
+    }
+
+    function applyPayload(payload) {
+        if (!payload || !payload.summary) return;
+        setSummary(payload.summary || {});
+        renderServices(payload.services || []);
+        renderAlerts(payload.alerts || []);
+        renderStack(workflowsNode, [
+            { label: 'Queued', value: payload.workflows && payload.workflows.queued },
+            { label: 'Processing', value: payload.workflows && payload.workflows.processing },
+            { label: 'Slow', value: payload.workflows && payload.workflows.slow_processing },
+            { label: 'Avg Time', value: (payload.workflows && payload.workflows.avg_processing_ms || 0) + ' ms' },
+            { label: 'Token Usage', value: payload.workflows && payload.workflows.token_usage_24h }
+        ]);
+        renderStack(queuesNode, [
+            { label: 'Processing', value: payload.queues && payload.queues.processing },
+            { label: 'Stale Processing', value: payload.queues && payload.queues.stale_processing },
+            { label: 'Failed Verification', value: payload.queues && payload.queues.failed_verification },
+            { label: 'Succeeded 24h', value: payload.queues && payload.queues.succeeded_24h }
+        ]);
+        renderStack(apiChecksNode, [
+            { label: 'Passed 24h', value: payload.api_checks && payload.api_checks.passed_24h },
+            { label: 'Needs Review', value: payload.api_checks && payload.api_checks.needs_review_24h },
+            { label: 'Failed 24h', value: payload.api_checks && payload.api_checks.failed_24h },
+            { label: 'Total Checks', value: payload.api_checks && payload.api_checks.checks_24h }
+        ]);
+        renderLogs(payload.logs || {});
+        if (payload.repair_kit && !payload.repair_kit.locked) {
+            setRepairSummary(payload.repair_kit.summary || {});
+            renderRepairFindings(payload.repair_kit.findings || []);
+            renderRepairRuns(payload.repair_kit.recent_runs || []);
+        }
+        if (refreshNode) {
+            refreshNode.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+        }
+    }
+
+    function requestJson(url, signal) {
+        if (window.fetch) {
+            return fetch(url, {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' },
+                signal: signal
+            }).then(function (response) {
+                if (!response.ok) throw new Error('Service monitor request failed');
+                return response.json();
+            });
+        }
+
+        if (window.XMLHttpRequest) {
+            return new Promise(function (resolve, reject) {
+                var request = new XMLHttpRequest();
+                request.open('GET', url, true);
+                request.setRequestHeader('Accept', 'application/json');
+                request.withCredentials = true;
+                request.onload = function () {
+                    if (request.status < 200 || request.status >= 300) {
+                        reject(new Error('Service monitor request failed'));
+                        return;
+                    }
+                    try {
+                        resolve(JSON.parse(request.responseText || '{}'));
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                request.onerror = function () { reject(new Error('Service monitor request failed')); };
+                request.send();
+            });
+        }
+
+        return Promise.reject(new Error('No browser request API available'));
+    }
+
+    function refresh() {
+        if (document.hidden) return;
+        if (currentRequest && typeof currentRequest.abort === 'function') {
+            currentRequest.abort();
+        }
+        currentRequest = window.AbortController ? new AbortController() : null;
+
+        requestJson('/ridesync/api/admin_services.php', currentRequest ? currentRequest.signal : undefined)
+            .then(applyPayload)
+            .catch(function () {});
+    }
+
+    function clearRefreshSchedule() {
+        if (initialTimer) {
+            window.clearTimeout(initialTimer);
+            initialTimer = null;
+        }
+        if (refreshTimer) {
+            window.clearInterval(refreshTimer);
+            refreshTimer = null;
+        }
+        if (currentRequest && typeof currentRequest.abort === 'function') {
+            currentRequest.abort();
+        }
+        currentRequest = null;
+    }
+
+    function scheduleRefresh() {
+        if (refreshTimer || initialTimer) return;
+        initialTimer = window.setTimeout(function () {
+            initialTimer = null;
+            refresh();
+        }, 5000);
+        refreshTimer = window.setInterval(refresh, 30000);
+    }
+
+    window.addEventListener('pagehide', clearRefreshSchedule, { once: true });
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            clearRefreshSchedule();
+            return;
+        }
+        refresh();
+        scheduleRefresh();
+    });
+
+    scheduleRefresh();
 }
 
 function initDriverVerificationIntelligence() {

@@ -7,7 +7,10 @@ require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/cost_helper.php';
 require_once __DIR__ . '/../includes/asset_helper.php';
 require_once __DIR__ . '/../includes/admin_remove_helper.php';
+require_once __DIR__ . '/../includes/admin_operations_helper.php';
 require_once __DIR__ . '/../includes/services/CacheService.php';
+require_once __DIR__ . '/../includes/services/ServiceObservabilityService.php';
+require_once __DIR__ . '/../includes/services/RepairKitService.php';
 
 ridesync_require_admin_login();
 
@@ -28,14 +31,36 @@ if (!$admin || $admin['status'] !== 'active') {
 ridesync_admin_sync_session($admin);
 $canManageDriverAccounts = ridesync_admin_can($admin, 'manage_driver_accounts');
 $canRemoveAccounts = ridesync_admin_can($admin, 'remove_accounts');
+$canViewAuditLogs = ridesync_admin_can($admin, 'view_audit_logs');
+$canRunBulkOperations = ridesync_admin_can($admin, 'run_bulk_operations');
+$canManageAlertRules = ridesync_admin_can($admin, 'manage_alert_rules');
+$canManageFeatureFlags = ridesync_admin_can($admin, 'manage_feature_flags');
+$canRepairPlatform = ridesync_admin_can($admin, 'repair_platform');
 
-$section = $_GET['section'] ?? 'overview';
-if ($section === 'verifications') {
-    $section = 'users';
-    $_GET['section'] = 'users';
+$section = (string) ($_GET['section'] ?? 'overview');
+$sectionAliases = [
+    'verifications' => 'users',
+    'analytics' => 'overview',
+    'system' => 'services',
+];
+if (isset($sectionAliases[$section])) {
+    $section = $sectionAliases[$section];
+    $_GET['section'] = $section;
 }
-$allowedSections = ['overview', 'profiles', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'analytics', 'system'];
+$allowedSections = ['overview', 'profiles', 'drivers', 'users', 'rides', 'requests', 'reports', 'services', 'audit', 'bulk', 'remove'];
 if (!in_array($section, $allowedSections, true)) {
+    $section = 'overview';
+}
+if ($section === 'remove' && !$canRemoveAccounts) {
+    $section = 'overview';
+}
+if ($section === 'services' && !ridesync_admin_can($admin, 'run_ai_verification')) {
+    $section = 'overview';
+}
+if ($section === 'audit' && !$canViewAuditLogs) {
+    $section = 'overview';
+}
+if ($section === 'bulk' && !$canRunBulkOperations) {
     $section = 'overview';
 }
 
@@ -112,33 +137,117 @@ $adminProfiles = [
         'role' => 'Project Director & Operations Coordinator',
         'accent' => 'gold',
         'traits' => ['Leadership', 'Support', 'Operations', 'Workflow'],
-        'description' => 'Vinay oversees the overall management and coordination of the platform, ensuring smooth operations and efficient workflow execution. Known for his leadership, strategic thinking, and problem-solving approach, he plays a key role in maintaining system integrity and team collaboration while driving continuous improvement across all areas.',
+        'description' => 'Vinay oversees platform management, daily coordination, operational discipline, and workflow execution across RideSync.',
     ],
     [
         'name' => 'Shaunak N Jaiwant',
         'initials' => 'SJ',
         'image' => '/ridesync/shaunak.png',
-        'image_zoom' => '104%',
+        'image_zoom' => '99%',
         'image_position' => 'center 34%',
+        'image_shift_y' => '-1px',
         'role' => 'Creative Director & Technical Administrator',
         'accent' => 'violet',
         'traits' => ['Leadership', 'Design', 'Systems', 'Precision'],
-        'description' => 'Shaunak specializes in blending creativity with technical precision. With expertise in design, digital management, and system organization, he contributes to building visually refined and user-focused experiences. His attention to detail and innovative mindset help elevate both functionality and presentation standards.',
+        'description' => 'Shaunak leads technical administration, interface quality, system organization, and product polish for the admin experience.',
     ],
     [
         'name' => 'Vishal D Naik',
         'initials' => 'VN',
         'image' => '/ridesync/vishal.png',
-        'image_zoom' => '92%',
-        'image_position' => 'center 28%',
-        'image_shift_y' => '-14px',
+        'image_zoom' => '100%',
+        'image_position' => 'center 20%',
+        'image_shift_y' => '-5px',
         'avatar_background' => '#ffffff',
         'role' => 'System Director & Support Coordinator',
         'accent' => 'cyan',
         'traits' => ['Leadership', 'Reliability', 'Support', 'Stability'],
-        'description' => 'Vishal is responsible for maintaining system reliability, administrative support, and operational stability. His strong analytical skills and dedication to efficiency ensure seamless performance and quick resolution of technical or organizational challenges. He plays a vital role in supporting the team and optimizing daily operations.',
+        'description' => 'Vishal supports system reliability, administrative coordination, support workflows, and operational stability.',
     ],
 ];
+
+$adminId = (int) $admin['id'];
+$adminProfileRecord = ridesync_admin_prepared_rows(
+    $conn,
+    "SELECT id, name, email, role, status, created_at, updated_at FROM admin_users WHERE id = ? LIMIT 1",
+    'i',
+    [$adminId]
+);
+$adminProfileRecord = $adminProfileRecord[0] ?? $admin;
+
+$adminCapabilityCatalog = [
+    'review_students' => 'Student verification review',
+    'review_drivers' => 'Driver and document review',
+    'run_ai_verification' => 'AI verification operations',
+    'review_reports' => 'Report resolution',
+    'manage_admin_notes' => 'Admin notes',
+    'manage_driver_accounts' => 'Driver account controls',
+    'view_audit_logs' => 'Audit explorer',
+    'run_bulk_operations' => 'Bulk cleanup operations',
+    'manage_alert_rules' => 'Alert rules',
+    'manage_feature_flags' => 'Feature flags',
+    'repair_platform' => 'Repair Kit god-mode recovery',
+    'remove_accounts' => 'Account removal',
+];
+$adminGrantedCapabilities = [];
+foreach ($adminCapabilityCatalog as $capability => $label) {
+    if (ridesync_admin_can($admin, $capability)) {
+        $adminGrantedCapabilities[$capability] = $label;
+    }
+}
+
+$adminProfileAudit = ridesync_admin_prepared_rows(
+    $conn,
+    "SELECT
+        COUNT(*) AS total_actions,
+        SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) AS actions_24h,
+        SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS actions_7d,
+        MAX(created_at) AS last_action_at
+     FROM audit_logs
+     WHERE admin_id = ?",
+    'i',
+    [$adminId]
+);
+$adminProfileAudit = $adminProfileAudit[0] ?? [];
+
+$adminRecentActions = ridesync_admin_prepared_rows(
+    $conn,
+    "SELECT action, entity_type, entity_id, message, created_at
+     FROM audit_logs
+     WHERE admin_id = ?
+     ORDER BY created_at DESC
+     LIMIT 6",
+    'i',
+    [$adminId]
+);
+
+$adminRosterRows = ridesync_admin_query_rows(
+    $conn,
+    "SELECT au.id, au.name, au.email, au.role, au.status, au.created_at, MAX(al.created_at) AS last_action_at, COUNT(al.id) AS action_count
+     FROM admin_users au
+     LEFT JOIN audit_logs al ON al.admin_id = au.id
+     GROUP BY au.id, au.name, au.email, au.role, au.status, au.created_at
+     ORDER BY FIELD(au.status, 'active', 'inactive'), FIELD(au.role, 'super_admin', 'moderator'), au.name"
+);
+
+$sessionStartedAt = (int) ($_SESSION['_auth_started_at'] ?? time());
+$sessionLastRotatedAt = (int) ($_SESSION['_last_rotated_at'] ?? $sessionStartedAt);
+$sessionAgeMinutes = max(0, (int) floor((time() - $sessionStartedAt) / 60));
+$sessionRotationMinutes = max(0, (int) floor((time() - $sessionLastRotatedAt) / 60));
+$lastActionLabel = !empty($adminProfileAudit['last_action_at'])
+    ? date('M j, g:i A', strtotime((string) $adminProfileAudit['last_action_at']))
+    : 'No recorded actions';
+$adminProfileName = (string) ($adminProfileRecord['name'] ?? 'Admin');
+$adminInitials = '';
+foreach (preg_split('/\s+/', trim($adminProfileName)) ?: [] as $namePart) {
+    if ($namePart !== '') {
+        $adminInitials .= strtoupper(substr($namePart, 0, 1));
+    }
+    if (strlen($adminInitials) >= 2) {
+        break;
+    }
+}
+$adminInitials = $adminInitials !== '' ? $adminInitials : 'AD';
 
 $needsOverview = $section === 'overview';
 $needsProfiles = $section === 'profiles';
@@ -147,10 +256,16 @@ $needsUsers = $section === 'users';
 $needsRides = $section === 'rides';
 $needsRequests = $section === 'requests';
 $needsReports = $section === 'reports';
+$needsServices = $section === 'services';
+$needsAudit = $section === 'audit';
+$needsBulk = $section === 'bulk';
 $needsRemove = $section === 'remove';
-$needsAnalytics = $section === 'analytics';
-$needsSystem = $section === 'system';
 $verificationReady = ridesync_verification_schema_ready($conn);
+$profileServiceCount = 0;
+if ($needsProfiles) {
+    $profileServicesSnapshot = RideSyncServiceObservabilityService::snapshot($conn, ['probe_external' => false]);
+    $profileServiceCount = count($profileServicesSnapshot['services'] ?? []);
+}
 
 $driverRows = [];
 $userRows = [];
@@ -160,7 +275,7 @@ $communityRequestRows = [];
 $studentVerificationRows = [];
 $removeRows = [];
 $reportRows = [];
-$auditRows = [];
+$reportNotesById = [];
 $routeDemandRows = [];
 $activityFeedRows = [];
 $riskFlags = [];
@@ -174,6 +289,48 @@ $aiQueueMetrics = [
     'rejected' => 0,
     'needs_review' => 0,
 ];
+$servicesSnapshot = null;
+$repairKitSnapshot = null;
+$operationalInboxRows = [];
+$riskScore = [
+    'score' => 0,
+    'inverse_score' => 100,
+    'level' => 'Low',
+    'severity' => 'healthy',
+    'components' => [],
+    'generated_at' => date('Y-m-d H:i:s'),
+];
+$incidentTimelineRows = [];
+$auditRows = [];
+$auditPagination = null;
+$auditFilters = [];
+$auditWhereSql = '';
+$auditTypes = '';
+$auditParams = [];
+$auditSummary = [
+    'total_24h' => 0,
+    'denied_24h' => 0,
+    'bulk_24h' => 0,
+    'unique_admins_24h' => 0,
+];
+$bulkOperations = [];
+$dataQualityIssues = [];
+$slaTimers = [];
+$backupStatus = [
+    'severity' => 'info',
+    'db_healthy' => false,
+    'latest_file' => '',
+    'latest_path' => '',
+    'latest_at' => null,
+    'age_hours' => null,
+    'backup_count' => 0,
+    'missing_schema' => [],
+];
+$fraudClusters = [];
+$featureFlagsPanel = [
+    'schema_ready' => false,
+    'flags' => [],
+];
 
 $driverPagination = null;
 $userPagination = null;
@@ -182,7 +339,6 @@ $directRequestPagination = null;
 $communityRequestPagination = null;
 $reportPagination = null;
 $removePagination = null;
-$auditPagination = null;
 
 if ($needsDrivers) {
     if ($verificationReady) {
@@ -620,136 +776,259 @@ if ($needsReports) {
          ORDER BY FIELD(rep.report_status, 'open', 'reviewing', 'resolved', 'dismissed'), rep.created_at DESC",
         $reportPagination
     );
+    $reportNotesById = ridesync_admin_fetch_notes_for_entities($conn, 'report', array_column($reportRows, 'id'), 2);
 }
 
-if ($needsSystem) {
-    $auditPagination = ridesync_admin_pagination_meta(ridesync_admin_count_query($conn, "SELECT COUNT(*) AS total FROM audit_logs"), 'audit_page', 30);
-    $auditRows = ridesync_admin_paginated_rows($conn,
-        "SELECT al.*, au.name AS admin_name
+if ($needsServices) {
+    $servicesSnapshot = RideSyncServiceObservabilityService::snapshot($conn, ['probe_external' => false]);
+    if ($canRepairPlatform) {
+        $repairKitSnapshot = RideSyncRepairKitService::snapshot($conn);
+    }
+}
+
+if ($needsBulk) {
+    $bulkOperations = ridesync_admin_bulk_operation_definitions($conn);
+}
+
+if ($needsAudit) {
+    $auditFilters = [
+        'action' => substr(trim((string) ($_GET['audit_action'] ?? '')), 0, 80),
+        'entity' => substr(trim((string) ($_GET['audit_entity'] ?? '')), 0, 80),
+        'ip' => substr(trim((string) ($_GET['audit_ip'] ?? '')), 0, 64),
+        'admin_id' => max(0, (int) ($_GET['audit_admin'] ?? 0)),
+        'from' => trim((string) ($_GET['audit_from'] ?? '')),
+        'to' => trim((string) ($_GET['audit_to'] ?? '')),
+    ];
+
+    $where = ['1=1'];
+    if ($auditFilters['action'] !== '') {
+        $where[] = 'al.action LIKE ?';
+        $auditTypes .= 's';
+        $auditParams[] = '%' . $auditFilters['action'] . '%';
+    }
+    if ($auditFilters['entity'] !== '') {
+        $where[] = 'al.entity_type LIKE ?';
+        $auditTypes .= 's';
+        $auditParams[] = '%' . $auditFilters['entity'] . '%';
+    }
+    if ($auditFilters['ip'] !== '') {
+        $where[] = 'al.source_ip LIKE ?';
+        $auditTypes .= 's';
+        $auditParams[] = '%' . $auditFilters['ip'] . '%';
+    }
+    if ($auditFilters['admin_id'] > 0) {
+        $where[] = 'al.admin_id = ?';
+        $auditTypes .= 'i';
+        $auditParams[] = $auditFilters['admin_id'];
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $auditFilters['from']) === 1) {
+        $where[] = 'al.created_at >= ?';
+        $auditTypes .= 's';
+        $auditParams[] = $auditFilters['from'] . ' 00:00:00';
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $auditFilters['to']) === 1) {
+        $where[] = 'al.created_at <= ?';
+        $auditTypes .= 's';
+        $auditParams[] = $auditFilters['to'] . ' 23:59:59';
+    }
+    $auditWhereSql = implode(' AND ', $where);
+    $auditTotal = ridesync_admin_prepared_count(
+        $conn,
+        "SELECT COUNT(*) AS total
          FROM audit_logs al
          LEFT JOIN admin_users au ON au.id = al.admin_id
-         ORDER BY al.created_at DESC",
-        $auditPagination
+         WHERE {$auditWhereSql}",
+        $auditTypes,
+        $auditParams
     );
-}
+    $auditPagination = ridesync_admin_pagination_meta($auditTotal, 'audit_page', 30);
+    $auditRows = ridesync_admin_prepared_rows(
+        $conn,
+        "SELECT al.*, au.name AS admin_name, au.email AS admin_email
+         FROM audit_logs al
+         LEFT JOIN admin_users au ON au.id = al.admin_id
+         WHERE {$auditWhereSql}
+         ORDER BY al.created_at DESC, al.id DESC
+         LIMIT ? OFFSET ?",
+        $auditTypes . 'ii',
+        array_merge($auditParams, [(int) $auditPagination['per_page'], (int) $auditPagination['offset']])
+    );
 
-if ($needsOverview || $needsAnalytics) {
-    $routeDemandRows = ridesync_admin_query_rows($conn,
+    $auditSummary = ridesync_admin_query_rows($conn,
         "SELECT
-            route_key,
-            MIN(origin) AS origin,
-            MIN(destination) AS destination,
-            COUNT(*) AS demand_count,
-            SUM(CASE WHEN demand_status = 'active' THEN 1 ELSE 0 END) AS active_count,
-            MIN(origin_lat) AS origin_lat,
-            MIN(origin_lng) AS origin_lng,
-            MIN(destination_lat) AS destination_lat,
-            MIN(destination_lng) AS destination_lng,
-            MAX(updated_at) AS last_seen
-         FROM route_demand_signals
-         GROUP BY route_key
-         ORDER BY active_count DESC, demand_count DESC, last_seen DESC
-         LIMIT 12"
-    );
+            COUNT(*) AS total_24h,
+            SUM(CASE WHEN action LIKE '%denied%' OR action LIKE '%confirmation_failed%' THEN 1 ELSE 0 END) AS denied_24h,
+            SUM(CASE WHEN action LIKE 'admin_bulk_%' THEN 1 ELSE 0 END) AS bulk_24h,
+            COUNT(DISTINCT admin_id) AS unique_admins_24h
+         FROM audit_logs
+         WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+    )[0] ?? $auditSummary;
 }
 
 if ($needsOverview) {
-    foreach (ridesync_admin_query_rows($conn, "SELECT id, reason, report_status, created_at FROM reports ORDER BY created_at DESC LIMIT 8") as $row) {
-        $activityFeedRows[] = [
-            'event_type' => 'report',
-            'event_title' => 'Report #' . $row['id'] . ' opened',
-            'event_detail' => ridesync_admin_status_label($row['reason']) . ' - ' . ridesync_admin_status_label($row['report_status']),
-            'event_time' => $row['created_at'],
-            'event_status' => $row['report_status'],
-        ];
-    }
-    foreach (ridesync_admin_query_rows($conn, "SELECT id, origin, destination, status, created_at FROM rides ORDER BY created_at DESC LIMIT 8") as $row) {
-        $activityFeedRows[] = [
-            'event_type' => 'ride',
-            'event_title' => 'Ride #' . $row['id'] . ' posted',
-            'event_detail' => $row['origin'] . ' -> ' . $row['destination'],
-            'event_time' => $row['created_at'],
-            'event_status' => $row['status'],
-        ];
-    }
-    foreach (ridesync_admin_query_rows($conn, "SELECT name, email, status, created_at FROM driver_accounts ORDER BY created_at DESC LIMIT 8") as $row) {
-        $activityFeedRows[] = [
-            'event_type' => 'driver',
-            'event_title' => $row['name'] . ' registered',
-            'event_detail' => $row['email'],
-            'event_time' => $row['created_at'],
-            'event_status' => $row['status'],
-        ];
-    }
-    foreach (ridesync_admin_query_rows($conn, "SELECT id, pickup, drop_location, request_status, requested_at FROM driver_ride_requests ORDER BY requested_at DESC LIMIT 8") as $row) {
-        $activityFeedRows[] = [
-            'event_type' => 'request',
-            'event_title' => 'Driver request #' . $row['id'],
-            'event_detail' => $row['pickup'] . ' -> ' . $row['drop_location'],
-            'event_time' => $row['requested_at'],
-            'event_status' => $row['request_status'],
-        ];
-    }
-    foreach (ridesync_admin_query_rows($conn, "SELECT action, entity_type, entity_id, message, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8") as $row) {
-        $activityFeedRows[] = [
-            'event_type' => 'audit',
-            'event_title' => ridesync_admin_status_label($row['action']),
-            'event_detail' => $row['entity_type'] . ' #' . ($row['entity_id'] ?? '-') . ' ' . ($row['message'] ?? ''),
-            'event_time' => $row['created_at'],
-            'event_status' => $row['action'],
-        ];
-    }
-    usort($activityFeedRows, static function ($a, $b) {
-        return strtotime($b['event_time']) <=> strtotime($a['event_time']);
+    $overviewSnapshot = RideSyncCacheService::remember('admin:overview:snapshot:v1', 15, static function () use ($conn, $metrics) {
+        $operationalInboxRows = ridesync_admin_operational_inbox($conn, $metrics, 14);
+        $riskScore = ridesync_admin_risk_score($conn, $metrics);
+        $incidentTimelineRows = ridesync_admin_incident_timeline($conn, 14);
+        $dataQualityIssues = ridesync_admin_data_quality_monitor($conn);
+        $slaTimers = ridesync_admin_sla_timers($conn);
+        $backupStatus = ridesync_admin_backup_status($conn);
+        $fraudClusters = ridesync_admin_fraud_clusters($conn);
+        $featureFlagsPanel = ridesync_admin_feature_flags($conn);
+
+        $routeDemandRows = ridesync_admin_query_rows($conn,
+            "SELECT
+                route_key,
+                MIN(origin) AS origin,
+                MIN(destination) AS destination,
+                COUNT(*) AS demand_count,
+                SUM(CASE WHEN demand_status = 'active' THEN 1 ELSE 0 END) AS active_count,
+                MIN(origin_lat) AS origin_lat,
+                MIN(origin_lng) AS origin_lng,
+                MIN(destination_lat) AS destination_lat,
+                MIN(destination_lng) AS destination_lng,
+                MAX(updated_at) AS last_seen
+             FROM route_demand_signals
+             GROUP BY route_key
+             ORDER BY active_count DESC, demand_count DESC, last_seen DESC
+             LIMIT 12"
+        );
+
+        $activityFeedRows = [];
+        foreach (ridesync_admin_query_rows($conn, "SELECT id, reason, report_status, created_at FROM reports ORDER BY created_at DESC LIMIT 8") as $row) {
+            $activityFeedRows[] = [
+                'event_type' => 'report',
+                'event_title' => 'Report #' . $row['id'] . ' opened',
+                'event_detail' => ridesync_admin_status_label($row['reason']) . ' - ' . ridesync_admin_status_label($row['report_status']),
+                'event_time' => $row['created_at'],
+                'event_status' => $row['report_status'],
+            ];
+        }
+        foreach (ridesync_admin_query_rows($conn, "SELECT id, origin, destination, status, created_at FROM rides ORDER BY created_at DESC LIMIT 8") as $row) {
+            $activityFeedRows[] = [
+                'event_type' => 'ride',
+                'event_title' => 'Ride #' . $row['id'] . ' posted',
+                'event_detail' => $row['origin'] . ' -> ' . $row['destination'],
+                'event_time' => $row['created_at'],
+                'event_status' => $row['status'],
+            ];
+        }
+        foreach (ridesync_admin_query_rows($conn, "SELECT name, email, status, created_at FROM driver_accounts ORDER BY created_at DESC LIMIT 8") as $row) {
+            $activityFeedRows[] = [
+                'event_type' => 'driver',
+                'event_title' => $row['name'] . ' registered',
+                'event_detail' => $row['email'],
+                'event_time' => $row['created_at'],
+                'event_status' => $row['status'],
+            ];
+        }
+        foreach (ridesync_admin_query_rows($conn, "SELECT id, pickup, drop_location, request_status, requested_at FROM driver_ride_requests ORDER BY requested_at DESC LIMIT 8") as $row) {
+            $activityFeedRows[] = [
+                'event_type' => 'request',
+                'event_title' => 'Driver request #' . $row['id'],
+                'event_detail' => $row['pickup'] . ' -> ' . $row['drop_location'],
+                'event_time' => $row['requested_at'],
+                'event_status' => $row['request_status'],
+            ];
+        }
+        foreach (ridesync_admin_query_rows($conn, "SELECT action, entity_type, entity_id, message, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8") as $row) {
+            $activityFeedRows[] = [
+                'event_type' => 'audit',
+                'event_title' => ridesync_admin_status_label($row['action']),
+                'event_detail' => $row['entity_type'] . ' #' . ($row['entity_id'] ?? '-') . ' ' . ($row['message'] ?? ''),
+                'event_time' => $row['created_at'],
+                'event_status' => $row['action'],
+            ];
+        }
+        usort($activityFeedRows, static function ($a, $b) {
+            return strtotime($b['event_time']) <=> strtotime($a['event_time']);
+        });
+        $activityFeedRows = array_slice($activityFeedRows, 0, 18);
+
+        $riskFlags = [];
+        if (ridesync_admin_int($metrics, 'open_reports') > 0) {
+            $riskFlags[] = ['level' => 'critical', 'title' => 'Open reports need triage', 'detail' => ridesync_admin_int($metrics, 'open_reports') . ' report(s) are still open.'];
+        }
+        if (ridesync_admin_int($metrics, 'open_rides') > 0 && ridesync_admin_int($metrics, 'online_drivers') === 0) {
+            $riskFlags[] = ['level' => 'critical', 'title' => 'No online drivers', 'detail' => 'Open rides exist, but no verified driver is currently online.'];
+        }
+        if (ridesync_admin_int($metrics, 'stale_open_rides') > 0) {
+            $riskFlags[] = ['level' => 'warning', 'title' => 'Stale open rides detected', 'detail' => ridesync_admin_int($metrics, 'stale_open_rides') . ' open ride(s) have already passed departure time.'];
+        }
+
+        foreach (ridesync_admin_query_rows($conn,
+            "SELECT license_number, COUNT(*) AS total
+             FROM driver_account_profiles
+             WHERE license_number <> ''
+             GROUP BY license_number
+             HAVING total > 1
+             LIMIT 5"
+        ) as $duplicate) {
+            $riskFlags[] = ['level' => 'warning', 'title' => 'Duplicate license suspected', 'detail' => $duplicate['license_number'] . ' appears on ' . (int) $duplicate['total'] . ' driver profiles.'];
+        }
+
+        if (count($riskFlags) === 0) {
+            $riskFlags[] = ['level' => 'healthy', 'title' => 'System trust health is stable', 'detail' => 'No high-priority moderation risks are currently detected.'];
+        }
+
+        $mapDrivers = ridesync_admin_query_rows($conn,
+            "SELECT d.name, a.status, a.current_lat, a.current_lng
+             FROM driver_account_availability a
+             JOIN driver_accounts d ON d.id = a.driver_id
+             WHERE a.status = 'online'
+               AND a.current_lat IS NOT NULL
+               AND a.current_lng IS NOT NULL
+             ORDER BY a.last_changed_at DESC
+             LIMIT 100"
+        );
+
+        $mapRides = ridesync_admin_query_rows($conn,
+            "SELECT r.id, r.origin, r.destination, r.origin_lat, r.origin_lng, COALESCE(ls.live_status, 'searching') AS live_status
+             FROM rides r
+             LEFT JOIN ride_live_status ls ON ls.ride_id = r.id
+             WHERE r.origin_lat IS NOT NULL
+               AND r.origin_lng IS NOT NULL
+               AND (r.status = 'open' OR ls.live_status IN ('matched', 'driver_assigned', 'arriving', 'active'))
+             ORDER BY r.created_at DESC
+             LIMIT 100"
+        );
+
+        return compact(
+            'operationalInboxRows',
+            'riskScore',
+            'incidentTimelineRows',
+            'dataQualityIssues',
+            'slaTimers',
+            'backupStatus',
+            'fraudClusters',
+            'featureFlagsPanel',
+            'routeDemandRows',
+            'activityFeedRows',
+            'riskFlags',
+            'mapDrivers',
+            'mapRides'
+        );
     });
-    $activityFeedRows = array_slice($activityFeedRows, 0, 18);
 
-    if (ridesync_admin_int($metrics, 'open_reports') > 0) {
-        $riskFlags[] = ['level' => 'critical', 'title' => 'Open reports need triage', 'detail' => ridesync_admin_int($metrics, 'open_reports') . ' report(s) are still open.'];
+    foreach ($overviewSnapshot as $key => $value) {
+        if (in_array($key, [
+            'operationalInboxRows',
+            'riskScore',
+            'incidentTimelineRows',
+            'dataQualityIssues',
+            'slaTimers',
+            'backupStatus',
+            'fraudClusters',
+            'featureFlagsPanel',
+            'routeDemandRows',
+            'activityFeedRows',
+            'riskFlags',
+            'mapDrivers',
+            'mapRides',
+        ], true)) {
+            $$key = $value;
+        }
     }
-    if (ridesync_admin_int($metrics, 'open_rides') > 0 && ridesync_admin_int($metrics, 'online_drivers') === 0) {
-        $riskFlags[] = ['level' => 'critical', 'title' => 'No online drivers', 'detail' => 'Open rides exist, but no verified driver is currently online.'];
-    }
-    if (ridesync_admin_int($metrics, 'stale_open_rides') > 0) {
-        $riskFlags[] = ['level' => 'warning', 'title' => 'Stale open rides detected', 'detail' => ridesync_admin_int($metrics, 'stale_open_rides') . ' open ride(s) have already passed departure time.'];
-    }
-
-    foreach (ridesync_admin_query_rows($conn,
-        "SELECT license_number, COUNT(*) AS total
-         FROM driver_account_profiles
-         WHERE license_number <> ''
-         GROUP BY license_number
-         HAVING total > 1
-         LIMIT 5"
-    ) as $duplicate) {
-        $riskFlags[] = ['level' => 'warning', 'title' => 'Duplicate license suspected', 'detail' => $duplicate['license_number'] . ' appears on ' . (int) $duplicate['total'] . ' driver profiles.'];
-    }
-
-    if (count($riskFlags) === 0) {
-        $riskFlags[] = ['level' => 'healthy', 'title' => 'System trust health is stable', 'detail' => 'No high-priority moderation risks are currently detected.'];
-    }
-
-    $mapDrivers = ridesync_admin_query_rows($conn,
-        "SELECT d.name, a.status, a.current_lat, a.current_lng
-         FROM driver_account_availability a
-         JOIN driver_accounts d ON d.id = a.driver_id
-         WHERE a.status = 'online'
-           AND a.current_lat IS NOT NULL
-           AND a.current_lng IS NOT NULL
-         ORDER BY a.last_changed_at DESC
-         LIMIT 100"
-    );
-
-    $mapRides = ridesync_admin_query_rows($conn,
-        "SELECT r.id, r.origin, r.destination, r.origin_lat, r.origin_lng, COALESCE(ls.live_status, 'searching') AS live_status
-         FROM rides r
-         LEFT JOIN ride_live_status ls ON ls.ride_id = r.id
-         WHERE r.origin_lat IS NOT NULL
-           AND r.origin_lng IS NOT NULL
-           AND (r.status = 'open' OR ls.live_status IN ('matched', 'driver_assigned', 'arriving', 'active'))
-         ORDER BY r.created_at DESC
-         LIMIT 100"
-    );
 }
 
 $searchResults = [
@@ -847,6 +1126,40 @@ if ($section === 'overview') {
     ridesync_enable_map_assets(false);
 }
 
+if ($needsAudit && ($_GET['export'] ?? '') === 'audit_csv') {
+    $exportRows = ridesync_admin_prepared_rows(
+        $conn,
+        "SELECT al.created_at, COALESCE(au.name, 'System') AS admin_name, au.email AS admin_email,
+                al.action, al.entity_type, al.entity_id, al.message, al.source_ip, al.user_agent
+         FROM audit_logs al
+         LEFT JOIN admin_users au ON au.id = al.admin_id
+         WHERE {$auditWhereSql}
+         ORDER BY al.created_at DESC, al.id DESC
+         LIMIT 5000",
+        $auditTypes,
+        $auditParams
+    );
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="ridesync-audit-log-' . date('Ymd-His') . '.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['created_at', 'admin_name', 'admin_email', 'action', 'entity_type', 'entity_id', 'message', 'source_ip', 'user_agent']);
+    foreach ($exportRows as $row) {
+        fputcsv($out, [
+            $row['created_at'] ?? '',
+            $row['admin_name'] ?? '',
+            $row['admin_email'] ?? '',
+            $row['action'] ?? '',
+            $row['entity_type'] ?? '',
+            $row['entity_id'] ?? '',
+            $row['message'] ?? '',
+            $row['source_ip'] ?? '',
+            $row['user_agent'] ?? '',
+        ]);
+    }
+    fclose($out);
+    exit();
+}
+
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
 
@@ -855,18 +1168,41 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
 </script>
 
 <div class="admin-command-center" data-admin-command-center>
-    <?php if (!$needsProfiles): ?>
+    <?php if ($isOverviewSection): ?>
         <section class="admin-hero-panel">
             <div>
                 <span class="driver-kicker">Operational Control</span>
                 <h1>RideSync Command Center</h1>
-                <p>Monitor mobility activity, route demand, live rides, reports, and operational risks from one calm workspace.</p>
+                <p>Monitor mobility activity, route demand, live rides, reports, and operational risks from one workspace.</p>
             </div>
             <div class="admin-hero-actions">
                 <a class="btn btn-secondary" href="/ridesync/pages/admin_dashboard.php?section=rides">Ride Operations</a>
                 <a class="btn btn-primary" href="/ridesync/pages/admin_dashboard.php?section=reports">Triage Reports</a>
             </div>
         </section>
+
+        <nav class="panel-action-rail admin-command-rail" aria-label="Critical admin shortcuts">
+            <a class="panel-action-card is-primary" href="/ridesync/pages/admin_dashboard.php?section=services">
+                <span>Observability</span>
+                <strong>Services</strong>
+                <small>AI health, queues, latency, and alerts.</small>
+            </a>
+            <a class="panel-action-card" href="/ridesync/pages/admin_dashboard.php?section=drivers">
+                <span>Verification</span>
+                <strong>Drivers</strong>
+                <small>KYC, AI checks, and approvals.</small>
+            </a>
+            <a class="panel-action-card" href="/ridesync/pages/admin_dashboard.php?section=audit">
+                <span>Traceability</span>
+                <strong>Audit</strong>
+                <small>Admin actions and entity history.</small>
+            </a>
+            <a class="panel-action-card" href="/ridesync/pages/admin_dashboard.php?section=bulk">
+                <span>Recovery</span>
+                <strong>Bulk Ops</strong>
+                <small>Safe cleanup and queue repair.</small>
+            </a>
+        </nav>
     <?php endif; ?>
 
     <?php ridesync_flash('admin_success', 'alert-success'); ?>
@@ -905,7 +1241,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
         </section>
     <?php endif; ?>
 
-    <?php if (!$needsProfiles): ?>
+    <?php if ($isOverviewSection): ?>
         <section class="admin-priority-grid">
             <article class="admin-op-card is-primary">
                 <span>Total Users</span>
@@ -932,6 +1268,217 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                 <strong data-admin-metric="active_reports"><?php echo ridesync_admin_int($metrics, 'active_reports'); ?></strong>
                 <small>Open or under review</small>
             </article>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($isOverviewSection): ?>
+        <section class="admin-command-grid admin-ops-priority">
+            <article id="operational-inbox" class="admin-command-card admin-operational-inbox">
+                <div class="admin-card-head">
+                    <div>
+                        <span class="driver-kicker">Operational Inbox</span>
+                        <h2>Work Requiring Attention</h2>
+                    </div>
+                    <span><?php echo count(array_filter($operationalInboxRows, static fn($item) => ($item['severity'] ?? '') !== 'healthy')); ?> open</span>
+                </div>
+                <div class="admin-inbox-list">
+                    <?php foreach ($operationalInboxRows as $item): ?>
+                        <a class="admin-inbox-row is-<?php echo htmlspecialchars($item['severity']); ?>" href="<?php echo htmlspecialchars($item['href']); ?>">
+                            <span class="admin-feed-dot badge-<?php echo htmlspecialchars($item['severity'] === 'critical' ? 'rejected' : ($item['severity'] === 'healthy' ? 'accepted' : 'pending')); ?>"></span>
+                            <div>
+                                <strong><?php echo htmlspecialchars($item['title']); ?></strong>
+                                <p><?php echo htmlspecialchars($item['detail']); ?></p>
+                                <small><?php echo htmlspecialchars($item['meta']); ?> - <?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) $item['created_at']))); ?></small>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </article>
+
+            <article id="risk-score" class="admin-command-card admin-risk-score-card is-<?php echo htmlspecialchars($riskScore['severity']); ?>">
+                <div class="admin-card-head">
+                    <div>
+                        <span class="driver-kicker">Risk Scoring</span>
+                        <h2>Operational Risk</h2>
+                    </div>
+                    <span><?php echo htmlspecialchars($riskScore['level']); ?></span>
+                </div>
+                <div class="admin-risk-score-hero">
+                    <strong><?php echo (int) $riskScore['score']; ?></strong>
+                    <div>
+                        <span>Risk score /100</span>
+                        <div class="admin-risk-meter" aria-hidden="true">
+                            <span style="width: <?php echo max(0, min(100, (int) $riskScore['score'])); ?>%;"></span>
+                        </div>
+                        <small>Readiness score: <?php echo (int) $riskScore['inverse_score']; ?>/100</small>
+                    </div>
+                </div>
+                <div class="admin-risk-component-list">
+                    <?php foreach ($riskScore['components'] as $component): ?>
+                        <div>
+                            <span><?php echo htmlspecialchars($component['label']); ?></span>
+                            <strong><?php echo (int) $component['points']; ?> pts</strong>
+                            <p><?php echo htmlspecialchars($component['detail']); ?></p>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </article>
+        </section>
+
+        <section id="incident-timeline" class="admin-command-card admin-incident-timeline-card">
+            <div class="admin-card-head">
+                <div>
+                    <span class="driver-kicker">Incident Timeline</span>
+                    <h2>Recent Operational Events</h2>
+                </div>
+                <a href="/ridesync/pages/admin_dashboard.php?section=audit">Open Audit</a>
+            </div>
+            <div class="admin-incident-timeline">
+                <?php foreach ($incidentTimelineRows as $event): ?>
+                    <a class="admin-timeline-row is-<?php echo htmlspecialchars($event['severity']); ?>" href="<?php echo htmlspecialchars($event['href']); ?>">
+                        <span class="admin-timeline-pin"></span>
+                        <div>
+                            <span><?php echo htmlspecialchars($event['type']); ?> - <?php echo htmlspecialchars($event['meta']); ?></span>
+                            <strong><?php echo htmlspecialchars($event['title']); ?></strong>
+                            <p><?php echo htmlspecialchars($event['detail']); ?></p>
+                        </div>
+                        <time><?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) $event['created_at']))); ?></time>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+
+        <section class="admin-command-grid admin-ops-layers">
+            <article id="data-quality" class="admin-command-card">
+                <div class="admin-card-head">
+                    <div>
+                        <span class="driver-kicker">Data Quality</span>
+                        <h2>Integrity Monitor</h2>
+                    </div>
+                    <span><?php echo array_sum(array_map(static fn($issue) => (int) ($issue['count'] ?? 0), $dataQualityIssues)); ?> issues</span>
+                </div>
+                <div class="admin-ops-check-list">
+                    <?php foreach ($dataQualityIssues as $issue): ?>
+                        <a class="admin-ops-check is-<?php echo htmlspecialchars($issue['severity']); ?>" href="<?php echo htmlspecialchars($issue['href']); ?>">
+                            <b><?php echo (int) $issue['count']; ?></b>
+                            <div>
+                                <strong><?php echo htmlspecialchars($issue['title']); ?></strong>
+                                <p><?php echo htmlspecialchars($issue['detail']); ?></p>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </article>
+
+            <article id="sla-timers" class="admin-command-card">
+                <div class="admin-card-head">
+                    <div>
+                        <span class="driver-kicker">SLA Timers</span>
+                        <h2>Pending Work Age</h2>
+                    </div>
+                    <span><?php echo count(array_filter($slaTimers, static fn($timer) => ($timer['severity'] ?? '') !== 'healthy')); ?> active</span>
+                </div>
+                <div class="admin-ops-check-list">
+                    <?php foreach ($slaTimers as $timer): ?>
+                        <a class="admin-ops-check is-<?php echo htmlspecialchars($timer['severity']); ?>" href="<?php echo htmlspecialchars($timer['href']); ?>">
+                            <b><?php echo (int) $timer['count']; ?></b>
+                            <div>
+                                <strong><?php echo htmlspecialchars($timer['title']); ?></strong>
+                                <p><?php echo htmlspecialchars($timer['detail']); ?></p>
+                                <small>Oldest: <?php echo !empty($timer['oldest_at']) ? htmlspecialchars((int) $timer['oldest_age_hours'] . 'h old') : 'none waiting'; ?>, target <?php echo (int) $timer['threshold_hours']; ?>h</small>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </article>
+        </section>
+
+        <section class="admin-command-grid admin-ops-layers">
+            <article id="backup-status" class="admin-command-card admin-backup-status is-<?php echo htmlspecialchars($backupStatus['severity']); ?>">
+                <div class="admin-card-head">
+                    <div>
+                        <span class="driver-kicker">Backup & Restore</span>
+                        <h2>Recovery Status</h2>
+                    </div>
+                    <span><?php echo !empty($backupStatus['db_healthy']) ? 'DB reachable' : 'DB unhealthy'; ?></span>
+                </div>
+                <div class="admin-health-stack">
+                    <div><span>Latest Backup</span><strong><?php echo htmlspecialchars($backupStatus['latest_file'] ?: 'Not found'); ?></strong></div>
+                    <div><span>Backup Age</span><strong><?php echo $backupStatus['age_hours'] !== null ? (int) $backupStatus['age_hours'] . 'h' : 'Unknown'; ?></strong></div>
+                    <div><span>Backup Files</span><strong><?php echo (int) $backupStatus['backup_count']; ?></strong></div>
+                    <div><span>Schema Drift</span><strong><?php echo count($backupStatus['missing_schema']); ?> missing</strong></div>
+                </div>
+                <?php if (count($backupStatus['missing_schema']) > 0): ?>
+                    <ul class="admin-finding-list">
+                        <?php foreach (array_slice($backupStatus['missing_schema'], 0, 8) as $missing): ?>
+                            <li><?php echo htmlspecialchars($missing); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php else: ?>
+                    <p class="admin-message">Required operational tables, indexes, and columns are present.</p>
+                <?php endif; ?>
+            </article>
+
+            <article id="fraud-clusters" class="admin-command-card">
+                <div class="admin-card-head">
+                    <div>
+                        <span class="driver-kicker">Fraud Clusters</span>
+                        <h2>Shared Identity Signals</h2>
+                    </div>
+                    <span><?php echo count(array_filter($fraudClusters, static fn($cluster) => ($cluster['severity'] ?? '') !== 'healthy')); ?> clusters</span>
+                </div>
+                <div class="admin-ops-check-list">
+                    <?php foreach ($fraudClusters as $cluster): ?>
+                        <a class="admin-ops-check is-<?php echo htmlspecialchars($cluster['severity']); ?>" href="<?php echo htmlspecialchars($cluster['href']); ?>">
+                            <b><?php echo (int) $cluster['count']; ?></b>
+                            <div>
+                                <strong><?php echo htmlspecialchars($cluster['title']); ?></strong>
+                                <p><?php echo htmlspecialchars($cluster['detail']); ?></p>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </article>
+        </section>
+
+        <section id="feature-flags" class="admin-command-card">
+            <div class="admin-card-head">
+                <div>
+                    <span class="driver-kicker">Feature Flags</span>
+                    <h2>Runtime Module Control</h2>
+                </div>
+                <span><?php echo !empty($featureFlagsPanel['schema_ready']) ? 'Live switches' : 'Migration required'; ?></span>
+            </div>
+            <?php if (empty($featureFlagsPanel['schema_ready'])): ?>
+                <p class="admin-message">Feature flags are shown in read-only fallback mode until the feature_flags table exists.</p>
+            <?php endif; ?>
+            <div class="admin-feature-flag-grid">
+                <?php foreach ($featureFlagsPanel['flags'] as $flag): ?>
+                    <article class="admin-feature-flag-card <?php echo !empty($flag['maintenance_mode']) ? 'is-maintenance' : ''; ?>">
+                        <div>
+                            <span><?php echo htmlspecialchars(ridesync_admin_status_label($flag['module'] ?? 'core')); ?></span>
+                            <strong><?php echo htmlspecialchars($flag['label'] ?? $flag['flag_key']); ?></strong>
+                            <p><?php echo htmlspecialchars($flag['description'] ?? 'No description available.'); ?></p>
+                        </div>
+                        <?php if (!empty($featureFlagsPanel['schema_ready']) && $canManageFeatureFlags && (int) ($flag['id'] ?? 0) > 0): ?>
+                            <form action="/ridesync/actions/admin_action.php" method="POST" class="admin-feature-flag-form">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <input type="hidden" name="action_type" value="admin_feature_flag_update">
+                                <input type="hidden" name="flag_id" value="<?php echo (int) $flag['id']; ?>">
+                                <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=overview">
+                                <label><input type="checkbox" name="enabled" value="1" <?php echo !empty($flag['enabled']) ? 'checked' : ''; ?>> Enabled</label>
+                                <label><input type="checkbox" name="maintenance_mode" value="1" <?php echo !empty($flag['maintenance_mode']) ? 'checked' : ''; ?>> Maintenance</label>
+                                <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                            </form>
+                        <?php else: ?>
+                            <div class="admin-chip-list">
+                                <span class="badge badge-<?php echo !empty($flag['enabled']) ? 'accepted' : 'closed'; ?>"><?php echo !empty($flag['enabled']) ? 'Enabled' : 'Disabled'; ?></span>
+                                <span class="badge badge-<?php echo !empty($flag['maintenance_mode']) ? 'pending' : 'accepted'; ?>"><?php echo !empty($flag['maintenance_mode']) ? 'Maintenance' : 'Normal'; ?></span>
+                            </div>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
         </section>
     <?php endif; ?>
 
@@ -1011,7 +1558,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                         <span class="driver-kicker">Demand</span>
                         <h2>Popular Route Signals</h2>
                     </div>
-                    <a href="/ridesync/pages/admin_dashboard.php?section=analytics">Analytics</a>
+                    <span><?php echo count($routeDemandRows); ?> routes</span>
                 </div>
                 <?php if (count($routeDemandRows) === 0): ?>
                     <div class="driver-empty-card">No active demand signals yet.</div>
@@ -1049,17 +1596,141 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
     <?php endif; ?>
 
     <?php if ($needsProfiles): ?>
-        <section class="admin-profile-showcase" aria-labelledby="adminProfilesTitle">
-            <div class="admin-profile-showcase-head">
-                <div>
-                    <span class="driver-kicker">Admin Profiles</span>
-                    <h2 id="adminProfilesTitle">Leadership Command Team</h2>
-                    <p>Three administrators coordinating operations, design quality, technical stability, and platform support for RideSync.</p>
+        <section class="admin-profile-showcase admin-profile-workspace" aria-labelledby="adminProfilesTitle">
+            <div class="admin-profile-hero">
+                <article class="admin-profile-identity-card">
+                    <div class="admin-profile-avatar admin-current-avatar">
+                        <span aria-hidden="true"><?php echo htmlspecialchars(substr($adminInitials, 0, 2)); ?></span>
+                    </div>
+                    <div>
+                        <span class="driver-kicker">Admin Profile</span>
+                        <h2 id="adminProfilesTitle"><?php echo htmlspecialchars($adminProfileName); ?></h2>
+                        <p><?php echo htmlspecialchars($adminProfileRecord['email'] ?? 'No email'); ?></p>
+                    </div>
+                    <div class="admin-profile-status-row">
+                        <span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($adminProfileRecord['status'] ?? 'inactive')); ?>">
+                            <?php echo htmlspecialchars(ridesync_admin_status_label($adminProfileRecord['status'] ?? 'inactive')); ?>
+                        </span>
+                        <span class="admin-profile-role-pill"><?php echo htmlspecialchars(ridesync_admin_status_label($adminProfileRecord['role'] ?? 'moderator')); ?></span>
+                    </div>
+                </article>
+
+                <div class="admin-profile-signal-grid">
+                    <article>
+                        <span>Permissions</span>
+                        <strong><?php echo count($adminGrantedCapabilities); ?></strong>
+                        <small><?php echo count($adminGrantedCapabilities) === count($adminCapabilityCatalog) ? 'full operational access' : 'limited role access'; ?></small>
+                    </article>
+                    <article>
+                        <span>Actions Today</span>
+                        <strong><?php echo (int) ($adminProfileAudit['actions_24h'] ?? 0); ?></strong>
+                        <small><?php echo (int) ($adminProfileAudit['actions_7d'] ?? 0); ?> this week</small>
+                    </article>
+                    <article>
+                        <span>Session Age</span>
+                        <strong><?php echo $sessionAgeMinutes; ?>m</strong>
+                        <small>rotated <?php echo $sessionRotationMinutes; ?>m ago</small>
+                    </article>
+                    <article>
+                        <span>Last Audit</span>
+                        <strong><?php echo htmlspecialchars($lastActionLabel); ?></strong>
+                        <small><?php echo (int) ($adminProfileAudit['total_actions'] ?? 0); ?> total actions</small>
+                    </article>
                 </div>
-                <span class="admin-profile-count"><?php echo count($adminProfiles); ?> Admins</span>
             </div>
 
-            <div class="admin-profile-grid">
+            <div class="admin-profile-insight-grid">
+                <article class="admin-profile-panel">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Access</span>
+                            <h2>Granted Controls</h2>
+                        </div>
+                        <span><?php echo htmlspecialchars(ridesync_admin_status_label($adminProfileRecord['role'] ?? 'moderator')); ?></span>
+                    </div>
+                    <div class="admin-profile-permission-cloud">
+                        <?php foreach ($adminGrantedCapabilities as $label): ?>
+                            <span><?php echo htmlspecialchars($label); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </article>
+
+                <article class="admin-profile-panel">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Security</span>
+                            <h2>Account Posture</h2>
+                        </div>
+                        <span class="admin-live-pill"><span></span> Valid</span>
+                    </div>
+                    <div class="admin-profile-detail-list">
+                        <div><span>Account created</span><strong><?php echo htmlspecialchars(date('M j, Y', strtotime((string) ($adminProfileRecord['created_at'] ?? 'now')))); ?></strong></div>
+                        <div><span>Last updated</span><strong><?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) ($adminProfileRecord['updated_at'] ?? 'now')))); ?></strong></div>
+                        <div><span>Session policy</span><strong>HttpOnly + SameSite</strong></div>
+                        <div><span>CSRF guard</span><strong><?php echo !empty($_SESSION['csrf_token']) ? 'Active' : 'Missing'; ?></strong></div>
+                    </div>
+                </article>
+
+                <article class="admin-profile-panel">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Shortcuts</span>
+                            <h2>Operational Focus</h2>
+                        </div>
+                    </div>
+                    <div class="admin-profile-action-stack">
+                        <a href="<?php echo htmlspecialchars(ridesync_admin_section_url('drivers')); ?>"><strong><?php echo $pendingVerifications; ?></strong><span>pending verification checks</span></a>
+                        <a href="<?php echo htmlspecialchars(ridesync_admin_section_url('reports')); ?>"><strong><?php echo ridesync_admin_int($metrics, 'active_reports'); ?></strong><span>active reports</span></a>
+                        <a href="<?php echo htmlspecialchars(ridesync_admin_section_url('services')); ?>"><strong><?php echo $profileServiceCount; ?></strong><span>monitored services</span></a>
+                    </div>
+                </article>
+            </div>
+
+            <div class="admin-profile-lower-grid">
+                <article class="admin-profile-panel">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Audit</span>
+                            <h2>Recent Activity</h2>
+                        </div>
+                        <a href="<?php echo htmlspecialchars(ridesync_admin_section_url('audit')); ?>">Open audit</a>
+                    </div>
+                    <?php if (count($adminRecentActions) === 0): ?>
+                        <div class="driver-empty-card">No audit activity recorded for this admin yet.</div>
+                    <?php else: ?>
+                        <div class="admin-profile-timeline">
+                            <?php foreach ($adminRecentActions as $action): ?>
+                                <div>
+                                    <span></span>
+                                    <p><strong><?php echo htmlspecialchars(ridesync_admin_status_label($action['action'])); ?></strong> <?php echo htmlspecialchars($action['message'] ?: $action['entity_type']); ?></p>
+                                    <small><?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) $action['created_at']))); ?><?php echo !empty($action['entity_id']) ? ' - #' . (int) $action['entity_id'] : ''; ?></small>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </article>
+
+                <article class="admin-profile-panel">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Team</span>
+                            <h2>Admin Roster</h2>
+                        </div>
+                        <span><?php echo count($adminRosterRows); ?> accounts</span>
+                    </div>
+                    <div class="admin-profile-roster">
+                        <?php foreach ($adminRosterRows as $rosterAdmin): ?>
+                            <div>
+                                <strong><?php echo htmlspecialchars($rosterAdmin['name']); ?></strong>
+                                <span><?php echo htmlspecialchars($rosterAdmin['email']); ?></span>
+                                <small><?php echo htmlspecialchars(ridesync_admin_status_label($rosterAdmin['role'])); ?> - <?php echo htmlspecialchars(ridesync_admin_status_label($rosterAdmin['status'])); ?> - <?php echo (int) $rosterAdmin['action_count']; ?> actions</small>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </article>
+            </div>
+
+            <div class="admin-profile-grid admin-profile-team-grid" aria-label="RideSync admin leadership">
                 <?php foreach ($adminProfiles as $profile): ?>
                     <article class="admin-profile-card is-<?php echo htmlspecialchars($profile['accent']); ?>">
                         <div class="admin-profile-avatar"<?php echo !empty($profile['image_zoom']) || !empty($profile['image_position']) || !empty($profile['image_shift_y']) || !empty($profile['avatar_background']) ? ' style="' . htmlspecialchars(trim((!empty($profile['image_zoom']) ? '--profile-image-scale: ' . $profile['image_zoom'] . '; ' : '') . (!empty($profile['image_position']) ? '--profile-image-position: ' . $profile['image_position'] . '; ' : '') . (!empty($profile['image_shift_y']) ? '--profile-image-shift-y: ' . $profile['image_shift_y'] . '; ' : '') . (!empty($profile['avatar_background']) ? '--profile-avatar-bg: ' . $profile['avatar_background'] . ';' : ''))) . '"' : ''; ?>>
@@ -1072,41 +1743,14 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                         <div class="admin-profile-card-body">
                             <h3><?php echo htmlspecialchars($profile['name']); ?></h3>
                             <span class="admin-profile-role"><?php echo htmlspecialchars($profile['role']); ?></span>
-                            <div class="admin-profile-traits" aria-label="<?php echo htmlspecialchars($profile['name']); ?> strengths">
-                                <?php foreach ($profile['traits'] as $trait): ?>
-                                    <span><?php echo htmlspecialchars($trait); ?></span>
-                                <?php endforeach; ?>
-                            </div>
                             <p><?php echo htmlspecialchars($profile['description']); ?></p>
                         </div>
                     </article>
                 <?php endforeach; ?>
             </div>
-
-            <div class="admin-profile-motive">
-                <div class="admin-profile-motive-copy">
-                    <span class="driver-kicker">RideSync Motive</span>
-                    <h3>Building a safer, smarter campus mobility network</h3>
-                    <p>RideSync was created to make everyday travel easier for students and trusted drivers by bringing ride posting, ride discovery, driver verification, direct requests, live status, fare visibility, reports, and admin oversight into one connected platform. The motive is not only to help people find rides faster, but to make each ride more accountable, transparent, and manageable from start to finish.</p>
-                    <p>The admin team’s responsibility is to keep that network dependable. Every profile, document, request, report, and operational signal exists to protect the community, reduce confusion, improve coordination, and help RideSync grow into a reliable mobility system that can support real users at real scale.</p>
-                </div>
-                <div class="admin-profile-motive-grid" aria-label="RideSync operating principles">
-                    <div>
-                        <strong>Trust First</strong>
-                        <span>Verified driver records, document checks, reporting workflows, and admin review paths keep the platform accountable.</span>
-                    </div>
-                    <div>
-                        <strong>Fast Coordination</strong>
-                        <span>Riders, drivers, and admins stay connected through direct requests, ride states, notifications, and operational dashboards.</span>
-                    </div>
-                    <div>
-                        <strong>Clear Operations</strong>
-                        <span>Each workflow is designed to reduce manual confusion and give the team a clean view of demand, activity, risks, and support needs.</span>
-                    </div>
-                </div>
-            </div>
         </section>
     <?php endif; ?>
+
 
     <?php if ($section === 'drivers'): ?>
         <section class="admin-command-card admin-table-card" id="drivers">
@@ -1752,6 +2396,34 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                                 <?php endif; ?>
                             </div>
                             <p class="admin-message"><?php echo nl2br(htmlspecialchars($report['message'])); ?></p>
+                            <div class="admin-note-panel compact">
+                                <div>
+                                    <strong>Internal notes</strong>
+                                    <span><?php echo count($reportNotesById[(int) $report['id']] ?? []); ?> recent</span>
+                                </div>
+                                <?php foreach (($reportNotesById[(int) $report['id']] ?? []) as $note): ?>
+                                    <p><b><?php echo htmlspecialchars(ridesync_admin_status_label($note['note_type'] ?? 'general')); ?></b> <?php echo htmlspecialchars($note['note_text']); ?> <small><?php echo htmlspecialchars($note['admin_name'] ?: 'Admin'); ?>, <?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) $note['created_at']))); ?></small></p>
+                                <?php endforeach; ?>
+                                <?php if (ridesync_admin_notes_schema_ready($conn)): ?>
+                                    <form action="/ridesync/actions/admin_action.php" method="POST" class="admin-note-form">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                        <input type="hidden" name="action_type" value="admin_note_create">
+                                        <input type="hidden" name="entity_type" value="report">
+                                        <input type="hidden" name="entity_id" value="<?php echo (int) $report['id']; ?>">
+                                        <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=reports">
+                                        <select name="note_type" aria-label="Note type">
+                                            <option value="general">General</option>
+                                            <option value="risk">Risk</option>
+                                            <option value="support">Support</option>
+                                            <option value="compliance">Compliance</option>
+                                        </select>
+                                        <input type="text" name="note_text" maxlength="2000" placeholder="Add internal note" required>
+                                        <button type="submit" class="btn btn-secondary btn-sm">Add</button>
+                                    </form>
+                                <?php else: ?>
+                                    <small>Run schema upgrade to enable persistent internal notes.</small>
+                                <?php endif; ?>
+                            </div>
                             <?php if (in_array($report['report_status'], ['open', 'reviewing'], true)): ?>
                                 <form action="/ridesync/actions/admin_action.php" method="POST" class="admin-report-form">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -1775,72 +2447,70 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
         </section>
     <?php endif; ?>
 
-    <?php if ($section === 'analytics'): ?>
-        <section class="admin-command-grid is-lower">
-            <article class="admin-command-card">
-                <div class="admin-card-head">
-                    <div><span class="driver-kicker">Analytics</span><h2>Ride Completion</h2></div>
-                </div>
-                <div class="admin-health-stack">
-                    <div><span>Open Rides</span><strong><?php echo ridesync_admin_int($metrics, 'open_rides'); ?></strong></div>
-                    <div><span>Live Rides</span><strong><?php echo ridesync_admin_int($metrics, 'live_rides'); ?></strong></div>
-                    <div><span>Pending Requests</span><strong><?php echo $pendingRequests; ?></strong></div>
-                    <div><span>Fare Due</span><strong>Rs <?php echo number_format(ridesync_admin_metric($metrics, 'fare_due_total'), 0); ?></strong></div>
-                </div>
-            </article>
-            <article class="admin-command-card">
-                <div class="admin-card-head">
-                    <div><span class="driver-kicker">Route Intelligence</span><h2>Demand Heat</h2></div>
-                </div>
-                <div class="admin-route-list">
-                    <?php foreach ($routeDemandRows as $route): ?>
-                        <div class="admin-route-row">
-                            <div><strong><?php echo htmlspecialchars($route['origin']); ?> &rarr; <?php echo htmlspecialchars($route['destination']); ?></strong><span><?php echo (int) $route['active_count']; ?> active signals</span></div>
-                            <div class="admin-progress"><span style="width: <?php echo ridesync_admin_percent($route['active_count'], max(1, $metrics['total_users'] ?? 1)); ?>%;"></span></div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </article>
-        </section>
-    <?php endif; ?>
 
-    <?php if ($section === 'system'): ?>
+    <?php if ($section === 'audit'): ?>
         <section class="admin-command-card admin-table-card">
             <div class="admin-card-head">
-                <div><span class="driver-kicker">System</span><h2>Audit Log</h2></div>
-                <div class="admin-table-tools">
-                    <input type="search" placeholder="Filter audit log" aria-label="Filter audit log table" data-admin-table-search="auditTable" data-search-context="auditTable">
-                    <span><?php echo ridesync_admin_int($metrics, 'audit_24h'); ?> actions in 24h</span>
+                <div>
+                    <span class="driver-kicker">Audit Explorer</span>
+                    <h2>Administrative Activity</h2>
                 </div>
+                <a class="btn btn-secondary btn-sm" href="<?php echo htmlspecialchars(ridesync_admin_current_url(['export' => 'audit_csv'])); ?>">Export CSV</a>
             </div>
+            <div class="admin-audit-summary-grid" aria-label="Audit summary">
+                <div><span>Events 24h</span><strong><?php echo (int) ($auditSummary['total_24h'] ?? 0); ?></strong></div>
+                <div><span>Denied/Sensitive</span><strong><?php echo (int) ($auditSummary['denied_24h'] ?? 0); ?></strong></div>
+                <div><span>Bulk Actions</span><strong><?php echo (int) ($auditSummary['bulk_24h'] ?? 0); ?></strong></div>
+                <div><span>Active Admins</span><strong><?php echo (int) ($auditSummary['unique_admins_24h'] ?? 0); ?></strong></div>
+            </div>
+            <form class="admin-filter-panel" action="/ridesync/pages/admin_dashboard.php" method="GET">
+                <input type="hidden" name="section" value="audit">
+                <label>
+                    <span>Action</span>
+                    <input type="search" name="audit_action" maxlength="80" value="<?php echo htmlspecialchars($auditFilters['action'] ?? ''); ?>" placeholder="admin_bulk, report">
+                </label>
+                <label>
+                    <span>Entity</span>
+                    <input type="search" name="audit_entity" maxlength="80" value="<?php echo htmlspecialchars($auditFilters['entity'] ?? ''); ?>" placeholder="driver_account">
+                </label>
+                <label>
+                    <span>IP</span>
+                    <input type="search" name="audit_ip" maxlength="64" value="<?php echo htmlspecialchars($auditFilters['ip'] ?? ''); ?>" placeholder="127.0.0.1">
+                </label>
+                <label>
+                    <span>Admin ID</span>
+                    <input type="number" min="1" name="audit_admin" value="<?php echo (int) ($auditFilters['admin_id'] ?? 0) > 0 ? (int) $auditFilters['admin_id'] : ''; ?>">
+                </label>
+                <label>
+                    <span>From</span>
+                    <input type="date" name="audit_from" value="<?php echo htmlspecialchars($auditFilters['from'] ?? ''); ?>">
+                </label>
+                <label>
+                    <span>To</span>
+                    <input type="date" name="audit_to" value="<?php echo htmlspecialchars($auditFilters['to'] ?? ''); ?>">
+                </label>
+                <div class="admin-filter-actions">
+                    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                    <a class="btn btn-secondary btn-sm" href="/ridesync/pages/admin_dashboard.php?section=audit">Reset</a>
+                </div>
+            </form>
             <div class="admin-table-wrap">
-                <table class="admin-smart-table" id="auditTable">
-                    <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Entity</th><th>Message</th><th>Context</th></tr></thead>
+                <table class="admin-smart-table admin-audit-table" id="auditTable">
+                    <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Entity</th><th>Message</th><th>Source</th></tr></thead>
                     <tbody>
-                        <?php foreach ($auditRows as $audit): ?>
-                            <?php
-                                $auditIp = $audit['source_ip'] ?? '';
-                                $auditAgent = $audit['user_agent'] ?? '';
-                                $auditSearch = ridesync_admin_search_blob([$audit['admin_name'], $audit['action'], $audit['entity_type'], $audit['entity_id'], $audit['message'], $auditIp, $auditAgent]);
-                            ?>
+                        <?php foreach ($auditRows as $row): ?>
+                            <?php $auditSearch = ridesync_admin_search_blob([$row['admin_name'], $row['admin_email'], $row['action'], $row['entity_type'], $row['message'], $row['source_ip']]); ?>
                             <tr data-search="<?php echo htmlspecialchars($auditSearch); ?>">
-                                <td><?php echo htmlspecialchars(date('M j, g:i A', strtotime($audit['created_at']))); ?></td>
-                                <td><?php echo htmlspecialchars($audit['admin_name'] ?: 'System'); ?></td>
-                                <td><span class="badge badge-open"><?php echo htmlspecialchars(ridesync_admin_status_label($audit['action'])); ?></span></td>
-                                <td><?php echo htmlspecialchars($audit['entity_type'] . ' #' . ($audit['entity_id'] ?? '-')); ?></td>
-                                <td><?php echo htmlspecialchars($audit['message'] ?: 'No message'); ?></td>
-                                <td>
-                                    <?php if ($auditIp !== '' || $auditAgent !== ''): ?>
-                                        <span><?php echo htmlspecialchars($auditIp ?: 'unknown IP'); ?></span>
-                                        <small><?php echo htmlspecialchars($auditAgent !== '' ? $auditAgent : 'No user agent'); ?></small>
-                                    <?php else: ?>
-                                        <span>Not captured</span>
-                                    <?php endif; ?>
-                                </td>
+                                <td><strong><?php echo htmlspecialchars(date('M j', strtotime((string) $row['created_at']))); ?></strong><span><?php echo htmlspecialchars(date('g:i:s A', strtotime((string) $row['created_at']))); ?></span></td>
+                                <td><strong><?php echo htmlspecialchars($row['admin_name'] ?: 'System'); ?></strong><span><?php echo htmlspecialchars($row['admin_email'] ?: 'No admin account'); ?></span></td>
+                                <td><span class="badge badge-pending"><?php echo htmlspecialchars(ridesync_admin_status_label($row['action'])); ?></span></td>
+                                <td><strong><?php echo htmlspecialchars($row['entity_type']); ?></strong><span><?php echo $row['entity_id'] !== null ? '#' . (int) $row['entity_id'] : 'No entity id'; ?></span></td>
+                                <td><?php echo htmlspecialchars($row['message'] ?: 'No message'); ?></td>
+                                <td><strong><?php echo htmlspecialchars($row['source_ip'] ?: 'Unknown IP'); ?></strong><span><?php echo htmlspecialchars($row['user_agent'] ? substr((string) $row['user_agent'], 0, 80) : 'No user agent'); ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                         <?php if (count($auditRows) === 0): ?>
-                            <tr><td colspan="6" class="admin-table-empty">No audit entries found on this page.</td></tr>
+                            <tr><td colspan="6" class="admin-table-empty">No audit records match the current filters.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -1848,6 +2518,513 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
             <?php ridesync_admin_render_pagination($auditPagination); ?>
         </section>
     <?php endif; ?>
+
+    <?php if ($section === 'bulk'): ?>
+        <section class="admin-command-card">
+            <div class="admin-card-head">
+                <div>
+                    <span class="driver-kicker">Bulk Operations</span>
+                    <h2>Safeguarded System Cleanup</h2>
+                </div>
+                <span>Super admin only</span>
+            </div>
+            <p class="admin-message">Bulk actions are capped, auditable, and require the exact confirmation phrase. They do not delete accounts or documents.</p>
+            <div class="admin-bulk-grid">
+                <?php foreach ($bulkOperations as $operationKey => $operation): ?>
+                    <article class="admin-bulk-card is-<?php echo htmlspecialchars($operation['severity'] ?? 'warning'); ?>">
+                        <div class="admin-bulk-card-head">
+                            <div>
+                                <span><?php echo htmlspecialchars($operation['kicker']); ?></span>
+                                <strong><?php echo htmlspecialchars($operation['title']); ?></strong>
+                            </div>
+                            <b><?php echo (int) $operation['count']; ?></b>
+                        </div>
+                        <p><?php echo htmlspecialchars($operation['description']); ?></p>
+                        <form action="/ridesync/actions/admin_action.php" method="POST" data-confirm-message="Run this guarded bulk operation?">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="action_type" value="admin_bulk_operation">
+                            <input type="hidden" name="bulk_operation" value="<?php echo htmlspecialchars($operationKey); ?>">
+                            <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=bulk">
+                            <label>
+                                <span>Confirmation</span>
+                                <input type="text" name="confirmation_text" maxlength="8" placeholder="RUN BULK" autocomplete="off" required>
+                            </label>
+                            <button type="submit" class="btn <?php echo ($operation['severity'] ?? '') === 'critical' ? 'btn-danger' : 'btn-primary'; ?> btn-sm" <?php echo (int) $operation['count'] === 0 ? 'disabled' : ''; ?>>
+                                <?php echo htmlspecialchars($operation['button']); ?>
+                            </button>
+                        </form>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+
+    <?php if ($section === 'services'): ?>
+        <?php
+            $servicesSummary = $servicesSnapshot['summary'] ?? [];
+            $services = $servicesSnapshot['services'] ?? [];
+            $serviceAlerts = $servicesSnapshot['alerts'] ?? [];
+            $serviceWorkflows = $servicesSnapshot['workflows'] ?? [];
+            $serviceApiChecks = $servicesSnapshot['api_checks'] ?? [];
+            $serviceQueues = $servicesSnapshot['queues'] ?? [];
+            $serviceLogs = $servicesSnapshot['logs'] ?? [];
+            $serviceIncidents = $servicesSnapshot['incidents'] ?? [];
+            $serviceAlertRules = $servicesSnapshot['alert_rules'] ?? [];
+            $repairSummary = $repairKitSnapshot['summary'] ?? [];
+            $repairFindings = $repairKitSnapshot['findings'] ?? [];
+            $repairActions = $repairKitSnapshot['actions'] ?? [];
+            $repairRuns = $repairKitSnapshot['recent_runs'] ?? [];
+            $repairRuntime = $repairKitSnapshot['runtime'] ?? [];
+            $repairCheckpoint = $repairKitSnapshot['checkpoint'] ?? [];
+        ?>
+        <section class="admin-services-shell" data-admin-services>
+            <div class="admin-card-head">
+                <div>
+                    <span class="driver-kicker">Services</span>
+                    <h2>AI Operations Monitor</h2>
+                </div>
+                <span class="admin-live-pill"><span></span> <b data-service-last-refresh><?php echo htmlspecialchars(date('g:i:s A')); ?></b></span>
+            </div>
+
+            <section class="admin-priority-grid admin-services-summary" aria-label="AI service summary">
+                <article class="admin-op-card <?php echo ($servicesSummary['status'] ?? '') === 'critical' ? 'is-danger' : (($servicesSummary['status'] ?? '') === 'degraded' ? 'is-warning' : 'is-primary'); ?>">
+                    <span>Service State</span>
+                    <strong data-service-summary="status_label"><?php echo htmlspecialchars($servicesSummary['status_label'] ?? 'Unknown'); ?></strong>
+                    <small><b data-service-summary="current_uptime_percent"><?php echo htmlspecialchars((string) ($servicesSummary['current_uptime_percent'] ?? 0)); ?></b>% current uptime</small>
+                </article>
+                <article class="admin-op-card">
+                    <span>AI Requests</span>
+                    <strong data-service-summary="ai_requests_24h"><?php echo (int) ($servicesSummary['ai_requests_24h'] ?? 0); ?></strong>
+                    <small><b data-service-summary="ai_responses_24h"><?php echo (int) ($servicesSummary['ai_responses_24h'] ?? 0); ?></b> responses in 24h</small>
+                </article>
+                <article class="admin-op-card">
+                    <span>API Checks</span>
+                    <strong data-service-summary="api_checks_24h"><?php echo (int) ($servicesSummary['api_checks_24h'] ?? 0); ?></strong>
+                    <small>Provider validations in 24h</small>
+                </article>
+                <article class="admin-op-card <?php echo (int) ($servicesSummary['failed_jobs'] ?? 0) > 0 ? 'is-warning' : ''; ?>">
+                    <span>Failed Jobs</span>
+                    <strong data-service-summary="failed_jobs"><?php echo (int) ($servicesSummary['failed_jobs'] ?? 0); ?></strong>
+                    <small>Background recovery queue</small>
+                </article>
+                <article class="admin-op-card <?php echo (int) ($servicesSummary['alerts_total'] ?? 0) > 0 ? 'is-danger' : ''; ?>">
+                    <span>Alerts</span>
+                    <strong data-service-summary="alerts_total"><?php echo (int) ($servicesSummary['alerts_total'] ?? 0); ?></strong>
+                    <small><b data-service-summary="runtime_errors_24h"><?php echo (int) ($servicesSummary['runtime_errors_24h'] ?? 0); ?></b> runtime errors</small>
+                </article>
+            </section>
+
+            <section id="repair-kit" class="admin-repair-kit-shell" data-repair-kit aria-labelledby="repairKitTitle">
+                <div class="admin-card-head admin-repair-kit-head">
+                    <div>
+                        <span class="driver-kicker">Repair Kit</span>
+                        <h2 id="repairKitTitle">Autonomous Recovery Console</h2>
+                    </div>
+                    <span class="admin-live-pill"><span></span> Super Admin</span>
+                </div>
+
+                <?php if (!$canRepairPlatform): ?>
+                    <article class="admin-risk-card is-critical admin-repair-locked">
+                        <span>Restricted</span>
+                        <strong>Repair Kit requires Super Admin access</strong>
+                        <p>Diagnostics are visible only to operators who can run guarded recovery, maintenance, rollback, and infrastructure handoff workflows.</p>
+                    </article>
+                <?php else: ?>
+                    <section class="admin-repair-summary-grid" aria-label="Repair Kit health summary">
+                        <article class="admin-op-card <?php echo ($repairSummary['status'] ?? '') === 'critical' ? 'is-danger' : (($repairSummary['status'] ?? '') === 'degraded' ? 'is-warning' : 'is-primary'); ?>">
+                            <span>Repair Score</span>
+                            <strong data-repair-summary="repair_score"><?php echo (int) ($repairSummary['repair_score'] ?? 0); ?></strong>
+                            <small><?php echo htmlspecialchars($repairSummary['status_label'] ?? 'Unknown'); ?></small>
+                        </article>
+                        <article class="admin-op-card">
+                            <span>Critical Findings</span>
+                            <strong data-repair-summary="critical_findings"><?php echo (int) ($repairSummary['critical_findings'] ?? 0); ?></strong>
+                            <small><?php echo (int) ($repairSummary['warning_findings'] ?? 0); ?> warnings</small>
+                        </article>
+                        <article class="admin-op-card">
+                            <span>Recommended Fixes</span>
+                            <strong data-repair-summary="recommended_actions"><?php echo (int) ($repairSummary['recommended_actions'] ?? 0); ?></strong>
+                            <small>guarded actions available</small>
+                        </article>
+                        <article class="admin-op-card">
+                            <span>Runtime Memory</span>
+                            <strong><?php echo htmlspecialchars((string) ($repairRuntime['php_memory_mb'] ?? 0)); ?> MB</strong>
+                            <small><?php echo $repairRuntime['disk_free_percent'] !== null ? htmlspecialchars((string) $repairRuntime['disk_free_percent']) . '% disk free' : 'disk unknown'; ?></small>
+                        </article>
+                        <article class="admin-op-card <?php echo empty($repairKitSnapshot['schema_ready']) ? 'is-warning' : ''; ?>">
+                            <span>Encrypted Logs</span>
+                            <strong><?php echo !empty($repairKitSnapshot['schema_ready']) ? 'Ready' : 'Migration'; ?></strong>
+                            <small><?php echo count($repairRuns); ?> recent recovery run(s)</small>
+                        </article>
+                    </section>
+
+                    <section class="admin-command-grid admin-repair-grid">
+                        <article class="admin-command-card admin-repair-scanner">
+                            <div class="admin-card-head">
+                                <div>
+                                    <span class="driver-kicker">Global Scanner</span>
+                                    <h2>Infrastructure Findings</h2>
+                                </div>
+                                <span><?php echo count($repairFindings); ?> signals</span>
+                            </div>
+                            <div class="admin-repair-finding-list" data-repair-findings>
+                                <?php if (empty($repairFindings)): ?>
+                                    <div class="admin-feed-item">
+                                        <div>
+                                            <strong>No critical repair findings</strong>
+                                            <p>Core services, schema, queues, storage, security settings, and AI diagnostics are within current scanner thresholds.</p>
+                                            <small><?php echo htmlspecialchars(date('M j, g:i A')); ?></small>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach (array_slice($repairFindings, 0, 10) as $finding): ?>
+                                        <div class="admin-repair-finding is-<?php echo htmlspecialchars($finding['severity'] ?? 'info'); ?>">
+                                            <span><?php echo htmlspecialchars(ridesync_admin_status_label($finding['area'] ?? 'System')); ?></span>
+                                            <strong><?php echo htmlspecialchars($finding['title'] ?? 'Repair finding'); ?></strong>
+                                            <p><?php echo htmlspecialchars($finding['detail'] ?? 'Review this repair signal.'); ?></p>
+                                            <small><?php echo htmlspecialchars(ridesync_admin_status_label($finding['action_key'] ?? 'deep_scan')); ?></small>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+
+                        <article class="admin-command-card admin-repair-actions-card">
+                            <div class="admin-card-head">
+                                <div>
+                                    <span class="driver-kicker">Auto Repair</span>
+                                    <h2>Guarded Recovery Controls</h2>
+                                </div>
+                                <span>RBAC + audit</span>
+                            </div>
+                            <div class="admin-repair-actions">
+                                <?php foreach ($repairActions as $repairAction): ?>
+                                    <?php
+                                        $confirmationPhrase = (string) ($repairAction['confirmation'] ?? '');
+                                        $isCriticalRepair = ($repairAction['severity'] ?? '') === 'critical';
+                                    ?>
+                                    <form action="/ridesync/actions/admin_action.php" method="POST"
+                                          <?php if ($confirmationPhrase !== ''): ?>
+                                              data-confirm-message="<?php echo htmlspecialchars('Run Repair Kit action: ' . ($repairAction['label'] ?? 'repair') . '?'); ?>"
+                                              data-confirm-phrase="<?php echo htmlspecialchars($confirmationPhrase); ?>"
+                                          <?php endif; ?>>
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                        <input type="hidden" name="action_type" value="admin_repair_kit_execute">
+                                        <input type="hidden" name="repair_operation" value="<?php echo htmlspecialchars($repairAction['key'] ?? 'deep_scan'); ?>">
+                                        <input type="hidden" name="confirmation_text" value="">
+                                        <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=services#repair-kit">
+                                        <button type="submit" class="admin-repair-action <?php echo !empty($repairAction['recommended']) ? 'is-recommended' : ''; ?> <?php echo $isCriticalRepair ? 'is-critical' : ''; ?>">
+                                            <span><?php echo htmlspecialchars($repairAction['category'] ?? 'Repair'); ?></span>
+                                            <strong><?php echo htmlspecialchars($repairAction['label'] ?? 'Repair action'); ?></strong>
+                                            <small><?php echo htmlspecialchars($repairAction['description'] ?? 'Run guarded repair workflow.'); ?></small>
+                                        </button>
+                                    </form>
+                                <?php endforeach; ?>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section class="admin-command-grid is-lower admin-repair-lower-grid">
+                        <article class="admin-command-card">
+                            <div class="admin-card-head">
+                                <div>
+                                    <span class="driver-kicker">Recovery Logs</span>
+                                    <h2>Encrypted Repair Audit</h2>
+                                </div>
+                                <span><?php echo count($repairRuns); ?> latest</span>
+                            </div>
+                            <div class="admin-repair-log-list" data-repair-runs>
+                                <?php if (empty($repairRuns)): ?>
+                                    <div class="admin-feed-item">
+                                        <div>
+                                            <strong>No Repair Kit runs yet</strong>
+                                            <p>Recovery actions will appear here with encrypted payloads, hashes, checkpoints, and admin attribution.</p>
+                                            <small>Waiting for first run</small>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach ($repairRuns as $run): ?>
+                                        <?php $runResult = is_array($run['result'] ?? null) ? $run['result'] : []; ?>
+                                        <div class="admin-repair-log-row is-<?php echo htmlspecialchars($run['status'] ?? 'queued'); ?>">
+                                            <div>
+                                                <span><?php echo htmlspecialchars(strtoupper((string) ($run['status'] ?? 'queued'))); ?></span>
+                                                <strong><?php echo htmlspecialchars(ridesync_admin_status_label($run['action_key'] ?? 'repair')); ?></strong>
+                                                <p><?php echo htmlspecialchars($runResult['message'] ?? 'Encrypted recovery record captured.'); ?></p>
+                                            </div>
+                                            <small><?php echo htmlspecialchars(!empty($run['created_at']) ? date('M j, g:i A', strtotime((string) $run['created_at'])) : ''); ?> / <?php echo htmlspecialchars(substr((string) ($run['log_hash'] ?? ''), 0, 12)); ?></small>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+
+                        <article class="admin-command-card admin-repair-checkpoint-card">
+                            <div class="admin-card-head">
+                                <div>
+                                    <span class="driver-kicker">Rollback Safety</span>
+                                    <h2>Latest Checkpoint</h2>
+                                </div>
+                                <span><?php echo htmlspecialchars(!empty($repairCheckpoint['created_at']) ? date('g:i A', strtotime((string) $repairCheckpoint['created_at'])) : 'now'); ?></span>
+                            </div>
+                            <div class="admin-health-stack">
+                                <?php foreach (($repairCheckpoint['tables'] ?? []) as $checkpointKey => $checkpointValue): ?>
+                                    <div><span><?php echo htmlspecialchars(ridesync_admin_status_label($checkpointKey)); ?></span><strong><?php echo htmlspecialchars((string) $checkpointValue); ?></strong></div>
+                                <?php endforeach; ?>
+                            </div>
+                            <p class="admin-message">Before every repair operation, the module records operational counts, environment safety state, encrypted log payload, and immutable hash for audit correlation.</p>
+                        </article>
+
+                        <article class="admin-command-card admin-repair-godmode">
+                            <div class="admin-card-head">
+                                <div>
+                                    <span class="driver-kicker">God Mode</span>
+                                    <h2>Emergency Architecture</h2>
+                                </div>
+                                <span>safe handoff</span>
+                            </div>
+                            <div class="admin-repair-godmode-list">
+                                <div><strong>Host restarts</strong><span>Queued to ops workers, never executed directly by PHP web requests.</span></div>
+                                <div><strong>Rollback</strong><span>Audited rollback hooks are created as background jobs for deployment automation.</span></div>
+                                <div><strong>Kill switches</strong><span>Feature flags can pause unstable modules without deleting data.</span></div>
+                                <div><strong>AI recovery</strong><span>Failed sessions are retried and service health snapshots are rebuilt.</span></div>
+                            </div>
+                        </article>
+                    </section>
+                <?php endif; ?>
+            </section>
+
+            <section class="admin-service-alerts" data-service-alerts aria-live="polite">
+                <?php if (count($serviceAlerts) === 0): ?>
+                    <article class="admin-risk-card is-healthy">
+                        <span>Healthy</span>
+                        <strong>No active service alerts</strong>
+                        <p>All monitored AI and operations services are within current thresholds.</p>
+                    </article>
+                <?php else: ?>
+                    <?php foreach ($serviceAlerts as $alert): ?>
+                        <article class="admin-risk-card is-<?php echo htmlspecialchars(($alert['severity'] ?? '') === 'critical' ? 'critical' : 'warning'); ?>">
+                            <span><?php echo htmlspecialchars(ucfirst((string) ($alert['severity'] ?? 'warning'))); ?></span>
+                            <strong><?php echo htmlspecialchars($alert['title'] ?? 'Service alert'); ?></strong>
+                            <p><?php echo htmlspecialchars($alert['detail'] ?? 'Review service details.'); ?></p>
+                        </article>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </section>
+
+            <section class="admin-command-grid">
+                <article class="admin-command-card">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Service Matrix</span>
+                            <h2>Integrated APIs and Workers</h2>
+                        </div>
+                        <span><?php echo count($services); ?> checks</span>
+                    </div>
+                    <div class="admin-service-grid" data-service-list>
+                        <?php foreach ($services as $service): ?>
+                            <?php
+                                $status = (string) ($service['status'] ?? 'unknown');
+                                $serviceMetrics = $service['metrics'] ?? [];
+                                $serviceDetails = $service['details'] ?? [];
+                                $serviceSearch = ridesync_admin_search_blob([$service['name'] ?? '', $service['group'] ?? '', $status, $service['summary'] ?? '']);
+                            ?>
+                            <article class="admin-service-tile is-<?php echo htmlspecialchars($status); ?>" data-search="<?php echo htmlspecialchars($serviceSearch); ?>" data-service-key="<?php echo htmlspecialchars($service['key'] ?? 'service'); ?>">
+                                <div>
+                                    <span><?php echo htmlspecialchars($service['group'] ?? 'Service'); ?></span>
+                                    <strong><?php echo htmlspecialchars($service['name'] ?? 'Service'); ?></strong>
+                                </div>
+                                <span class="badge badge-<?php echo htmlspecialchars($status === 'operational' ? 'accepted' : ($status === 'down' || $status === 'critical' ? 'rejected' : 'pending')); ?>"><?php echo htmlspecialchars($service['status_label'] ?? 'Unknown'); ?></span>
+                                <p><?php echo htmlspecialchars($service['summary'] ?? 'No summary available.'); ?></p>
+                                <dl>
+                                    <div><dt>Latency</dt><dd><?php echo isset($service['latency_ms']) && $service['latency_ms'] !== null ? htmlspecialchars((string) $service['latency_ms']) . ' ms' : 'Not measured'; ?></dd></div>
+                                    <div><dt>Uptime</dt><dd><?php echo isset($service['uptime_percent']) && $service['uptime_percent'] !== null ? htmlspecialchars((string) $service['uptime_percent']) . '%' : 'Not tracked'; ?></dd></div>
+                                    <?php foreach (array_slice($serviceMetrics, 0, 4) as $metricKey => $metricValue): ?>
+                                        <div><dt><?php echo htmlspecialchars(ridesync_admin_status_label($metricKey)); ?></dt><dd><?php echo htmlspecialchars(is_bool($metricValue) ? ($metricValue ? 'yes' : 'no') : (is_scalar($metricValue) ? (string) $metricValue : 'details')); ?></dd></div>
+                                    <?php endforeach; ?>
+                                </dl>
+                                <button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
+                                    'kicker' => 'Service',
+                                    'title' => $service['name'] ?? 'Service',
+                                    'fields' => array_merge([
+                                        'Status' => $service['status_label'] ?? 'Unknown',
+                                        'Group' => $service['group'] ?? 'Service',
+                                        'Summary' => $service['summary'] ?? '',
+                                        'Latency' => isset($service['latency_ms']) && $service['latency_ms'] !== null ? $service['latency_ms'] . ' ms' : 'Not measured',
+                                        'Checked At' => $service['checked_at'] ?? '',
+                                    ], $serviceMetrics, $serviceDetails),
+                                ]); ?>">Inspect</button>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </article>
+
+                <article class="admin-command-card">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Recovery</span>
+                            <h2>Queue Controls</h2>
+                        </div>
+                        <span><?php echo (int) ($serviceQueues['queued'] ?? 0); ?> queued</span>
+                    </div>
+                    <div class="admin-health-stack" data-service-queues>
+                        <div><span>Processing</span><strong><?php echo (int) ($serviceQueues['processing'] ?? 0); ?></strong></div>
+                        <div><span>Stale Processing</span><strong><?php echo (int) ($serviceQueues['stale_processing'] ?? 0); ?></strong></div>
+                        <div><span>Failed Verification</span><strong><?php echo (int) ($serviceQueues['failed_verification'] ?? 0); ?></strong></div>
+                        <div><span>Succeeded 24h</span><strong><?php echo (int) ($serviceQueues['succeeded_24h'] ?? 0); ?></strong></div>
+                    </div>
+                    <div class="admin-service-actions">
+                        <form action="/ridesync/actions/admin_action.php" method="POST">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="action_type" value="admin_services_release_timeouts">
+                            <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=services">
+                            <button type="submit" class="btn btn-secondary btn-sm">Release stale jobs</button>
+                        </form>
+                        <form action="/ridesync/actions/admin_action.php" method="POST">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="action_type" value="admin_services_retry_failed_verifications">
+                            <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=services">
+                            <button type="submit" class="btn btn-primary btn-sm">Retry failed AI jobs</button>
+                        </form>
+                    </div>
+                </article>
+            </section>
+
+            <section class="admin-command-grid is-lower">
+                <article class="admin-command-card">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Incident Center</span>
+                            <h2>Active Failures and Instability</h2>
+                        </div>
+                        <span><?php echo count($serviceIncidents); ?> incidents</span>
+                    </div>
+                    <div class="admin-incident-list">
+                        <?php if (count($serviceIncidents) === 0): ?>
+                            <div class="driver-empty-card">No active incidents detected by service monitors.</div>
+                        <?php else: ?>
+                            <?php foreach (array_slice($serviceIncidents, 0, 8) as $incident): ?>
+                                <article class="admin-incident-card is-<?php echo htmlspecialchars($incident['severity'] ?? 'warning'); ?>">
+                                    <div>
+                                        <span><?php echo htmlspecialchars(ridesync_admin_status_label($incident['source'] ?? 'service')); ?></span>
+                                        <strong><?php echo htmlspecialchars($incident['title'] ?? 'Incident'); ?></strong>
+                                    </div>
+                                    <p><?php echo htmlspecialchars($incident['detail'] ?? 'Review operational telemetry.'); ?></p>
+                                    <small><?php echo htmlspecialchars(!empty($incident['created_at']) ? date('M j, g:i A', strtotime((string) $incident['created_at'])) : date('M j, g:i A')); ?></small>
+                                    <?php if (!empty($incident['driver_id'])): ?>
+                                        <a class="btn btn-secondary btn-sm" href="/ridesync/pages/admin_driver_verification.php?driver_id=<?php echo (int) $incident['driver_id']; ?>">Open driver</a>
+                                    <?php endif; ?>
+                                </article>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </article>
+
+                <article class="admin-command-card">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">AI Flow</span>
+                            <h2>Verification Processing</h2>
+                        </div>
+                    </div>
+                    <div class="admin-health-stack" data-service-workflows>
+                        <div><span>Queued</span><strong><?php echo (int) ($serviceWorkflows['queued'] ?? 0); ?></strong></div>
+                        <div><span>Processing</span><strong><?php echo (int) ($serviceWorkflows['processing'] ?? 0); ?></strong></div>
+                        <div><span>Slow</span><strong><?php echo (int) ($serviceWorkflows['slow_processing'] ?? 0); ?></strong></div>
+                        <div><span>Avg Time</span><strong><?php echo htmlspecialchars((string) ($serviceWorkflows['avg_processing_ms'] ?? 0)); ?> ms</strong></div>
+                        <div><span>Token Usage</span><strong><?php echo (int) ($serviceWorkflows['token_usage_24h'] ?? 0); ?></strong></div>
+                    </div>
+                </article>
+
+                <article class="admin-command-card">
+                    <div class="admin-card-head">
+                        <div>
+                            <span class="driver-kicker">Provider APIs</span>
+                            <h2>Validation Outcomes</h2>
+                        </div>
+                    </div>
+                    <div class="admin-health-stack" data-service-api-checks>
+                        <div><span>Passed 24h</span><strong><?php echo (int) ($serviceApiChecks['passed_24h'] ?? 0); ?></strong></div>
+                        <div><span>Needs Review</span><strong><?php echo (int) ($serviceApiChecks['needs_review_24h'] ?? 0); ?></strong></div>
+                        <div><span>Failed 24h</span><strong><?php echo (int) ($serviceApiChecks['failed_24h'] ?? 0); ?></strong></div>
+                        <div><span>Total Checks</span><strong><?php echo (int) ($serviceApiChecks['checks_24h'] ?? 0); ?></strong></div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="admin-command-card">
+                <div class="admin-card-head">
+                    <div>
+                        <span class="driver-kicker">Alert Rules</span>
+                        <h2>Service Thresholds</h2>
+                    </div>
+                    <span><?php echo count(array_filter($serviceAlertRules, static fn($rule) => !empty($rule['triggered']))); ?> firing</span>
+                </div>
+                <div class="admin-rule-list">
+                    <?php foreach ($serviceAlertRules as $rule): ?>
+                        <article class="admin-rule-row <?php echo !empty($rule['triggered']) ? 'is-triggered' : ''; ?>">
+                            <div>
+                                <span class="badge badge-<?php echo htmlspecialchars(($rule['severity'] ?? '') === 'critical' ? 'rejected' : 'pending'); ?>">
+                                    <?php echo htmlspecialchars(ridesync_admin_status_label($rule['severity'] ?? 'warning')); ?>
+                                </span>
+                                <strong><?php echo htmlspecialchars($rule['label'] ?? 'Alert rule'); ?></strong>
+                                <p><?php echo htmlspecialchars(($rule['metric_key'] ?? 'metric') . ' ' . ridesync_admin_status_label($rule['operator'] ?? 'greater_than') . ' ' . (float) ($rule['threshold'] ?? 0)); ?></p>
+                            </div>
+                            <dl>
+                                <div><dt>Current</dt><dd><?php echo htmlspecialchars((string) ($rule['current_value'] ?? 0)); ?></dd></div>
+                                <div><dt>State</dt><dd><?php echo !empty($rule['triggered']) ? 'Firing' : 'Normal'; ?></dd></div>
+                            </dl>
+                            <?php if ($canManageAlertRules && !empty($rule['id'])): ?>
+                                <form action="/ridesync/actions/admin_action.php" method="POST">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                    <input type="hidden" name="action_type" value="admin_alert_rule_toggle">
+                                    <input type="hidden" name="rule_id" value="<?php echo (int) $rule['id']; ?>">
+                                    <input type="hidden" name="enabled" value="<?php echo !empty($rule['enabled']) ? 0 : 1; ?>">
+                                    <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php?section=services">
+                                    <button type="submit" class="btn btn-secondary btn-sm"><?php echo !empty($rule['enabled']) ? 'Disable' : 'Enable'; ?></button>
+                                </form>
+                            <?php else: ?>
+                                <span class="badge badge-<?php echo !empty($rule['enabled']) ? 'accepted' : 'closed'; ?>"><?php echo !empty($rule['enabled']) ? 'Enabled' : 'Disabled'; ?></span>
+                            <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+
+            <section class="admin-command-card">
+                <div class="admin-card-head">
+                    <div>
+                        <span class="driver-kicker">Debug Log</span>
+                        <h2>Recent Service Errors</h2>
+                    </div>
+                    <span><?php echo (int) ($serviceLogs['warnings_24h'] ?? 0); ?> warnings</span>
+                </div>
+                <div class="admin-feed-list admin-service-log-list" data-service-logs>
+                    <?php if (empty($serviceLogs['recent'])): ?>
+                        <div class="admin-feed-item">
+                            <div>
+                                <strong>No recent warning or error logs</strong>
+                                <p>Runtime logs have no service-level warnings in the current window.</p>
+                                <small><?php echo htmlspecialchars(date('M j, g:i A')); ?></small>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($serviceLogs['recent'] as $log): ?>
+                            <div class="admin-feed-item">
+                                <span class="admin-feed-dot badge-<?php echo htmlspecialchars(($log['level'] ?? '') === 'error' || ($log['level'] ?? '') === 'critical' ? 'rejected' : 'pending'); ?>"></span>
+                                <div>
+                                    <strong><?php echo htmlspecialchars(strtoupper((string) ($log['level'] ?? 'warning')) . ' - ' . ($log['message'] ?? 'Log event')); ?></strong>
+                                    <p><?php echo htmlspecialchars($log['request_id'] ?? 'No request id'); ?></p>
+                                    <small><?php echo htmlspecialchars($log['timestamp'] ?? ''); ?></small>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </section>
+        </section>
+    <?php endif; ?>
+
 </div>
 
 <aside class="admin-drawer" id="adminDrawer" aria-hidden="true">

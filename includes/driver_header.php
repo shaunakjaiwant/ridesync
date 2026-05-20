@@ -34,8 +34,8 @@ if (isset($_SESSION['driver_id'])) {
     </div>
 
     <ul class="driver-nav-links">
-        <li><a class="<?php echo $currentDriverPage === 'driver_dashboard.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_dashboard.php">Home</a></li>
-        <li><a class="<?php echo $currentDriverPage === 'driver_requests.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_requests.php">Requests & Rides</a></li>
+        <li><a class="<?php echo $currentDriverPage === 'driver_dashboard.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_dashboard.php">Overview</a></li>
+        <li><a class="<?php echo $currentDriverPage === 'driver_requests.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_requests.php">Work Queue</a></li>
         <li><a class="<?php echo $currentDriverPage === 'driver_profile.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_profile.php">Profile</a></li>
         <li>
             <a class="<?php echo $currentDriverPage === 'notifications.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/notifications.php?actor_type=driver">

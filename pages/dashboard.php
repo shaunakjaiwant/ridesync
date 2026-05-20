@@ -65,9 +65,32 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
 ?>
 
 <div class="page-header">
-    <h1>Welcome back, <?php echo htmlspecialchars($_SESSION['user_name']); ?> 👋</h1>
-    <p>Here's what's happening with your rides.</p>
+    <h1>Welcome back, <?php echo htmlspecialchars($_SESSION['user_name']); ?></h1>
+    <p>Your current rides, requests, and route signals.</p>
 </div>
+
+<nav class="panel-action-rail quick-actions" aria-label="Primary rider actions">
+    <a class="panel-action-card is-primary" href="/ridesync/pages/post_ride.php">
+        <span>Offer seats</span>
+        <strong>Post Ride</strong>
+        <small>Create a route for others to join.</small>
+    </a>
+    <a class="panel-action-card" href="/ridesync/pages/search_rides.php">
+        <span>Find movement</span>
+        <strong>Search Rides</strong>
+        <small>Match with open campus routes.</small>
+    </a>
+    <a class="panel-action-card" href="/ridesync/pages/my_rides.php">
+        <span>Manage</span>
+        <strong>My Trips</strong>
+        <small>Review requests and live status.</small>
+    </a>
+    <a class="panel-action-card" href="/ridesync/pages/insights.php">
+        <span>Signals</span>
+        <strong>Insights</strong>
+        <small>See route demand and savings.</small>
+    </a>
+</nav>
 
 <!-- Stats Cards -->
 <div class="dashboard-stats">
@@ -107,7 +130,7 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
                     <a href="/ridesync/pages/ride_detail.php?id=<?php echo $ride['id']; ?>" class="mini-ride-item">
                         <div class="mini-ride-route">
                             <strong><?php echo htmlspecialchars($ride['origin']); ?></strong>
-                            <span class="arrow">→</span>
+                            <span class="arrow">&rarr;</span>
                             <strong><?php echo htmlspecialchars($ride['destination']); ?></strong>
                         </div>
                         <div class="mini-ride-meta">
@@ -119,7 +142,7 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
                     </a>
                 <?php endwhile; ?>
             </div>
-            <a href="/ridesync/pages/my_rides.php" class="view-all-link">View all rides →</a>
+            <a href="/ridesync/pages/my_rides.php" class="view-all-link">View all rides &rarr;</a>
         <?php endif; ?>
     </div>
 
@@ -134,7 +157,7 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
                     <a href="/ridesync/pages/ride_detail.php?id=<?php echo $match['ride_id']; ?>" class="mini-ride-item">
                         <div class="mini-ride-route">
                             <strong><?php echo htmlspecialchars($match['origin']); ?></strong>
-                            <span class="arrow">→</span>
+                            <span class="arrow">&rarr;</span>
                             <strong><?php echo htmlspecialchars($match['destination']); ?></strong>
                         </div>
                         <div class="mini-ride-meta">
@@ -146,7 +169,7 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
                     </a>
                 <?php endwhile; ?>
             </div>
-            <a href="/ridesync/pages/my_matches.php" class="view-all-link">View all requests →</a>
+            <a href="/ridesync/pages/my_matches.php" class="view-all-link">View all requests &rarr;</a>
         <?php endif; ?>
     </div>
 
@@ -213,11 +236,5 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
         <?php endif; ?>
     </div>
 </section>
-
-<!-- Quick Actions -->
-<div class="quick-actions">
-    <a href="/ridesync/pages/post_ride.php" class="btn btn-primary">Post a Ride</a>
-    <a href="/ridesync/pages/search_rides.php" class="btn btn-secondary">Search Rides</a>
-</div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

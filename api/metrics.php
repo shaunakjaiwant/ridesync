@@ -7,13 +7,32 @@ require_once __DIR__ . '/../includes/matching_helper.php';
 
 ridesync_require_method('GET');
 
+function ridesync_metrics_authorization_header() {
+    foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION'] as $key) {
+        $value = trim((string) ($_SERVER[$key] ?? ''));
+        if ($value !== '') {
+            return $value;
+        }
+    }
+
+    if (function_exists('apache_request_headers')) {
+        foreach (apache_request_headers() as $key => $value) {
+            if (strtolower((string) $key) === 'authorization') {
+                return trim((string) $value);
+            }
+        }
+    }
+
+    return '';
+}
+
 $expectedToken = trim((string) ridesync_env('RIDESYNC_METRICS_TOKEN', ''));
-$providedToken = trim((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+$providedToken = ridesync_metrics_authorization_header();
 if (str_starts_with(strtolower($providedToken), 'bearer ')) {
     $providedToken = trim(substr($providedToken, 7));
 }
 
-if ($expectedToken === '' && ridesync_app_env() === 'production') {
+if (!ridesync_secret_is_configured($expectedToken, 32)) {
     if (!headers_sent()) {
         http_response_code(403);
         header('Content-Type: text/plain; charset=utf-8');
@@ -21,7 +40,7 @@ if ($expectedToken === '' && ridesync_app_env() === 'production') {
     exit("forbidden\n");
 }
 
-if ($expectedToken !== '' && !hash_equals($expectedToken, $providedToken)) {
+if (!hash_equals($expectedToken, $providedToken)) {
     if (!headers_sent()) {
         http_response_code(403);
         header('Content-Type: text/plain; charset=utf-8');

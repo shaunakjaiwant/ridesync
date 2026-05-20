@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
+require_once __DIR__ . '/../includes/admin_operations_helper.php';
 
 ridesync_require_admin_login();
 
@@ -176,6 +177,13 @@ $notifications = ridesync_admin_detail_prepared_rows(
     "i",
     [$userId]
 );
+$adminNotes = ridesync_admin_fetch_notes($conn, 'user', $userId, 8);
+$adminNotesReady = ridesync_admin_notes_schema_ready($conn);
+$userHealth = ridesync_admin_record_health_score($conn, 'user', $userId, [
+    'user' => $user,
+    'stats' => $stats,
+]);
+$userTimeline = ridesync_admin_record_timeline($conn, 'user', $userId, 12);
 
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
@@ -189,6 +197,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </div>
         <div class="admin-hero-actions">
             <a class="btn btn-secondary" href="/ridesync/pages/admin_dashboard.php?section=users">Back to Users</a>
+            <a class="btn btn-secondary" href="/ridesync/pages/admin_view_as.php?type=user&id=<?php echo (int) $userId; ?>">View As User</a>
             <?php if (!empty($user['linked_driver_id'])): ?>
                 <a class="btn btn-primary" href="/ridesync/pages/admin_driver_verification.php?driver_id=<?php echo (int) $user['linked_driver_id']; ?>">Open Linked Driver</a>
             <?php endif; ?>
@@ -203,6 +212,59 @@ require_once __DIR__ . '/../includes/admin_header.php';
         <article class="admin-op-card"><span>Fare Due</span><strong>Rs <?php echo number_format((float) ($stats['pending_due'] ?? 0), 0); ?></strong><small>Wallet sync</small></article>
     </section>
 
+    <section class="admin-record-insight-grid">
+        <article class="admin-command-card admin-record-health-card is-<?php echo htmlspecialchars($userHealth['severity']); ?>">
+            <div class="admin-card-head">
+                <div>
+                    <span class="driver-kicker">Record Health</span>
+                    <h2>User Risk Profile</h2>
+                </div>
+                <span><?php echo htmlspecialchars($userHealth['label']); ?></span>
+            </div>
+            <div class="admin-record-health-score">
+                <strong><?php echo (int) $userHealth['score']; ?></strong>
+                <div>
+                    <span>Health score /100</span>
+                    <div class="admin-risk-meter" aria-hidden="true">
+                        <span style="width: <?php echo max(0, min(100, (int) $userHealth['score'])); ?>%;"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="admin-record-factor-list">
+                <?php foreach ($userHealth['factors'] as $factor): ?>
+                    <div class="is-<?php echo htmlspecialchars($factor['severity']); ?>">
+                        <span><?php echo htmlspecialchars(ridesync_admin_status_label($factor['severity'])); ?></span>
+                        <strong><?php echo htmlspecialchars($factor['title']); ?></strong>
+                        <p><?php echo htmlspecialchars($factor['detail']); ?></p>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </article>
+
+        <article class="admin-command-card admin-record-timeline-card">
+            <div class="admin-card-head">
+                <div>
+                    <span class="driver-kicker">Universal Timeline</span>
+                    <h2>User Activity Trail</h2>
+                </div>
+                <span><?php echo count($userTimeline); ?> events</span>
+            </div>
+            <div class="admin-record-timeline">
+                <?php foreach ($userTimeline as $event): ?>
+                    <a class="admin-timeline-row is-<?php echo htmlspecialchars($event['severity']); ?>" href="<?php echo htmlspecialchars($event['href']); ?>">
+                        <span class="admin-timeline-pin"></span>
+                        <div>
+                            <span><?php echo htmlspecialchars($event['type']); ?> - <?php echo htmlspecialchars($event['meta']); ?></span>
+                            <strong><?php echo htmlspecialchars($event['title']); ?></strong>
+                            <p><?php echo htmlspecialchars($event['detail']); ?></p>
+                        </div>
+                        <time><?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) $event['created_at']))); ?></time>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </article>
+    </section>
+
     <section class="admin-command-grid is-lower">
         <article class="admin-command-card">
             <div class="admin-card-head"><div><span class="driver-kicker">Profile</span><h2>Trust and Panel Status</h2></div></div>
@@ -211,6 +273,38 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 <div><span>Verification Reference</span><strong><?php echo htmlspecialchars($user['verification_reference'] ?: 'Not provided'); ?></strong></div>
                 <div><span>Linked Driver</span><strong><?php echo htmlspecialchars($user['linked_driver_name'] ?: 'No linked driver account'); ?></strong></div>
                 <div><span>Driver Panel Status</span><strong><?php echo htmlspecialchars(!empty($user['linked_driver_id']) ? ridesync_admin_status_label(($user['linked_driver_status'] ?: 'inactive') . ' / ' . ($user['linked_driver_verification'] ?: 'pending')) : 'Rider only'); ?></strong></div>
+            </div>
+        </article>
+
+        <article class="admin-command-card">
+            <div class="admin-card-head"><div><span class="driver-kicker">Admin Notes</span><h2>Internal User Notes</h2></div></div>
+            <div class="admin-note-panel">
+                <?php if (count($adminNotes) === 0): ?>
+                    <p>No internal notes have been saved for this user.</p>
+                <?php else: ?>
+                    <?php foreach ($adminNotes as $note): ?>
+                        <p><b><?php echo htmlspecialchars(ridesync_admin_status_label($note['note_type'] ?? 'general')); ?></b> <?php echo htmlspecialchars($note['note_text']); ?> <small><?php echo htmlspecialchars($note['admin_name'] ?: 'Admin'); ?>, <?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) $note['created_at']))); ?></small></p>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                <?php if ($adminNotesReady): ?>
+                    <form action="/ridesync/actions/admin_action.php" method="POST" class="admin-note-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <input type="hidden" name="action_type" value="admin_note_create">
+                        <input type="hidden" name="entity_type" value="user">
+                        <input type="hidden" name="entity_id" value="<?php echo (int) $userId; ?>">
+                        <input type="hidden" name="return_to" value="/ridesync/pages/admin_user_detail.php?user_id=<?php echo (int) $userId; ?>">
+                        <select name="note_type" aria-label="Note type">
+                            <option value="general">General</option>
+                            <option value="risk">Risk</option>
+                            <option value="support">Support</option>
+                            <option value="compliance">Compliance</option>
+                        </select>
+                        <textarea name="note_text" maxlength="2000" placeholder="Add internal note" required></textarea>
+                        <button type="submit" class="btn btn-primary btn-sm">Save Note</button>
+                    </form>
+                <?php else: ?>
+                    <small>Run schema upgrade to enable persistent internal notes.</small>
+                <?php endif; ?>
             </div>
         </article>
 

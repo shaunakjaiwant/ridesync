@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/admin_helper.php';
 require_once __DIR__ . '/asset_helper.php';
 require_once __DIR__ . '/view_helper.php';
 $currentAdminPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
@@ -10,18 +11,26 @@ if ($currentAdminPage === 'admin_driver_verification.php') {
     $currentAdminSection = 'users';
 } elseif ($currentAdminPage === 'admin_ride_detail.php') {
     $currentAdminSection = 'rides';
+} elseif ($currentAdminPage === 'admin_view_as.php') {
+    $currentAdminSection = ($_GET['type'] ?? '') === 'driver' ? 'drivers' : 'users';
 }
+$currentAdmin = isset($admin) && is_array($admin)
+    ? $admin
+    : (isset($_SESSION['admin_id']) ? ridesync_fetch_admin($conn, (int) $_SESSION['admin_id']) : null);
 $adminSearchValue = trim($_GET['q'] ?? '');
 $styleVersion = ridesync_stylesheet_version();
 $needsMapAssets = ridesync_page_needs_map_assets();
 $adminNavItems = [
-    'overview' => 'Overview',
-    'users' => 'Users',
-    'drivers' => 'Drivers',
-    'rides' => 'Rides',
-    'requests' => 'Requests',
-    'reports' => 'Reports',
-    'remove' => 'Remove',
+    ['key' => 'overview', 'label' => 'Overview'],
+    ['key' => 'users', 'label' => 'Users'],
+    ['key' => 'drivers', 'label' => 'Drivers'],
+    ['key' => 'rides', 'label' => 'Rides'],
+    ['key' => 'requests', 'label' => 'Requests'],
+    ['key' => 'reports', 'label' => 'Reports'],
+    ['key' => 'services', 'label' => 'Services', 'capability' => 'run_ai_verification'],
+    ['key' => 'audit', 'label' => 'Audit', 'capability' => 'view_audit_logs'],
+    ['key' => 'bulk', 'label' => 'Bulk', 'capability' => 'run_bulk_operations'],
+    ['key' => 'remove', 'label' => 'Removal', 'capability' => 'remove_accounts'],
 ];
 ?>
 <!DOCTYPE html>
@@ -40,7 +49,7 @@ $adminNavItems = [
 <body class="driver-app admin-app admin-command-shell admin-section-<?php echo htmlspecialchars($currentAdminSection); ?>">
 
 <aside class="admin-sidebar" aria-label="Admin navigation">
-    <a class="admin-sidebar-top" href="/ridesync/pages/admin_dashboard.php?section=profiles" aria-label="View admin profiles">
+    <a class="admin-sidebar-top" href="/ridesync/pages/admin_dashboard.php?section=profiles" aria-label="Open admin profiles">
         <span class="admin-orb">RS</span>
         <div>
             <strong>Admin OS</strong>
@@ -49,7 +58,15 @@ $adminNavItems = [
     </a>
 
     <nav class="admin-side-nav">
-        <?php foreach ($adminNavItems as $navKey => $label): ?>
+        <?php foreach ($adminNavItems as $item): ?>
+            <?php
+                $navKey = $item['key'];
+                $label = $item['label'];
+                $capability = $item['capability'] ?? null;
+                if ($capability !== null && !ridesync_admin_can($currentAdmin, $capability)) {
+                    continue;
+                }
+            ?>
             <a class="<?php echo $currentAdminSection === $navKey ? 'is-active' : ''; ?>" href="/ridesync/pages/admin_dashboard.php?section=<?php echo urlencode($navKey); ?>">
                 <?php echo htmlspecialchars($label); ?>
             </a>

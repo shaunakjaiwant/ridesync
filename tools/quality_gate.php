@@ -67,6 +67,7 @@ $pythonFiles = [
     $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'main.py',
     $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'worker.py',
     $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'providers.py',
+    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'selftest_service.py',
     $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'validate_provider_contract.py',
 ];
 $pythonFiles = array_values(array_filter($pythonFiles, 'is_file'));
@@ -81,6 +82,19 @@ if (!empty($pythonFiles)) {
     qg_note($code === 0 ? 'OK' : 'FAIL', 'AI verification service syntax');
 }
 
+$skipAiService = in_array('--syntax-only', $argv ?? [], true)
+    || filter_var(getenv('RIDESYNC_SKIP_AI_SERVICE_TESTS') ?: 'false', FILTER_VALIDATE_BOOLEAN);
+if ($skipAiService) {
+    qg_note('SKIP', 'AI verification service self-test disabled');
+} else {
+    $output = '';
+    $code = qg_run('python ai_verification_service/scripts/selftest_service.py', $root, $output);
+    if ($code !== 0) {
+        $failures[] = 'AI verification service self-test failed.' . PHP_EOL . $output;
+    }
+    qg_note($code === 0 ? 'OK' : 'FAIL', 'AI verification service self-test');
+}
+
 $requiredOperationalFiles = [
     '.env.example',
     '.github/workflows/quality.yml',
@@ -89,6 +103,7 @@ $requiredOperationalFiles = [
     'docker-compose.monitoring.yml',
     'docker/apache/ridesync.conf',
     'ai_verification_service/Dockerfile',
+    'ai_verification_service/scripts/selftest_service.py',
     'ai_verification_service/scripts/validate_provider_contract.py',
     'api/metrics.php',
     'api/realtime_token.php',
@@ -113,6 +128,7 @@ $requiredOperationalFiles = [
     'websocket_gateway/package.json',
     'websocket_gateway/package-lock.json',
     'websocket_gateway/server.js',
+    'websocket_gateway/scripts/smoke_start.js',
     'tests/load/k6-smoke.js',
     'tests/load/k6-production.js',
     'tests/api/negative_api.php',
@@ -132,6 +148,19 @@ qg_note(
     'Operational readiness files'
 );
 
+$skipWs = in_array('--syntax-only', $argv ?? [], true)
+    || filter_var(getenv('RIDESYNC_SKIP_WS_TESTS') ?: 'false', FILTER_VALIDATE_BOOLEAN);
+if ($skipWs) {
+    qg_note('SKIP', 'Websocket startup checks disabled');
+} else {
+    $output = '';
+    $code = qg_run('npm run ws:check', $root, $output);
+    if ($code !== 0) {
+        $failures[] = 'Websocket startup check failed: npm run ws:check' . PHP_EOL . $output;
+    }
+    qg_note($code === 0 ? 'OK' : 'FAIL', 'Websocket startup checks');
+}
+
 $skipDb = in_array('--syntax-only', $argv ?? [], true)
     || filter_var(getenv('RIDESYNC_SKIP_DB_TESTS') ?: 'false', FILTER_VALIDATE_BOOLEAN);
 if ($skipDb) {
@@ -140,14 +169,20 @@ if ($skipDb) {
     foreach ([
         'php tools/smoke_check.php',
         'php tools/smoke_admin_dashboard.php overview',
+        'php tools/smoke_admin_dashboard.php profiles',
         'php tools/smoke_admin_dashboard.php drivers',
         'php tools/smoke_admin_dashboard.php users',
         'php tools/smoke_admin_dashboard.php rides',
         'php tools/smoke_admin_dashboard.php requests',
         'php tools/smoke_admin_dashboard.php reports',
         'php tools/smoke_admin_dashboard.php remove',
-        'php tools/smoke_admin_dashboard.php analytics',
-        'php tools/smoke_admin_dashboard.php system',
+        'php tools/smoke_admin_dashboard.php services',
+        'php tools/smoke_repair_kit.php',
+        'php tools/smoke_admin_services_api.php',
+        'php tools/smoke_admin_dashboard.php audit',
+        'php tools/smoke_admin_dashboard.php bulk',
+        'php tools/smoke_admin_view_as.php user',
+        'php tools/smoke_admin_view_as.php driver',
         'php tests/api/openapi_contract.php',
         'php tests/regression/ride_status_and_match_integrity.php',
         'php tests/regression/session_principal_integrity.php',

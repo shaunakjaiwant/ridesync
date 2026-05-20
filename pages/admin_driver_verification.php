@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/admin_helper.php';
 require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/driver_document_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
+require_once __DIR__ . '/../includes/admin_operations_helper.php';
 
 ridesync_require_admin_login();
 
@@ -101,6 +102,7 @@ if (!$driver) {
 
 // Fetch all submitted documents for this driver
 $documents = [];
+$documentById = [];
 $documentsTable = mysqli_query($conn, "SHOW TABLES LIKE 'driver_account_documents'");
 if ($documentsTable && mysqli_num_rows($documentsTable) > 0) {
     $stmt = mysqli_prepare(
@@ -115,6 +117,7 @@ if ($documentsTable && mysqli_num_rows($documentsTable) > 0) {
     $res = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($res)) {
         $documents[] = $row;
+        $documentById[(int) $row['id']] = $row;
     }
 }
 
@@ -165,6 +168,31 @@ $verificationReasons = ridesync_verification_decode($verificationSession['reason
 $score = (int) round((float) ($verificationSession['confidence_score'] ?? 0));
 $aiStatus = $verificationSession['ai_decision'] ?? $verificationSession['status'] ?? 'queued';
 $riskLevel = $verificationSession['risk_level'] ?? 'medium';
+$mismatchCount = 0;
+foreach ($analysisRows as $analysisRow) {
+    $mismatchCount += count(ridesync_verification_decode($analysisRow['mismatch_json'] ?? '[]', []));
+}
+$criticalFraudCount = 0;
+foreach ($fraudFlags as $flag) {
+    if (in_array((string) ($flag['severity'] ?? ''), ['high', 'critical'], true)) {
+        $criticalFraudCount++;
+    }
+}
+$failedProviderChecks = 0;
+foreach ($apiChecks as $check) {
+    if (in_array((string) ($check['status'] ?? ''), ['failed', 'needs_review'], true)) {
+        $failedProviderChecks++;
+    }
+}
+$adminNotes = ridesync_admin_fetch_notes($conn, 'driver', $driverId, 8);
+$adminNotesReady = ridesync_admin_notes_schema_ready($conn);
+$driverHealth = ridesync_admin_record_health_score($conn, 'driver', $driverId, [
+    'driver' => $driver,
+    'required_document_summary' => $requiredDocumentSummary,
+    'verification_session' => $verificationSession,
+    'fraud_flags' => $fraudFlags,
+]);
+$driverTimeline = ridesync_admin_record_timeline($conn, 'driver', $driverId, 12);
 
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
@@ -222,8 +250,135 @@ require_once __DIR__ . '/../includes/admin_header.php';
         <?php else: ?>
             <span class="badge badge-rejected">AI schema missing</span>
         <?php endif; ?>
+        <a class="btn btn-secondary btn-sm" href="/ridesync/pages/admin_view_as.php?type=driver&id=<?php echo (int) $driverId; ?>">View As Driver</a>
         <a class="btn btn-secondary btn-sm" href="/ridesync/pages/admin_dashboard.php?section=drivers">Verification Queue</a>
     </div>
+</section>
+
+<section class="admin-record-insight-grid">
+    <article class="admin-command-card admin-record-health-card is-<?php echo htmlspecialchars($driverHealth['severity']); ?>">
+        <div class="admin-card-head">
+            <div>
+                <span class="driver-kicker">Record Health</span>
+                <h2>Driver Risk Profile</h2>
+            </div>
+            <span><?php echo htmlspecialchars($driverHealth['label']); ?></span>
+        </div>
+        <div class="admin-record-health-score">
+            <strong><?php echo (int) $driverHealth['score']; ?></strong>
+            <div>
+                <span>Health score /100</span>
+                <div class="admin-risk-meter" aria-hidden="true">
+                    <span style="width: <?php echo max(0, min(100, (int) $driverHealth['score'])); ?>%;"></span>
+                </div>
+            </div>
+        </div>
+        <div class="admin-record-factor-list">
+            <?php foreach ($driverHealth['factors'] as $factor): ?>
+                <div class="is-<?php echo htmlspecialchars($factor['severity']); ?>">
+                    <span><?php echo htmlspecialchars(ridesync_admin_status_label($factor['severity'])); ?></span>
+                    <strong><?php echo htmlspecialchars($factor['title']); ?></strong>
+                    <p><?php echo htmlspecialchars($factor['detail']); ?></p>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </article>
+
+    <article class="admin-command-card admin-record-timeline-card">
+        <div class="admin-card-head">
+            <div>
+                <span class="driver-kicker">Universal Timeline</span>
+                <h2>Driver Activity Trail</h2>
+            </div>
+            <span><?php echo count($driverTimeline); ?> events</span>
+        </div>
+        <div class="admin-record-timeline">
+            <?php foreach ($driverTimeline as $event): ?>
+                <a class="admin-timeline-row is-<?php echo htmlspecialchars($event['severity']); ?>" href="<?php echo htmlspecialchars($event['href']); ?>">
+                    <span class="admin-timeline-pin"></span>
+                    <div>
+                        <span><?php echo htmlspecialchars($event['type']); ?> - <?php echo htmlspecialchars($event['meta']); ?></span>
+                        <strong><?php echo htmlspecialchars($event['title']); ?></strong>
+                        <p><?php echo htmlspecialchars($event['detail']); ?></p>
+                    </div>
+                    <time><?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) $event['created_at']))); ?></time>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </article>
+</section>
+
+<section class="admin-workbench-grid" aria-label="Driver verification workbench">
+    <article class="admin-review-card">
+        <div class="admin-review-top">
+            <div>
+                <span class="driver-kicker">Workbench</span>
+                <h3>Verification Readiness</h3>
+                <p>Operational checks that decide whether this driver can safely move forward.</p>
+            </div>
+        </div>
+        <div class="admin-metric-strip">
+            <div><span>Required Submitted</span><strong><?php echo (int) $submittedRequiredDocuments; ?>/4</strong></div>
+            <div><span>Required Verified</span><strong><?php echo (int) $verifiedRequiredDocuments; ?>/4</strong></div>
+            <div><span>Mismatches</span><strong><?php echo (int) $mismatchCount; ?></strong></div>
+            <div><span>Fraud Flags</span><strong><?php echo (int) $criticalFraudCount; ?></strong></div>
+            <div><span>Provider Issues</span><strong><?php echo (int) $failedProviderChecks; ?></strong></div>
+        </div>
+    </article>
+    <article class="admin-review-card">
+        <div class="admin-review-top">
+            <div>
+                <span class="driver-kicker">Decision Guardrails</span>
+                <h3>Manual Review Checklist</h3>
+                <p>Approve only when profile, documents, provider checks, and AI findings agree.</p>
+            </div>
+        </div>
+        <ul class="admin-finding-list">
+            <li><?php echo $requiredDocumentSummary['complete'] ? 'All required document types are submitted.' : 'Required document set is incomplete.'; ?></li>
+            <li><?php echo $mismatchCount === 0 ? 'No OCR mismatch is currently flagged.' : $mismatchCount . ' OCR mismatch item(s) need review.'; ?></li>
+            <li><?php echo $criticalFraudCount === 0 ? 'No high or critical fraud flags are present.' : $criticalFraudCount . ' high-risk fraud flag(s) are present.'; ?></li>
+            <li><?php echo $failedProviderChecks === 0 ? 'Provider validation has no failed or review results.' : $failedProviderChecks . ' provider check(s) need attention.'; ?></li>
+        </ul>
+    </article>
+</section>
+
+<section class="admin-section">
+    <div class="admin-section-header">
+        <div>
+            <span class="driver-kicker">Admin Notes</span>
+            <h2>Internal Driver Notes</h2>
+        </div>
+    </div>
+    <article class="admin-review-card">
+        <div class="admin-note-panel">
+            <?php if (count($adminNotes) === 0): ?>
+                <p>No internal notes have been saved for this driver.</p>
+            <?php else: ?>
+                <?php foreach ($adminNotes as $note): ?>
+                    <p><b><?php echo htmlspecialchars(ridesync_admin_status_label($note['note_type'] ?? 'general')); ?></b> <?php echo htmlspecialchars($note['note_text']); ?> <small><?php echo htmlspecialchars($note['admin_name'] ?: 'Admin'); ?>, <?php echo htmlspecialchars(date('M j, g:i A', strtotime((string) $note['created_at']))); ?></small></p>
+                <?php endforeach; ?>
+            <?php endif; ?>
+            <?php if ($adminNotesReady): ?>
+                <form action="/ridesync/actions/admin_action.php" method="POST" class="admin-note-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <input type="hidden" name="action_type" value="admin_note_create">
+                    <input type="hidden" name="entity_type" value="driver">
+                    <input type="hidden" name="entity_id" value="<?php echo (int) $driverId; ?>">
+                    <input type="hidden" name="return_to" value="/ridesync/pages/admin_driver_verification.php?driver_id=<?php echo (int) $driverId; ?>">
+                    <select name="note_type" aria-label="Note type">
+                        <option value="general">General</option>
+                        <option value="risk">Risk</option>
+                        <option value="support">Support</option>
+                        <option value="compliance">Compliance</option>
+                    </select>
+                    <textarea name="note_text" maxlength="2000" placeholder="Add internal note" required></textarea>
+                    <button type="submit" class="btn btn-primary btn-sm">Save Note</button>
+                </form>
+            <?php else: ?>
+                <small>Run schema upgrade to enable persistent internal notes.</small>
+            <?php endif; ?>
+        </div>
+    </article>
 </section>
 
 <?php if ($verificationSession): ?>
@@ -292,6 +447,61 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 <p class="admin-message">No face match result yet.</p>
             <?php endif; ?>
         </article>
+    </section>
+
+    <section class="admin-section">
+        <div class="admin-section-header">
+            <div>
+                <span class="driver-kicker">Document Workbench</span>
+                <h2>Submitted vs Extracted Data</h2>
+            </div>
+        </div>
+        <div class="admin-comparison-grid">
+            <?php if (count($analysisRows) === 0): ?>
+                <div class="driver-empty-card">No OCR comparison data is available yet.</div>
+            <?php else: ?>
+                <?php foreach ($analysisRows as $analysis): ?>
+                    <?php
+                        $doc = $documentById[(int) ($analysis['document_id'] ?? 0)] ?? [];
+                        $extracted = ridesync_verification_decode($analysis['extracted_json'] ?? '{}', []);
+                        $mismatches = ridesync_verification_decode($analysis['mismatch_json'] ?? '[]', []);
+                    ?>
+                    <article class="admin-comparison-card">
+                        <div class="admin-review-top">
+                            <div>
+                                <span class="badge badge-<?php echo htmlspecialchars(ridesync_verification_badge_class($analysis['analysis_status'] ?? 'pending')); ?>">
+                                    <?php echo htmlspecialchars(ridesync_admin_status_label($analysis['analysis_status'] ?? 'pending')); ?>
+                                </span>
+                                <h3><?php echo htmlspecialchars(ridesync_admin_status_label($analysis['document_type'] ?? ($doc['document_type'] ?? 'document'))); ?></h3>
+                                <p><?php echo (int) round((float) ($analysis['document_score'] ?? 0)); ?>% document confidence</p>
+                            </div>
+                        </div>
+                        <div class="admin-comparison-columns">
+                            <div>
+                                <span>Submitted Record</span>
+                                <dl class="admin-detail-list compact">
+                                    <div><dt>Status</dt><dd><?php echo htmlspecialchars(ridesync_admin_status_label($doc['verification_status'] ?? 'pending')); ?></dd></div>
+                                    <div><dt>Reference</dt><dd><?php echo htmlspecialchars($doc['document_reference'] ?? 'No reference'); ?></dd></div>
+                                    <div><dt>Profile License</dt><dd><?php echo htmlspecialchars($driver['license_number'] ?: 'Not provided'); ?></dd></div>
+                                    <div><dt>Vehicle Number</dt><dd><?php echo htmlspecialchars($driver['vehicle_number'] ?: 'Not provided'); ?></dd></div>
+                                </dl>
+                            </div>
+                            <div>
+                                <span>Extracted/OCR Data</span>
+                                <?php ridesync_admin_render_analysis_fields($extracted); ?>
+                            </div>
+                        </div>
+                        <?php if (count($mismatches) > 0): ?>
+                            <ul class="admin-finding-list">
+                                <?php foreach ($mismatches as $mismatch): ?>
+                                    <li><?php echo htmlspecialchars($mismatch['message'] ?? $mismatch['label'] ?? 'Mismatch detected.'); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
     </section>
 
     <section class="admin-section">

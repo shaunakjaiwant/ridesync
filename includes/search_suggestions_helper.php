@@ -401,6 +401,39 @@ function ridesync_admin_remove_suggestions($conn, $query, $limit) {
     return ridesync_search_finalize($items, $query, $limit);
 }
 
+function ridesync_admin_shortcut_suggestions($query, $limit) {
+    $shortcuts = [
+        ['Operational Inbox', 'Open work requiring admin attention', '/ridesync/pages/admin_dashboard.php?section=overview#operational-inbox', 'Ops'],
+        ['Risk Scoring', 'Platform risk score and risk component breakdown', '/ridesync/pages/admin_dashboard.php?section=overview#risk-score', 'Ops'],
+        ['Incident Timeline', 'Recent operational events and moderation incidents', '/ridesync/pages/admin_dashboard.php?section=overview#incident-timeline', 'Ops'],
+        ['Data Quality Monitor', 'Orphaned records, stale statuses, and broken links', '/ridesync/pages/admin_dashboard.php?section=overview#data-quality', 'Integrity'],
+        ['SLA Timers', 'Aging verification and report queues', '/ridesync/pages/admin_dashboard.php?section=overview#sla-timers', 'Integrity'],
+        ['Fraud Clusters', 'Shared phones, documents, vehicles, and route abuse', '/ridesync/pages/admin_dashboard.php?section=overview#fraud-clusters', 'Security'],
+        ['Backup Status', 'Backup freshness and schema drift health', '/ridesync/pages/admin_dashboard.php?section=overview#backup-status', 'Reliability'],
+        ['Feature Flags', 'Maintenance mode and module switches', '/ridesync/pages/admin_dashboard.php?section=overview#feature-flags', 'Control'],
+        ['AI Services Monitor', 'API health, queue recovery, model latency, and logs', '/ridesync/pages/admin_dashboard.php?section=services', 'Services'],
+        ['Audit Explorer', 'Admin actions, entity events, and security traceability', '/ridesync/pages/admin_dashboard.php?section=audit', 'Audit'],
+        ['Bulk Operations', 'Controlled cleanup and recovery actions', '/ridesync/pages/admin_dashboard.php?section=bulk', 'Ops'],
+        ['View As User Driver', 'Read-only panel inspection for user or driver accounts', '/ridesync/pages/admin_dashboard.php?section=users', 'Support'],
+        ['Admin Profile', 'Admin identity, role, permissions, and session context', '/ridesync/pages/admin_dashboard.php?section=profiles', 'Account'],
+        ['Record Health Score', 'Open a user, ride, or driver detail page to inspect per-record health', '/ridesync/pages/admin_dashboard.php?section=overview#operational-inbox', 'Insight'],
+        ['Universal Record Timeline', 'Open a user, ride, or driver detail page to inspect the activity trail', '/ridesync/pages/admin_dashboard.php?section=overview#incident-timeline', 'Insight'],
+    ];
+
+    $items = [];
+    foreach ($shortcuts as $shortcut) {
+        [$label, $meta, $url, $category] = $shortcut;
+        $items[] = ridesync_search_item('admin_global', $category, $label, $label, $meta, $url, 0);
+    }
+
+    foreach ($items as &$item) {
+        $item['source'] = 'shortcut';
+    }
+    unset($item);
+
+    return ridesync_search_finalize($items, $query, $limit);
+}
+
 function ridesync_admin_search_suggestions($conn, $context, $query, $limit = 10) {
     $context = in_array($context, ridesync_admin_suggestion_contexts(), true) ? $context : 'admin_global';
     $query = ridesync_search_query($query);
@@ -427,6 +460,7 @@ function ridesync_admin_search_suggestions($conn, $context, $query, $limit = 10)
     }
 
     $items = [];
+    $items = array_merge($items, ridesync_admin_shortcut_suggestions($query, 8));
     $items = array_merge($items, ridesync_admin_user_suggestions($conn, $query, 4));
     $items = array_merge($items, ridesync_admin_driver_suggestions($conn, $query, 4));
     $items = array_merge($items, ridesync_admin_ride_suggestions($conn, $query, 4));
@@ -449,7 +483,7 @@ function ridesync_admin_search_suggestions($conn, $context, $query, $limit = 10)
                 'Direct Request' => 'requests',
                 'Join Request' => 'requests',
                 'Report' => 'reports',
-                'Audit' => 'system',
+                'Audit' => 'audit',
             ][$item['category']] ?? 'overview';
             $item['url'] = '/ridesync/pages/admin_dashboard.php?section=' . $section . '&q=' . urlencode($item['value']);
         }

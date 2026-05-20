@@ -136,27 +136,4 @@ require_once __DIR__ . '/../includes/header.php';
     </section>
 </div>
 
-<section class="insight-panel">
-    <div class="insight-panel-header">
-        <div>
-            <span class="fare-kicker">Smart wait logic</span>
-            <h2>How RideSync decides whether waiting helps</h2>
-        </div>
-    </div>
-    <div class="wait-logic-grid">
-        <div>
-            <strong>Low match score</strong>
-            <span>If no ride crosses 70%, RideSync suggests saving a demand signal.</span>
-        </div>
-        <div>
-            <strong>Route heat</strong>
-            <span>More active demand on the same route raises the chance of a cheaper shared pool.</span>
-        </div>
-        <div>
-            <strong>Future alert</strong>
-            <span>When someone posts a matching ride, RideSync sends a notification automatically.</span>
-        </div>
-    </div>
-</section>
-
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

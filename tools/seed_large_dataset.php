@@ -55,15 +55,17 @@ function seed_route_key($origin, $destination) {
     return strtolower(preg_replace('/[^a-z0-9]+/', '-', $origin . '-' . $destination));
 }
 
+if (!$dryRun) {
+    require_once __DIR__ . '/../config/db.php';
+    require_once __DIR__ . '/../includes/matching_helper.php';
+}
+
 seed_note("Requested users={$userCount}, drivers={$driverCount}, rides={$rideCount}, matches_per_ride={$matchesPerRide}, demand={$demandCount}");
 
 if ($dryRun) {
     seed_note('Dry run only. No database writes performed.');
     exit(0);
 }
-
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../includes/matching_helper.php';
 
 mysqli_begin_transaction($conn);
 
@@ -153,6 +155,10 @@ try {
         $note = 'Synthetic load-test ride state';
         mysqli_stmt_bind_param($liveStmt, 'iisis', $rideId, $driverId, $liveStatus, $eta, $note);
         mysqli_stmt_execute($liveStmt);
+
+        if ($status !== 'open' || $seats <= 0) {
+            continue;
+        }
 
         for ($m = 1; $m <= $matchesPerRide; $m++) {
             $matchUserId = $userIds[($i + $m + 3) % count($userIds)];

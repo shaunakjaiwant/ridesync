@@ -748,6 +748,14 @@ function ridesync_verification_call_service($conn, $sessionId, array $bundle) {
 
     $json = ridesync_verification_json($payload);
     $response = null;
+    $headers = [
+        'Content-Type: application/json',
+        'X-RideSync-Request-Id: ' . ridesync_request_id(),
+    ];
+    $serviceToken = trim((string) ridesync_env('RIDESYNC_VERIFICATION_SERVICE_TOKEN', ''));
+    if (ridesync_secret_is_configured($serviceToken, 32)) {
+        $headers[] = 'Authorization: Bearer ' . $serviceToken;
+    }
 
     try {
         if (function_exists('curl_init')) {
@@ -756,7 +764,7 @@ function ridesync_verification_call_service($conn, $sessionId, array $bundle) {
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST => true,
                 CURLOPT_POSTFIELDS => $json,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-RideSync-Request-Id: ' . ridesync_request_id()],
+                CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_TIMEOUT => 2,
             ]);
             $response = curl_exec($ch);
@@ -769,7 +777,7 @@ function ridesync_verification_call_service($conn, $sessionId, array $bundle) {
             $context = stream_context_create([
                 'http' => [
                     'method' => 'POST',
-                    'header' => "Content-Type: application/json\r\nX-RideSync-Request-Id: " . ridesync_request_id() . "\r\n",
+                    'header' => implode("\r\n", $headers) . "\r\n",
                     'content' => $json,
                     'timeout' => 2,
                 ],

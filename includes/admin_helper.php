@@ -80,6 +80,7 @@ function ridesync_admin_can($admin, $capability) {
         'review_drivers',
         'run_ai_verification',
         'review_reports',
+        'manage_admin_notes',
     ];
 
     return $role === 'moderator' && in_array($capability, $moderatorCapabilities, true);
@@ -113,6 +114,13 @@ function ridesync_admin_action_capability($action) {
         'driver_ai_verification_decision' => 'review_drivers',
         'driver_document_decision' => 'review_drivers',
         'driver_account_status' => 'manage_driver_accounts',
+        'admin_services_release_timeouts' => 'run_ai_verification',
+        'admin_services_retry_failed_verifications' => 'run_ai_verification',
+        'admin_repair_kit_execute' => 'repair_platform',
+        'admin_alert_rule_toggle' => 'manage_alert_rules',
+        'admin_feature_flag_update' => 'manage_feature_flags',
+        'admin_note_create' => 'manage_admin_notes',
+        'admin_bulk_operation' => 'run_bulk_operations',
         'admin_remove_account' => 'remove_accounts',
         'report_decision' => 'review_reports',
     ];

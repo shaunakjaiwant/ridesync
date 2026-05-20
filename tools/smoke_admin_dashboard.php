@@ -5,20 +5,38 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/admin_helper.php';
 
 $section = $argv[1] ?? 'overview';
 $query = $argv[2] ?? '';
-$allowed = ['overview', 'profiles', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'analytics', 'system'];
+$sectionAliases = [
+    'analytics' => 'overview',
+    'system' => 'services',
+];
+$expectedSection = $sectionAliases[$section] ?? $section;
+$allowed = ['overview', 'profiles', 'drivers', 'users', 'rides', 'requests', 'reports', 'remove', 'services', 'audit', 'bulk', 'analytics', 'system'];
 if (!in_array($section, $allowed, true)) {
     fwrite(STDERR, "Unsupported section\n");
     exit(1);
 }
 
-$result = mysqli_query($conn, "SELECT id, name, role FROM admin_users WHERE status = 'active' ORDER BY id LIMIT 1");
+$result = mysqli_query($conn, "SELECT id, name, role FROM admin_users WHERE status = 'active' ORDER BY FIELD(role, 'super_admin', 'moderator'), id LIMIT 1");
 $admin = $result ? mysqli_fetch_assoc($result) : null;
 if (!$admin) {
     fwrite(STDERR, "No active admin available for render smoke\n");
     exit(1);
+}
+if ($expectedSection === 'remove' && !ridesync_admin_can($admin, 'remove_accounts')) {
+    $expectedSection = 'overview';
+}
+if ($expectedSection === 'services' && !ridesync_admin_can($admin, 'run_ai_verification')) {
+    $expectedSection = 'overview';
+}
+if ($expectedSection === 'audit' && !ridesync_admin_can($admin, 'view_audit_logs')) {
+    $expectedSection = 'overview';
+}
+if ($expectedSection === 'bulk' && !ridesync_admin_can($admin, 'run_bulk_operations')) {
+    $expectedSection = 'overview';
 }
 
 $_SESSION['admin_id'] = (int) $admin['id'];
@@ -40,12 +58,27 @@ $ok = str_contains($html, 'admin-command-center')
     && str_contains($html, 'admin-sidebar')
     && !str_contains($html, 'admin-top-nav');
 
-if ($ok && $section === 'profiles') {
-    $ok = str_contains($html, 'admin-profile-showcase')
-        && !str_contains($html, 'RideSync Command Center')
-        && !str_contains($html, 'admin-priority-grid');
-} elseif ($ok) {
-    $ok = str_contains($html, 'RideSync Command Center');
+$sectionMarkers = [
+    'overview' => 'Operational Inbox',
+    'profiles' => 'admin-profile-showcase',
+    'drivers' => '<h2>Drivers</h2>',
+    'users' => '<h2>Users</h2>',
+    'rides' => '<h2>Rides</h2>',
+    'requests' => '<h2>Direct Driver Requests</h2>',
+    'reports' => '<h2>User Reports</h2>',
+    'remove' => '<h2>Remove Accounts</h2>',
+    'services' => '<h2>AI Operations Monitor</h2>',
+    'audit' => '<h2>Administrative Activity</h2>',
+    'bulk' => '<h2>Safeguarded System Cleanup</h2>',
+];
+
+if ($ok) {
+    $ok = str_contains($html, $sectionMarkers[$expectedSection] ?? 'RideSync Command Center');
+    if ($expectedSection !== 'profiles') {
+        $ok = $ok
+            && !str_contains($html, 'Admin Profiles')
+            && !str_contains($html, 'Leadership Command Team');
+    }
 }
 
 echo $ok ? "[OK] admin {$section} rendered\n" : "[FAIL] admin {$section} render missing expected shell\n";

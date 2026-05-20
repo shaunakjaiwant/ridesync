@@ -6,6 +6,9 @@ require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
 require_once __DIR__ . '/../includes/admin_remove_helper.php';
+require_once __DIR__ . '/../includes/admin_operations_helper.php';
+require_once __DIR__ . '/../includes/services/ServiceObservabilityService.php';
+require_once __DIR__ . '/../includes/services/RepairKitService.php';
 
 ridesync_require_admin_login();
 
@@ -369,6 +372,184 @@ if ($action === 'driver_ai_verification_decision') {
     ridesync_admin_log($conn, $adminId, 'driver_ai_verification_' . $decision, 'driver_verification_session', $sessionId, 'Driver #' . $driverId);
 
     $_SESSION['admin_success'] = "AI verification decision saved.";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_services_release_timeouts') {
+    $released = RideSyncServiceObservabilityService::releaseTimedOutJobs($conn, 600);
+    ridesync_admin_log($conn, $adminId, 'admin_services_release_timeouts', 'background_jobs', null, $released . ' stale job(s) released');
+    $_SESSION['admin_success'] = $released . " stale background job" . ($released === 1 ? "" : "s") . " released back to the queue.";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_services_retry_failed_verifications') {
+    $summary = RideSyncServiceObservabilityService::retryFailedVerificationJobs($conn, 25);
+    $total = (int) $summary['jobs_requeued'] + (int) $summary['jobs_created'];
+    ridesync_admin_log(
+        $conn,
+        $adminId,
+        'admin_services_retry_failed_verifications',
+        'background_jobs',
+        null,
+        'jobs=' . $total . ', sessions=' . (int) $summary['sessions_requeued']
+    );
+    $_SESSION['admin_success'] = $total . " failed verification job" . ($total === 1 ? "" : "s") . " prepared for retry.";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_repair_kit_execute') {
+    $operation = trim((string) ($_POST['repair_operation'] ?? ''));
+    $confirmation = trim((string) ($_POST['confirmation_text'] ?? ''));
+    $result = RideSyncRepairKitService::execute($conn, $adminId, $operation, $confirmation);
+
+    ridesync_admin_log(
+        $conn,
+        $adminId,
+        !empty($result['ok']) ? 'admin_repair_kit_' . $operation : 'admin_repair_kit_failed',
+        'repair_kit',
+        isset($result['details']['run_id']) ? (int) $result['details']['run_id'] : null,
+        substr((string) ($result['message'] ?? ''), 0, 255)
+    );
+
+    if (!empty($result['ok'])) {
+        $_SESSION['admin_success'] = (string) ($result['message'] ?? 'Repair Kit action completed.');
+    } else {
+        $_SESSION['admin_error'] = (string) ($result['message'] ?? 'Repair Kit action failed.');
+    }
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_alert_rule_toggle') {
+    $ruleId = (int) ($_POST['rule_id'] ?? 0);
+    $enabled = (int) ($_POST['enabled'] ?? 0) === 1;
+
+    if ($ruleId <= 0) {
+        $_SESSION['admin_error'] = "Invalid alert rule.";
+        ridesync_admin_redirect();
+    }
+
+    if (!RideSyncServiceObservabilityService::toggleAlertRule($conn, $ruleId, $enabled)) {
+        $_SESSION['admin_error'] = "Could not update alert rule.";
+        ridesync_admin_redirect();
+    }
+
+    ridesync_admin_log($conn, $adminId, $enabled ? 'admin_alert_rule_enabled' : 'admin_alert_rule_disabled', 'admin_alert_rule', $ruleId, null);
+    $_SESSION['admin_success'] = "Alert rule " . ($enabled ? "enabled" : "disabled") . ".";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_feature_flag_update') {
+    $flagId = (int) ($_POST['flag_id'] ?? 0);
+    $enabled = (int) ($_POST['enabled'] ?? 0) === 1;
+    $maintenanceMode = (int) ($_POST['maintenance_mode'] ?? 0) === 1;
+
+    if ($flagId <= 0) {
+        $_SESSION['admin_error'] = "Invalid feature flag.";
+        ridesync_admin_redirect();
+    }
+
+    if (!ridesync_admin_feature_flags_schema_ready($conn)) {
+        $_SESSION['admin_error'] = "Feature flag schema is missing. Run the schema upgrade before changing runtime switches.";
+        ridesync_admin_redirect();
+    }
+
+    if (!ridesync_admin_update_feature_flag($conn, $flagId, $enabled, $maintenanceMode, $adminId)) {
+        $_SESSION['admin_error'] = "Could not update feature flag.";
+        ridesync_admin_redirect();
+    }
+
+    ridesync_admin_log(
+        $conn,
+        $adminId,
+        'admin_feature_flag_update',
+        'feature_flag',
+        $flagId,
+        'enabled=' . (int) $enabled . ', maintenance=' . (int) $maintenanceMode
+    );
+    $_SESSION['admin_success'] = "Feature flag updated.";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_note_create') {
+    $entityType = ridesync_admin_normalize_note_entity($_POST['entity_type'] ?? '');
+    $entityId = (int) ($_POST['entity_id'] ?? 0);
+    $noteText = trim((string) ($_POST['note_text'] ?? ''));
+    $noteType = trim((string) ($_POST['note_type'] ?? 'general'));
+
+    if ($entityType === '' || $entityId <= 0 || $noteText === '') {
+        $_SESSION['admin_error'] = "Admin note requires a valid target and note body.";
+        ridesync_admin_redirect();
+    }
+
+    if (!ridesync_admin_notes_schema_ready($conn)) {
+        $_SESSION['admin_error'] = "Admin notes schema is missing. Run the schema upgrade before saving notes.";
+        ridesync_admin_redirect();
+    }
+
+    if (!ridesync_admin_create_note($conn, $entityType, $entityId, $adminId, $noteText, $noteType)) {
+        $_SESSION['admin_error'] = "Could not save admin note.";
+        ridesync_admin_redirect();
+    }
+
+    ridesync_admin_log($conn, $adminId, 'admin_note_create', $entityType, $entityId, $noteType);
+    $_SESSION['admin_success'] = "Admin note saved.";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_bulk_operation') {
+    $operation = trim((string) ($_POST['bulk_operation'] ?? ''));
+    $confirmation = trim((string) ($_POST['confirmation_text'] ?? ''));
+    $allowedOperations = array_keys(ridesync_admin_bulk_operation_definitions($conn));
+
+    if (!in_array($operation, $allowedOperations, true)) {
+        $_SESSION['admin_error'] = "Invalid bulk operation.";
+        ridesync_admin_redirect();
+    }
+
+    if (!hash_equals('RUN BULK', $confirmation)) {
+        ridesync_admin_log($conn, $adminId, 'admin_bulk_confirmation_failed', 'bulk_operation', null, $operation);
+        $_SESSION['admin_error'] = "Bulk operation cancelled. Type RUN BULK exactly to confirm.";
+        ridesync_admin_redirect();
+    }
+
+    mysqli_begin_transaction($conn);
+    try {
+        $changed = 0;
+        $detail = '';
+        if ($operation === 'retry_failed_ai_jobs') {
+            mysqli_commit($conn);
+            $summary = RideSyncServiceObservabilityService::retryFailedVerificationJobs($conn, 25);
+            $changed = (int) $summary['jobs_requeued'] + (int) $summary['jobs_created'];
+            $detail = 'jobs=' . $changed . ', sessions=' . (int) $summary['sessions_requeued'];
+        } elseif ($operation === 'close_stale_rides') {
+            $changed = ridesync_admin_close_stale_rides($conn, 250);
+            mysqli_commit($conn);
+            $detail = 'closed_rides=' . $changed;
+        } elseif ($operation === 'expire_stale_demand') {
+            $changed = ridesync_admin_expire_stale_demand($conn, 500);
+            mysqli_commit($conn);
+            $detail = 'expired_demand=' . $changed;
+        } elseif ($operation === 'approve_low_risk_ai') {
+            $summary = ridesync_admin_approve_low_risk_ai_sessions($conn, $adminId, 25);
+            $changed = (int) $summary['approved'];
+            mysqli_commit($conn);
+            $detail = 'approved=' . $changed . ', drivers=' . implode(',', array_slice($summary['drivers'], 0, 20));
+        } else {
+            throw new RuntimeException('Unsupported bulk operation.');
+        }
+    } catch (Throwable $exception) {
+        mysqli_rollback($conn);
+        ridesync_log_exception($exception, [
+            'admin_id' => $adminId,
+            'operation' => $operation,
+        ]);
+        $_SESSION['admin_error'] = "Bulk operation failed. No partial unsafe cleanup was kept.";
+        ridesync_admin_redirect();
+    }
+
+    RideSyncServiceObservabilityService::clearSnapshotCache();
+    ridesync_admin_log($conn, $adminId, 'admin_bulk_' . $operation, 'bulk_operation', null, $detail);
+    $_SESSION['admin_success'] = "Bulk operation completed: " . $changed . " item" . ($changed === 1 ? "" : "s") . " changed.";
     ridesync_admin_redirect();
 }
 

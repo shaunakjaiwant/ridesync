@@ -26,12 +26,25 @@ if ($oldSeats < 1 || $oldSeats > 8) {
 require_once __DIR__ . '/../includes/public_header.php';
 ?>
 
-<div class="form-container auth-register-form">
-    <h1>Register as a Driver</h1>
+<section class="auth-shell auth-shell-driver auth-shell-wide">
+    <aside class="auth-context-card">
+        <span class="auth-kicker">Driver signup</span>
+        <h1>Set up a verified driver profile.</h1>
+        <p>Add account, vehicle, and document references so admin review can move cleanly.</p>
+        <div class="auth-route-strip" aria-hidden="true">
+            <span>Profile</span>
+            <i></i>
+            <span>Verify</span>
+        </div>
+    </aside>
 
-    <?php ridesync_flash('driver_register_error', 'alert-error'); ?>
+    <div class="form-container auth-panel auth-register-form auth-driver-register-panel">
+        <span class="auth-panel-eyebrow">Driver onboarding</span>
+        <h1>Register as a Driver</h1>
 
-    <form action="/ridesync/actions/driver_auth_action.php" method="POST" enctype="multipart/form-data">
+        <?php ridesync_flash('driver_register_error', 'alert-error'); ?>
+
+        <form action="/ridesync/actions/driver_auth_action.php" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
         <input type="hidden" name="action_type" value="register">
 
@@ -156,12 +169,13 @@ require_once __DIR__ . '/../includes/public_header.php';
             <textarea id="verification_details" name="verification_details" placeholder="Add any detail needed for verification."><?php echo ridesync_driver_register_old_value($driverRegisterOld, 'verification_details'); ?></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width:100%;">Create Driver Account</button>
-    </form>
+            <button type="submit" class="btn btn-primary auth-submit">Create Driver Account</button>
+        </form>
 
-    <p class="auth-switch-text">
-        Already registered? <a href="/ridesync/pages/driver_login.php">Driver Login</a>
-    </p>
-</div>
+        <div class="auth-link-row">
+            <p class="auth-switch-text">Already registered? <a href="/ridesync/pages/driver_login.php">Driver login</a></p>
+        </div>
+    </div>
+</section>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

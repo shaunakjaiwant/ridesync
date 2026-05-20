@@ -1,14 +1,24 @@
 from __future__ import annotations
 
 import base64
+import binascii
+import hmac
 import io
+import json
+import logging
+import os
 import re
+import time
+import uuid
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
-from PIL import Image
-from pydantic import BaseModel, Field
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from PIL import Image, UnidentifiedImageError
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 try:
     import cv2  # type: ignore
@@ -20,33 +30,317 @@ try:
 except Exception:  # pragma: no cover - optional runtime dependency
     pytesseract = None
 
-from .providers import mask_value, normalize, provider_from_env
+from .providers import mask_value, normalize, provider_from_env, redact_extracted
 
+
+ALLOWED_DOCUMENT_TYPES = {
+    "license",
+    "aadhaar",
+    "pan",
+    "id_proof",
+    "vehicle_rc",
+    "insurance",
+    "profile_photo",
+    "selfie",
+    "vehicle_image",
+    "other",
+}
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+SENSITIVE_LOG_KEYS = re.compile(r"password|token|secret|cookie|authorization|csrf|aadhaar|aadhar|pan|license|document|base64|otp", re.I)
+
+
+logger = logging.getLogger("ridesync.verification")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(handler)
+logger.setLevel(os.environ.get("RIDESYNC_LOG_LEVEL", "INFO").upper())
+logger.propagate = False
+
+
+class RequestTooLarge(Exception):
+    pass
+
+
+class RequestBodyLimitMiddleware:
+    def __init__(self, app, max_bytes: int):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+
+        received = 0
+
+        async def limited_receive():
+            nonlocal received
+            message = await receive()
+            if message.get("type") == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_bytes:
+                    raise RequestTooLarge()
+            return message
+
+        try:
+            await self.app(scope, limited_receive, send)
+        except RequestTooLarge:
+            response = JSONResponse(status_code=413, content={"detail": "request body too large"})
+            await response(scope, receive, send)
+
+
+def load_dotenv(path: Path) -> None:
+    if not path.is_file():
+        return
+
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].strip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", key) or key in os.environ:
+            continue
+        value = value.strip()
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            value = value[1:-1]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
+        os.environ[key] = value
+
+
+def int_env(name: str, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+    return max(minimum, min(maximum, value))
+
+
+def secret_configured(value: str, min_length: int = 32) -> bool:
+    normalized = value.strip()
+    return len(normalized) >= min_length and not normalized.lower().startswith("replace-with")
+
+
+def bool_env(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def app_env() -> str:
+    return os.environ.get("RIDESYNC_ENV", "local").strip().lower() or "local"
+
+
+def redact(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: "[redacted]" if SENSITIVE_LOG_KEYS.search(str(key)) else redact(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [redact(item) for item in value]
+    return value
+
+
+def log_event(level: str, message: str, **context: Any) -> None:
+    logger.log(
+        getattr(logging, level.upper(), logging.INFO),
+        json.dumps(
+            {
+                "timestamp": datetime.now(UTC).isoformat(),
+                "level": level.lower(),
+                "message": message,
+                "context": redact(context),
+            },
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ),
+    )
+
+
+def request_id_from_headers(request: Request) -> str:
+    incoming = request.headers.get("x-request-id", "").strip()
+    if re.match(r"^[A-Za-z0-9._:-]{8,128}$", incoming):
+        return incoming
+    return uuid.uuid4().hex
+
+
+def clean_validation_errors(errors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    cleaned: list[dict[str, Any]] = []
+    for error in errors:
+        cleaned.append({key: value for key, value in error.items() if key not in {"input", "url", "ctx"}})
+    return cleaned
+
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
+MAX_REQUEST_BYTES = int_env("RIDESYNC_VERIFICATION_MAX_REQUEST_BYTES", 2_000_000, 32_768, 10_000_000)
+MAX_FILE_BASE64_BYTES = int_env("RIDESYNC_VERIFICATION_MAX_FILE_BASE64_BYTES", 1_500_000, 32_768, 8_000_000)
+MAX_DOCUMENTS = int_env("RIDESYNC_VERIFICATION_MAX_DOCUMENTS", 12, 1, 40)
+OCR_TIMEOUT_SECONDS = int_env("RIDESYNC_VERIFICATION_OCR_TIMEOUT_SECONDS", 5, 1, 20)
+MAX_IMAGE_PIXELS = int_env("RIDESYNC_VERIFICATION_MAX_IMAGE_PIXELS", 12_000_000, 250_000, 40_000_000)
 
 app = FastAPI(title="RideSync Driver Verification Intelligence", version="1.0.0")
+app.add_middleware(RequestBodyLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 provider = provider_from_env()
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
+
+
+@app.middleware("http")
+async def request_guardrails(request: Request, call_next):
+    request_id = request_id_from_headers(request)
+    request.state.request_id = request_id
+    started = time.perf_counter()
+
+    if request.url.path == "/v1/driver-verifications/analyze" and request.method.upper() == "POST":
+        content_type = request.headers.get("content-type", "")
+        if "application/json" not in content_type.lower():
+            return JSONResponse(status_code=415, content={"detail": "content-type must be application/json"})
+
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            size = int(content_length)
+        except ValueError:
+            return JSONResponse(status_code=400, content={"detail": "invalid content-length"})
+        if size > MAX_REQUEST_BYTES:
+            return JSONResponse(status_code=413, content={"detail": "request body too large"})
+
+    response = await call_next(request)
+    response.headers["X-Request-Id"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Cache-Control"] = "no-store"
+
+    if request.url.path in {"/v1/driver-verifications/analyze", "/readyz"}:
+        log_event(
+            "info",
+            "verification_request",
+            request_id=request_id,
+            path=request.url.path,
+            method=request.method,
+            status_code=response.status_code,
+            elapsed_ms=round((time.perf_counter() - started) * 1000, 2),
+        )
+
+    return response
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": clean_validation_errors(exc.errors()), "request_id": getattr(request.state, "request_id", None)},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    log_event(
+        "error",
+        "verification_unhandled_exception",
+        request_id=getattr(request.state, "request_id", None),
+        error_class=exc.__class__.__name__,
+        path=str(request.url.path),
+    )
+    return JSONResponse(status_code=500, content={"detail": "internal server error", "request_id": getattr(request.state, "request_id", None)})
+
+
+def require_service_auth(authorization: str | None = Header(default=None)) -> None:
+    expected = os.environ.get("RIDESYNC_VERIFICATION_SERVICE_TOKEN", "").strip()
+    if not secret_configured(expected):
+        if app_env() == "production":
+            raise HTTPException(status_code=503, detail="verification service token is not configured")
+        return
+
+    scheme, _, token = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not hmac.compare_digest(expected, token.strip()):
+        raise HTTPException(status_code=401, detail="invalid verification service token")
 
 
 class DriverPayload(BaseModel):
-    name: str = ""
-    license_number: str = ""
-    vehicle_number: str = ""
-    vehicle_type: str = ""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(default="", max_length=120)
+    license_number: str = Field(default="", max_length=80)
+    vehicle_number: str = Field(default="", max_length=40)
+    vehicle_type: str = Field(default="", max_length=40)
 
 
 class DocumentPayload(BaseModel):
-    id: int
-    document_type: str
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    id: int = Field(gt=0, le=2_147_483_647)
+    document_type: str = Field(max_length=40)
     is_file: bool = False
-    reference_fingerprint: str = ""
-    mime: str | None = None
+    reference_fingerprint: str = Field(default="", max_length=128)
+    mime: str | None = Field(default=None, max_length=80)
     file_base64: str | None = Field(default=None, repr=False)
+
+    @field_validator("document_type")
+    @classmethod
+    def validate_document_type(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in ALLOWED_DOCUMENT_TYPES:
+            raise ValueError("unsupported document_type")
+        return normalized
+
+    @field_validator("reference_fingerprint")
+    @classmethod
+    def validate_reference_fingerprint(cls, value: str) -> str:
+        if value and re.match(r"^[A-Za-z0-9._:-]{1,128}$", value) is None:
+            raise ValueError("reference_fingerprint contains unsupported characters")
+        return value
+
+    @field_validator("mime")
+    @classmethod
+    def validate_mime(cls, value: str | None) -> str | None:
+        if value is None or value == "":
+            return None
+        normalized = value.strip().lower()
+        if normalized not in ALLOWED_MIME_TYPES:
+            raise ValueError("unsupported mime type")
+        return normalized
+
+    @field_validator("file_base64")
+    @classmethod
+    def validate_file_base64(cls, value: str | None) -> str | None:
+        if value is None or value == "":
+            return None
+        compact = re.sub(r"\s+", "", value)
+        if len(compact) <= MAX_FILE_BASE64_BYTES:
+            try:
+                base64.b64decode(compact, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise ValueError("file_base64 must be valid base64") from exc
+        return compact
 
 
 class AnalyzePayload(BaseModel):
-    session_id: int
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: int = Field(gt=0, le=2_147_483_647)
     driver: DriverPayload
-    documents: list[DocumentPayload] = []
+    documents: list[DocumentPayload] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_document_set(self) -> "AnalyzePayload":
+        if not self.documents:
+            raise ValueError("at least one document is required")
+        if len(self.documents) > MAX_DOCUMENTS:
+            raise ValueError("too many documents")
+        document_ids = [document.id for document in self.documents]
+        if len(document_ids) != len(set(document_ids)):
+            raise ValueError("duplicate document ids")
+        return self
 
 
 def image_text(document: DocumentPayload) -> tuple[str, dict[str, Any]]:
@@ -55,13 +349,46 @@ def image_text(document: DocumentPayload) -> tuple[str, dict[str, Any]]:
 
     try:
         raw = base64.b64decode(document.file_base64, validate=True)
+        if len(raw) > MAX_FILE_BASE64_BYTES:
+            return "", {"decode_error": True, "reason": "decoded_file_too_large"}
+
         image = Image.open(io.BytesIO(raw))
+        image.load()
         meta = {"width": image.width, "height": image.height, "format": image.format}
         if pytesseract:
-            return pytesseract.image_to_string(image), meta
+            try:
+                return pytesseract.image_to_string(image, timeout=OCR_TIMEOUT_SECONDS), meta
+            except RuntimeError:
+                meta["ocr_timeout"] = True
+                return "", meta
         return "", meta
-    except Exception:
+    except (binascii.Error, UnidentifiedImageError, Image.DecompressionBombError, ValueError, OSError):
         return "", {"decode_error": True}
+
+
+def is_identity_photo(document: DocumentPayload) -> bool:
+    return document.document_type in {"selfie", "profile_photo"}
+
+
+def image_decode_failed(extracted: dict[str, Any]) -> bool:
+    image_meta = extracted.get("image_meta")
+    return isinstance(image_meta, dict) and bool(image_meta.get("decode_error"))
+
+
+def image_low_resolution(extracted: dict[str, Any]) -> bool:
+    image_meta = extracted.get("image_meta")
+    if not isinstance(image_meta, dict):
+        return False
+
+    return int(image_meta.get("width") or 9999) < 640 or int(image_meta.get("height") or 9999) < 420
+
+
+def identity_photo_is_usable(document: DocumentPayload, extracted: dict[str, Any]) -> bool:
+    if not is_identity_photo(document) or not document.is_file:
+        return False
+    if not document.file_base64:
+        return True
+    return not image_decode_failed(extracted) and not image_low_resolution(extracted)
 
 
 def extract_document(document: DocumentPayload, driver: DriverPayload) -> dict[str, Any]:
@@ -86,7 +413,7 @@ def extract_document(document: DocumentPayload, driver: DriverPayload) -> dict[s
         found = re.search(r"\b([A-Z]{2}\s?[0-9]{1,2}\s?[A-Z]{0,3}\s?[0-9]{3,4})\b", text.upper())
         extracted["vehicle_registration_number"] = found.group(1) if found else driver.vehicle_number
     elif doc_type in {"selfie", "profile_photo"}:
-        extracted["face_detected"] = document.is_file
+        extracted["face_detected"] = identity_photo_is_usable(document, extracted)
 
     return {k: v for k, v in extracted.items() if v not in ("", None, {})}
 
@@ -107,10 +434,21 @@ def fraud_flags(document: DocumentPayload, extracted: dict[str, Any]) -> list[di
         )
 
     image_meta = extracted.get("image_meta") or {}
+    if document.is_file and isinstance(image_meta, dict) and image_meta.get("decode_error"):
+        flags.append(
+            {
+                "severity": "critical" if is_identity_photo(document) else "high",
+                "flag_code": "file_decode_failed",
+                "flag_label": "Uploaded file could not be decoded",
+                "description": "The uploaded file bytes could not be decoded as the claimed document media.",
+                "confidence": 94.0,
+            }
+        )
+
     if image_meta and (image_meta.get("width", 9999) < 640 or image_meta.get("height", 9999) < 420):
         flags.append(
             {
-                "severity": "medium",
+                "severity": "high" if is_identity_photo(document) else "medium",
                 "flag_code": "low_resolution",
                 "flag_label": "Low image resolution",
                 "description": "Image dimensions are low for reliable OCR and tampering analysis.",
@@ -174,6 +512,32 @@ def score_payload(document_scores: list[float], checks: list[dict[str, Any]], fl
     }
 
 
+def readiness_payload() -> tuple[bool, dict[str, Any]]:
+    token_ready = secret_configured(os.environ.get("RIDESYNC_VERIFICATION_SERVICE_TOKEN", "").strip()) or app_env() != "production"
+    provider_is_mock = provider.name == "mock_compliance_provider"
+    payload = {
+        "ok": token_ready,
+        "service": "ridesync-driver-verification",
+        "environment": app_env(),
+        "checks": {
+            "service_token_configured": token_ready,
+            "provider_available": True,
+            "provider": provider.name,
+            "mock_provider": provider_is_mock,
+            "opencv_available": cv2 is not None,
+            "tesseract_available": pytesseract is not None,
+            "limits": {
+                "max_request_bytes": MAX_REQUEST_BYTES,
+                "max_file_base64_bytes": MAX_FILE_BASE64_BYTES,
+                "max_documents": MAX_DOCUMENTS,
+                "ocr_timeout_seconds": OCR_TIMEOUT_SECONDS,
+                "max_image_pixels": MAX_IMAGE_PIXELS,
+            },
+        },
+    }
+    return bool(payload["ok"]), payload
+
+
 @app.get("/healthz")
 def healthz() -> dict[str, Any]:
     return {
@@ -185,13 +549,28 @@ def healthz() -> dict[str, Any]:
     }
 
 
-@app.post("/v1/driver-verifications/analyze")
+@app.get("/readyz")
+def readyz() -> JSONResponse:
+    ok, payload = readiness_payload()
+    return JSONResponse(status_code=200 if ok else 503, content=payload)
+
+
+@app.post("/v1/driver-verifications/analyze", dependencies=[Depends(require_service_auth)])
 def analyze(payload: AnalyzePayload) -> dict[str, Any]:
+    if len(payload.documents) > MAX_DOCUMENTS:
+        raise HTTPException(status_code=413, detail="too many documents")
+
+    encoded_bytes = sum(len(document.file_base64 or "") for document in payload.documents)
+    if encoded_bytes > MAX_FILE_BASE64_BYTES:
+        raise HTTPException(status_code=413, detail="document payload too large")
+
     all_checks: list[dict[str, Any]] = []
     all_flags: list[dict[str, Any]] = []
     all_mismatches: list[str] = []
     document_results: list[dict[str, Any]] = []
     document_scores: list[float] = []
+    has_submitted_selfie = False
+    has_valid_selfie = False
 
     for document in payload.documents:
         extracted = extract_document(document, payload.driver)
@@ -208,12 +587,15 @@ def analyze(payload: AnalyzePayload) -> dict[str, Any]:
         all_checks.extend(provider_checks)
         all_flags.extend(flags)
         all_mismatches.extend(doc_mismatches)
+        if is_identity_photo(document) and document.is_file:
+            has_submitted_selfie = True
+            has_valid_selfie = has_valid_selfie or identity_photo_is_usable(document, extracted)
 
         document_results.append(
             {
                 "document_id": document.id,
                 "document_type": document.document_type,
-                "extracted": extracted,
+                "extracted": redact_extracted(extracted),
                 "mismatches": doc_mismatches,
                 "fraud_flags": flags,
                 "api_checks": provider_checks,
@@ -221,13 +603,13 @@ def analyze(payload: AnalyzePayload) -> dict[str, Any]:
             }
         )
 
-    has_selfie = any(document.document_type in {"selfie", "profile_photo"} and document.is_file for document in payload.documents)
-    final = score_payload(document_scores, all_checks, all_flags, has_selfie)
+    final = score_payload(document_scores, all_checks, all_flags, has_valid_selfie)
     reasons = all_mismatches + [flag["flag_label"] for flag in all_flags]
-    if not has_selfie:
+    if not has_submitted_selfie:
         reasons.append("Selfie is missing for face match verification.")
     if not reasons and final["status"] == "verified":
         reasons.append("All submitted evidence passed automated consistency checks.")
+    face_status = "passed" if has_valid_selfie else ("failed" if has_submitted_selfie else "not_available")
 
     return {
         "ok": True,
@@ -238,8 +620,8 @@ def analyze(payload: AnalyzePayload) -> dict[str, Any]:
         "reasons": reasons[:8],
         "documents": document_results,
         "face_match": {
-            "status": "passed" if has_selfie else "not_available",
-            "similarity_percent": 93.4 if has_selfie else 0.0,
+            "status": face_status,
+            "similarity_percent": 93.4 if has_valid_selfie else 0.0,
             "threshold_percent": 82.0,
         },
         "provider": provider.name,

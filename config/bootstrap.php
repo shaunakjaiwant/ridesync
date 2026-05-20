@@ -7,9 +7,79 @@ if (!defined('RIDESYNC_ROOT')) {
 if (!defined('RIDESYNC_BOOTSTRAPPED')) {
     define('RIDESYNC_BOOTSTRAPPED', true);
 
+    function ridesync_dotenv_values() {
+        static $values = null;
+
+        if ($values !== null) {
+            return $values;
+        }
+
+        $values = [];
+        $path = RIDESYNC_ROOT . DIRECTORY_SEPARATOR . '.env';
+        if (!is_readable($path)) {
+            return $values;
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        if ($lines === false) {
+            return $values;
+        }
+
+        foreach ($lines as $line) {
+            $line = trim((string) $line);
+            if ($line === '' || $line[0] === '#') {
+                continue;
+            }
+
+            if (str_starts_with($line, 'export ')) {
+                $line = trim(substr($line, 7));
+            }
+
+            $equalsAt = strpos($line, '=');
+            if ($equalsAt === false) {
+                continue;
+            }
+
+            $key = trim(substr($line, 0, $equalsAt));
+            if ($key === '' || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $key) !== 1) {
+                continue;
+            }
+
+            $value = trim(substr($line, $equalsAt + 1));
+            if ($value !== '' && ($value[0] === '"' || $value[0] === "'")) {
+                $quote = $value[0];
+                $value = substr($value, 1);
+                if (str_ends_with($value, $quote)) {
+                    $value = substr($value, 0, -1);
+                }
+                if ($quote === '"') {
+                    $value = stripcslashes($value);
+                }
+            } else {
+                $commentAt = strpos($value, ' #');
+                if ($commentAt !== false) {
+                    $value = rtrim(substr($value, 0, $commentAt));
+                }
+            }
+
+            $values[$key] = $value;
+        }
+
+        return $values;
+    }
+
     function ridesync_env($key, $default = null) {
         $value = getenv($key);
-        return ($value === false || $value === '') ? $default : $value;
+        if ($value !== false) {
+            return $value;
+        }
+
+        $dotenv = ridesync_dotenv_values();
+        if (array_key_exists($key, $dotenv) && $dotenv[$key] !== '') {
+            return $dotenv[$key];
+        }
+
+        return $default;
     }
 
     function ridesync_env_bool($key, $default = false) {
@@ -147,6 +217,36 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
             || (strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     }
 
+    function ridesync_request_host() {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? ''));
+        $host = strtolower(trim($host));
+        if (str_starts_with($host, '[') && preg_match('/^\[([^\]]+)\](?::[0-9]+)?$/', $host, $matches)) {
+            return $matches[1];
+        }
+        if (substr_count($host, ':') === 1) {
+            $host = explode(':', $host, 2)[0];
+        }
+        return $host;
+    }
+
+    function ridesync_is_loopback_request() {
+        if (PHP_SAPI === 'cli') {
+            return true;
+        }
+
+        $host = ridesync_request_host();
+        return in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+            || str_starts_with($host, '127.');
+    }
+
+    function ridesync_cookie_secure_required() {
+        if (ridesync_app_env() === 'production') {
+            return ridesync_is_https_request() || !ridesync_is_loopback_request();
+        }
+
+        return ridesync_env_bool('RIDESYNC_COOKIE_SECURE', ridesync_is_https_request());
+    }
+
     function ridesync_send_security_headers() {
         if (PHP_SAPI === 'cli' || headers_sent()) {
             return;
@@ -208,7 +308,7 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         ini_set('session.cookie_samesite', 'Lax');
         session_cache_limiter('');
 
-        $secureCookie = ridesync_env_bool('RIDESYNC_COOKIE_SECURE', ridesync_is_https_request());
+        $secureCookie = ridesync_cookie_secure_required();
         session_set_cookie_params([
             'lifetime' => 0,
             'path' => '/',
