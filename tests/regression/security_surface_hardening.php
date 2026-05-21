@@ -29,9 +29,15 @@ $htaccess = sh_read($root, '.htaccess');
 $apacheConf = sh_read($root, 'docker/apache/ridesync.conf');
 $assetHelper = sh_read($root, 'includes/asset_helper.php');
 $bootstrap = sh_read($root, 'config/bootstrap.php');
+$tunnelRouter = sh_read($root, 'tools/tunnel_router.php');
+$riderLogin = sh_read($root, 'pages/login.php');
 
 sh_expect(str_contains($htaccess, 'RewriteRule (^|/)\. - [F,L]'), 'Root .htaccess does not block dot-directory paths such as .git/config', $failures);
 sh_expect(str_contains($apacheConf, '/(\.|ai_verification_service|config|database|docs|includes|ops|tests|tools|websocket_gateway)'), 'Docker Apache config does not block dot-directories', $failures);
+sh_expect(str_contains($tunnelRouter, "'/ridesync/.git'"), 'Tunnel router does not block .git paths for local security scans', $failures);
+sh_expect(str_contains($tunnelRouter, 'ridesync_tunnel_security_headers'), 'Tunnel router does not attach security headers to blocked/static responses', $failures);
+sh_expect(str_contains($tunnelRouter, "Content-Security-Policy: default-src 'self'"), 'Tunnel router does not emit CSP for non-PHP responses', $failures);
+sh_expect(str_contains($riderLogin, '$requestedRole') && str_contains($riderLogin, "pages/login.php?role=rider"), 'Rider login does not canonicalize unexpected role query parameters', $failures);
 
 $styleVersion = ridesync_stylesheet_version();
 $scriptVersion = ridesync_script_version('js/script.js');
@@ -80,6 +86,8 @@ if (!empty($failures)) {
 }
 
 sh_note('OK', 'web-root dot-directory denial is enforced in Apache config');
+sh_note('OK', 'tunnel router mirrors security header and deny rules');
+sh_note('OK', 'rider login rejects suspicious role query values');
 sh_note('OK', 'asset cache busters use content hashes');
 sh_note('OK', 'public templates no longer depend on external font/CDN assets');
 sh_note('OK', 'CSP avoids broad style-src unsafe-inline');

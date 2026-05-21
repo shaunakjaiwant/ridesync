@@ -4,6 +4,13 @@ if (isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/dashboard.php");
     exit();
 }
+
+$requestedRole = trim((string) ($_GET['role'] ?? 'rider'));
+if ($requestedRole !== 'rider' || count(array_diff(array_keys($_GET), ['role'])) > 0) {
+    header("Location: /ridesync/pages/login.php?role=rider", true, 302);
+    exit();
+}
+
 $_SESSION['selected_role'] = 'rider';
 require_once __DIR__ . '/../includes/public_header.php';
 ?>

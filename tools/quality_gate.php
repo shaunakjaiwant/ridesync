@@ -109,6 +109,7 @@ $requiredOperationalFiles = [
     'api/realtime_token.php',
     'docs/device_lab_test_plan.md',
     'docs/dast_security_test_plan.md',
+    'docs/dast_zap_validation_2026-05-21.md',
     'docs/openapi.yaml',
     'docs/production_ops_validation_report.md',
     'docs/production_runbook.md',
@@ -123,6 +124,7 @@ $requiredOperationalFiles = [
     'ops/systemd/ridesync-backup.service',
     'ops/systemd/ridesync-backup.timer',
     'ops/systemd/ridesync-queue-worker.service',
+    'tools/production_readiness_check.php',
     'tools/prune_runtime_tables.php',
     'websocket_gateway/Dockerfile',
     'websocket_gateway/package.json',
@@ -147,6 +149,13 @@ qg_note(
     count(array_filter($failures, static fn($failure) => str_contains($failure, 'Missing operational readiness file'))) === 0 ? 'OK' : 'FAIL',
     'Operational readiness files'
 );
+
+$output = '';
+$code = qg_run('php tools/production_readiness_check.php', $root, $output);
+if ($code !== 0) {
+    $failures[] = 'Production readiness static check failed' . PHP_EOL . $output;
+}
+qg_note($code === 0 ? 'OK' : 'FAIL', 'Production readiness static checks');
 
 $skipWs = in_array('--syntax-only', $argv ?? [], true)
     || filter_var(getenv('RIDESYNC_SKIP_WS_TESTS') ?: 'false', FILTER_VALIDATE_BOOLEAN);

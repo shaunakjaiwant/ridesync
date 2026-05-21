@@ -22,7 +22,7 @@ docker compose up -d
 curl -fsS http://127.0.0.1:8080/ridesync/api/readiness.php
 ```
 
-Before starting the stack, replace every `replace-with-*` value in `.env`. Production Compose now fails fast unless `RIDESYNC_DB_PASSWORD`, `RIDESYNC_DB_ROOT_PASSWORD`, `RIDESYNC_DOCUMENT_ENCRYPTION_KEY`, `RIDESYNC_METRICS_TOKEN`, `RIDESYNC_WEBSOCKET_URL`, and `RIDESYNC_WS_SHARED_TOKEN` are set. `RIDESYNC_DOCUMENT_ENCRYPTION_KEY` must be a base64-encoded 32-byte key, for example `openssl rand -base64 32`.
+Before starting the stack, replace every `replace-with-*` value in `.env`. Production Compose now fails fast unless `RIDESYNC_DB_PASSWORD`, `RIDESYNC_DB_ROOT_PASSWORD`, `RIDESYNC_DOCUMENT_ENCRYPTION_KEY`, `RIDESYNC_REPAIR_LOG_KEY`, `RIDESYNC_METRICS_TOKEN`, `RIDESYNC_VERIFICATION_SERVICE_TOKEN`, `RIDESYNC_WEBSOCKET_URL`, and `RIDESYNC_WS_SHARED_TOKEN` are set. `RIDESYNC_DOCUMENT_ENCRYPTION_KEY` and `RIDESYNC_REPAIR_LOG_KEY` must be base64-encoded 32-byte keys, for example `openssl rand -base64 32`.
 
 `RIDESYNC_COOKIE_SECURE` defaults to `true` in Compose. Set it to `false` only for local HTTP-only container testing. If a reverse proxy terminates TLS, set `RIDESYNC_TRUST_PROXY=true` only when that proxy controls `X-Forwarded-*` headers.
 

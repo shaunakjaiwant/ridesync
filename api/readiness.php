@@ -16,10 +16,17 @@ $checks = [
     'rate_limits' => false,
     'crypto' => function_exists('openssl_encrypt') && function_exists('random_bytes'),
     'document_crypto' => ridesync_driver_document_crypto_ready(),
+    'repair_log_crypto' => ridesync_app_env() !== 'production'
+        || ridesync_base64_key_is_configured((string) ridesync_env('RIDESYNC_REPAIR_LOG_KEY', ''), 32),
+    'secure_cookies' => ridesync_app_env() !== 'production'
+        || ridesync_env_bool('RIDESYNC_COOKIE_SECURE', false),
     'metrics_token' => ridesync_app_env() !== 'production' || ridesync_env_secret_is_configured('RIDESYNC_METRICS_TOKEN', 16),
     'websocket_config' => ridesync_app_env() !== 'production'
         || (trim((string) ridesync_env('RIDESYNC_WEBSOCKET_URL', '')) !== ''
             && ridesync_env_secret_is_configured('RIDESYNC_WS_SHARED_TOKEN', 32)),
+    'verification_service_config' => ridesync_app_env() !== 'production'
+        || (trim((string) ridesync_env('RIDESYNC_VERIFICATION_SERVICE_URL', '')) !== ''
+            && ridesync_env_secret_is_configured('RIDESYNC_VERIFICATION_SERVICE_TOKEN', 32)),
 ];
 
 if ($conn instanceof mysqli) {

@@ -36,7 +36,7 @@ paths:
   /api/readiness.php:
     get:
       tags: [Health]
-      summary: Readiness probe for database, schema, storage, logs, rate limits, and crypto.
+      summary: Readiness probe for database, schema, storage, crypto, secure cookies, realtime, and verification configuration.
       responses:
         "200":
           description: Service is ready for traffic.
