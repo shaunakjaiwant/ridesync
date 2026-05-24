@@ -56,7 +56,10 @@ class RideSyncRealtimeEventService
             return null;
         }
 
-        return (int) mysqli_insert_id($conn);
+        $eventId = (int) mysqli_insert_id($conn);
+        self::publishToPubSub($eventId, $eventType, $audienceType, $audienceId, $aggregateType, $aggregateId, $payloadJson);
+
+        return $eventId;
     }
 
     public static function publishForUser($conn, int $userId, string $eventType, array $payload = [], array $options = []): ?int
@@ -179,6 +182,24 @@ class RideSyncRealtimeEventService
             'payload' => self::decodePayload((string) $row['payload_json']),
             'created_at' => (string) $row['created_at'],
         ];
+    }
+
+    private static function publishToPubSub(int $eventId, string $eventType, string $audienceType, ?int $audienceId, ?string $aggregateType, ?int $aggregateId, string $payloadJson): void
+    {
+        if (!class_exists('\RideSync\Realtime\PubSub\RedisPubSubPublisher')) {
+            return;
+        }
+
+        \RideSync\Realtime\PubSub\RedisPubSubPublisher::publish('ridesync:realtime_events', [
+            'id' => $eventId,
+            'event_type' => $eventType,
+            'audience_type' => $audienceType,
+            'audience_id' => $audienceId,
+            'aggregate_type' => $aggregateType,
+            'aggregate_id' => $aggregateId,
+            'payload' => self::decodePayload($payloadJson),
+            'created_at' => date('c'),
+        ]);
     }
 
     private static function sanitizePayload(array $payload): array

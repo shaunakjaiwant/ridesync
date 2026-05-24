@@ -14,7 +14,7 @@ uploads/profile_photos/*
 !uploads/profile_photos/.htaccess
 uploads/driver_documents/*
 !uploads/driver_documents/.htaccess
-ai_verification_service/.venv
-ai_verification_service/__pycache__
+apps/ai-verification/.venv
+apps/ai-verification/__pycache__
 **/__pycache__
 *.log

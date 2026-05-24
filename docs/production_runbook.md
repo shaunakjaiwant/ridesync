@@ -74,7 +74,7 @@ npm run worker:maintenance
 For systemd-based hosts:
 
 ```bash
-sudo cp ops/systemd/ridesync-queue-worker.service /etc/systemd/system/
+sudo cp infrastructure/scripts/systemd/ridesync-queue-worker.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now ridesync-queue-worker.service
 ```
@@ -92,14 +92,14 @@ docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 Prometheus: `http://127.0.0.1:9090`
 Alertmanager: `http://127.0.0.1:9093`
 
-Alert rules are stored in `ops/monitoring/alerts.yml`. Replace the placeholder webhook in `ops/monitoring/alertmanager.yml` with Slack, PagerDuty, Teams, or your incident webhook before production.
+Alert rules are stored in `infrastructure/monitoring/alerts.yml`. Replace the placeholder webhook in `infrastructure/monitoring/alertmanager.yml` with Slack, PagerDuty, Teams, or your incident webhook before production.
 
 Prometheus receives `RIDESYNC_METRICS_TOKEN` as a Docker secret and sends it as a bearer token. If metrics scrape targets show `403`, confirm the app and monitoring stack were started with the same token value.
 
 ## Backups
 
 ```bash
-RIDESYNC_DB_PASSWORD=... ./ops/backup_mysql.sh
+RIDESYNC_DB_PASSWORD=... ./infrastructure/scripts/backup_mysql.sh
 ```
 
 Backups are compressed and accompanied by a `.sha256` checksum. Store copies outside the application host.
@@ -107,7 +107,7 @@ Backups are compressed and accompanied by a `.sha256` checksum. Store copies out
 ## Restore Drill
 
 ```bash
-RIDESYNC_DB_PASSWORD=... ./ops/restore_mysql.sh storage/backups/ridesync_db_YYYYMMDDTHHMMSSZ.sql.gz
+RIDESYNC_DB_PASSWORD=... ./infrastructure/scripts/restore_mysql.sh storage/backups/ridesync_db_YYYYMMDDTHHMMSSZ.sql.gz
 php tools/apply_schema_upgrade.php
 curl -fsS http://127.0.0.1/ridesync/api/readiness.php
 ```
@@ -119,14 +119,14 @@ Run a restore drill before every major production release and at least monthly.
 Cron template:
 
 ```bash
-crontab ops/cron/ridesync-backup.cron
-crontab ops/cron/ridesync-maintenance.cron
+crontab infrastructure/scripts/cron/ridesync-backup.cron
+crontab infrastructure/scripts/cron/ridesync-maintenance.cron
 ```
 
 Systemd timer template:
 
 ```bash
-sudo cp ops/systemd/ridesync-backup.* /etc/systemd/system/
+sudo cp infrastructure/scripts/systemd/ridesync-backup.* /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now ridesync-backup.timer
 ```

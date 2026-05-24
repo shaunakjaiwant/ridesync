@@ -6,13 +6,13 @@ RUN apt-get update \
     && a2enmod headers rewrite expires \
     && rm -rf /var/lib/apt/lists/*
 
-COPY docker/apache/ridesync.conf /etc/apache2/conf-available/ridesync.conf
+COPY infrastructure/apache/ridesync.conf /etc/apache2/conf-available/ridesync.conf
 RUN a2enconf ridesync
 
 WORKDIR /var/www/html/ridesync
 COPY . /var/www/html/ridesync
 
-RUN mkdir -p storage/cache storage/logs storage/rate_limits storage/secure_driver_documents uploads/profile_photos uploads/driver_documents \
+RUN mkdir -p storage/cache storage/logs storage/rate_limits storage/secure_driver_documents storage/uploads storage/temp storage/exports uploads/profile_photos uploads/driver_documents \
     && chown -R www-data:www-data storage uploads \
     && find storage uploads -type d -exec chmod 0750 {} \; \
     && find storage uploads -type f -exec chmod 0640 {} \;

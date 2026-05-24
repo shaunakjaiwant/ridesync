@@ -40,16 +40,18 @@ if ($normalizedPath !== '/ridesync' && strpos($normalizedPath, '/ridesync/') !==
 
 $blockedPrefixes = [
     '/ridesync/.git',
-    '/ridesync/ai_verification_service',
+    '/ridesync/ai',
+    '/ridesync/apps',
+    '/ridesync/backend',
     '/ridesync/config',
     '/ridesync/database',
     '/ridesync/docs',
     '/ridesync/includes',
-    '/ridesync/ops',
+    '/ridesync/infrastructure',
+    '/ridesync/realtime',
     '/ridesync/storage/cache',
     '/ridesync/tests',
     '/ridesync/tools',
-    '/ridesync/websocket_gateway',
 ];
 
 foreach ($blockedPrefixes as $prefix) {

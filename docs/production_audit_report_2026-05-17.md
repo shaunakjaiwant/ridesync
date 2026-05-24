@@ -22,7 +22,7 @@ The application is organized as a server-rendered PHP app with clear module boun
 - Shared domain helpers under `includes/`.
 - MySQL schema and demo seed under `database/`.
 - Secure upload/storage helpers for driver KYC documents.
-- FastAPI AI verification service under `ai_verification_service/`.
+- FastAPI AI verification service under `apps/ai-verification/`.
 
 Strengths:
 
@@ -182,7 +182,7 @@ Hardening added during this audit and remediation:
 - `.env.example` added.
 - `Dockerfile`, `docker-compose.yml`, and Apache production config added.
 - `/api/live.php` and `/api/readiness.php` added.
-- `ops/backup_mysql.sh` and `ops/restore_mysql.sh` added.
+- `infrastructure/scripts/backup_mysql.sh` and `infrastructure/scripts/restore_mysql.sh` added.
 - `tests/load/k6-smoke.js` added.
 - Strict CSP path added with nonce-backed scripts.
 - Admin audit logs now support source IP and user-agent context.

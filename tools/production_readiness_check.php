@@ -39,7 +39,7 @@ function pr_env_template_keys($contents) {
 $envExample = pr_read($root, '.env.example');
 $compose = pr_read($root, 'docker-compose.yml');
 $dockerfile = pr_read($root, 'Dockerfile');
-$apache = pr_read($root, 'docker/apache/ridesync.conf');
+$apache = pr_read($root, 'infrastructure/apache/ridesync.conf');
 $readiness = pr_read($root, 'api/readiness.php');
 $workflow = pr_read($root, '.github/workflows/quality.yml');
 $runbook = pr_read($root, 'docs/production_runbook.md');
@@ -48,20 +48,24 @@ $requiredFiles = [
     '.env.example',
     'docker-compose.yml',
     'Dockerfile',
-    'docker/apache/ridesync.conf',
+    'infrastructure/apache/ridesync.conf',
     'api/live.php',
     'api/readiness.php',
     'api/metrics.php',
     'api/v1/health.php',
     'api/v1/readiness.php',
+    'api/v1/search_suggestions.php',
+    'backend/bootstrap.php',
     'includes/api_helper.php',
     'docs/openapi.yaml',
+    'docs/architecture/overview.md',
     'docs/production_hardening_report_2026-05-24.md',
     'docs/dast_security_test_plan.md',
     'docs/dast_zap_validation_2026-05-21.md',
     'docs/screen_reader_test_plan.md',
     'docs/production_runbook.md',
     'tests/load/k6-production.js',
+    'tools/architecture_check.php',
     'tools/db_bootstrap_check.php',
     '.github/workflows/quality.yml',
 ];

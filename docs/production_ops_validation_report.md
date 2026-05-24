@@ -14,17 +14,17 @@ This phase added the operational controls needed for the remaining production-re
 
 ## Implemented Assets
 
-- `ai_verification_service/scripts/validate_provider_contract.py`
+- `apps/ai-verification/scripts/validate_provider_contract.py`
 - `tools/seed_large_dataset.php`
 - `tests/load/k6-production.js`
 - `api/metrics.php`
 - `docker-compose.monitoring.yml`
-- `ops/monitoring/prometheus.yml`
-- `ops/monitoring/alerts.yml`
-- `ops/monitoring/alertmanager.yml`
-- `ops/cron/ridesync-backup.cron`
-- `ops/systemd/ridesync-backup.service`
-- `ops/systemd/ridesync-backup.timer`
+- `infrastructure/monitoring/prometheus.yml`
+- `infrastructure/monitoring/alerts.yml`
+- `infrastructure/monitoring/alertmanager.yml`
+- `infrastructure/scripts/cron/ridesync-backup.cron`
+- `infrastructure/scripts/systemd/ridesync-backup.service`
+- `infrastructure/scripts/systemd/ridesync-backup.timer`
 - `docs/device_lab_test_plan.md`
 - `docs/dast_zap_validation_2026-05-18.md`
 

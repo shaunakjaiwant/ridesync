@@ -64,11 +64,11 @@ foreach (qg_collect_php_files($root) as $file) {
 qg_note(count($failures) === 0 ? 'OK' : 'FAIL', 'PHP syntax lint');
 
 $pythonFiles = [
-    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'main.py',
-    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'worker.py',
-    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'providers.py',
-    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'selftest_service.py',
-    $root . DIRECTORY_SEPARATOR . 'ai_verification_service' . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'validate_provider_contract.py',
+    $root . DIRECTORY_SEPARATOR . 'apps' . DIRECTORY_SEPARATOR . 'ai-verification' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'main.py',
+    $root . DIRECTORY_SEPARATOR . 'apps' . DIRECTORY_SEPARATOR . 'ai-verification' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'worker.py',
+    $root . DIRECTORY_SEPARATOR . 'apps' . DIRECTORY_SEPARATOR . 'ai-verification' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'providers.py',
+    $root . DIRECTORY_SEPARATOR . 'apps' . DIRECTORY_SEPARATOR . 'ai-verification' . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'selftest_service.py',
+    $root . DIRECTORY_SEPARATOR . 'apps' . DIRECTORY_SEPARATOR . 'ai-verification' . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'validate_provider_contract.py',
 ];
 $pythonFiles = array_values(array_filter($pythonFiles, 'is_file'));
 if (!empty($pythonFiles)) {
@@ -88,7 +88,7 @@ if ($skipAiService) {
     qg_note('SKIP', 'AI verification service self-test disabled');
 } else {
     $output = '';
-    $code = qg_run('python ai_verification_service/scripts/selftest_service.py', $root, $output);
+    $code = qg_run('python apps/ai-verification/scripts/selftest_service.py', $root, $output);
     if ($code !== 0) {
         $failures[] = 'AI verification service self-test failed.' . PHP_EOL . $output;
     }
@@ -101,10 +101,10 @@ $requiredOperationalFiles = [
     'Dockerfile',
     'docker-compose.yml',
     'docker-compose.monitoring.yml',
-    'docker/apache/ridesync.conf',
-    'ai_verification_service/Dockerfile',
-    'ai_verification_service/scripts/selftest_service.py',
-    'ai_verification_service/scripts/validate_provider_contract.py',
+    'infrastructure/apache/ridesync.conf',
+    'apps/ai-verification/Dockerfile',
+    'apps/ai-verification/scripts/selftest_service.py',
+    'apps/ai-verification/scripts/validate_provider_contract.py',
     'api/metrics.php',
     'api/realtime_token.php',
     'api/v1/health.php',
@@ -117,25 +117,25 @@ $requiredOperationalFiles = [
     'docs/production_ops_validation_report.md',
     'docs/production_runbook.md',
     'docs/screen_reader_test_plan.md',
-    'ops/backup_mysql.sh',
-    'ops/restore_mysql.sh',
-    'ops/cron/ridesync-backup.cron',
-    'ops/cron/ridesync-maintenance.cron',
-    'ops/monitoring/prometheus.yml',
-    'ops/monitoring/alerts.yml',
-    'ops/monitoring/alertmanager.yml',
-    'ops/systemd/ridesync-backup.service',
-    'ops/systemd/ridesync-backup.timer',
-    'ops/systemd/ridesync-queue-worker.service',
+    'infrastructure/scripts/backup_mysql.sh',
+    'infrastructure/scripts/restore_mysql.sh',
+    'infrastructure/scripts/cron/ridesync-backup.cron',
+    'infrastructure/scripts/cron/ridesync-maintenance.cron',
+    'infrastructure/monitoring/prometheus.yml',
+    'infrastructure/monitoring/alerts.yml',
+    'infrastructure/monitoring/alertmanager.yml',
+    'infrastructure/scripts/systemd/ridesync-backup.service',
+    'infrastructure/scripts/systemd/ridesync-backup.timer',
+    'infrastructure/scripts/systemd/ridesync-queue-worker.service',
     'includes/api_helper.php',
     'tools/db_bootstrap_check.php',
     'tools/production_readiness_check.php',
     'tools/prune_runtime_tables.php',
-    'websocket_gateway/Dockerfile',
-    'websocket_gateway/package.json',
-    'websocket_gateway/package-lock.json',
-    'websocket_gateway/server.js',
-    'websocket_gateway/scripts/smoke_start.js',
+    'realtime/websocket-gateway/Dockerfile',
+    'realtime/websocket-gateway/package.json',
+    'realtime/websocket-gateway/package-lock.json',
+    'realtime/websocket-gateway/server.js',
+    'realtime/websocket-gateway/scripts/smoke_start.js',
     'tests/load/k6-smoke.js',
     'tests/load/k6-production.js',
     'tests/api/negative_api.php',
@@ -161,6 +161,13 @@ if ($code !== 0) {
     $failures[] = 'Production readiness static check failed' . PHP_EOL . $output;
 }
 qg_note($code === 0 ? 'OK' : 'FAIL', 'Production readiness static checks');
+
+$output = '';
+$code = qg_run('php tools/architecture_check.php', $root, $output);
+if ($code !== 0) {
+    $failures[] = 'Architecture check failed' . PHP_EOL . $output;
+}
+qg_note($code === 0 ? 'OK' : 'FAIL', 'Architecture checks');
 
 $skipWs = in_array('--syntax-only', $argv ?? [], true)
     || filter_var(getenv('RIDESYNC_SKIP_WS_TESTS') ?: 'false', FILTER_VALIDATE_BOOLEAN);

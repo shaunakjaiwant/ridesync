@@ -434,6 +434,43 @@ paths:
                 $ref: "#/components/schemas/ApiV1ReadinessResponse"
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
+  /api/v1/search_suggestions.php:
+    get:
+      tags: [Admin, Suggestions]
+      summary: Versioned admin search suggestions using the stable API v1 response envelope.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: context
+          in: query
+          schema:
+            type: string
+            default: admin_global
+        - $ref: "#/components/parameters/QueryQ"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+      responses:
+        "200":
+          description: Admin search suggestions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiV1SearchSuggestionsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   securitySchemes:
     sessionCookie:
@@ -654,6 +691,24 @@ components:
                     type: boolean
                 details:
                   type: object
+    ApiV1SearchSuggestionsResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiV1Envelope"
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: object
+              required: [context, query, suggestions]
+              properties:
+                context:
+                  type: string
+                query:
+                  type: string
+                suggestions:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Suggestion"
     LocationSuggestionsResponse:
       allOf:
         - $ref: "#/components/schemas/RequestId"

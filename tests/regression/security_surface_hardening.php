@@ -26,14 +26,14 @@ function sh_read($root, $relativePath) {
 }
 
 $htaccess = sh_read($root, '.htaccess');
-$apacheConf = sh_read($root, 'docker/apache/ridesync.conf');
+$apacheConf = sh_read($root, 'infrastructure/apache/ridesync.conf');
 $assetHelper = sh_read($root, 'includes/asset_helper.php');
 $bootstrap = sh_read($root, 'config/bootstrap.php');
 $tunnelRouter = sh_read($root, 'tools/tunnel_router.php');
 $riderLogin = sh_read($root, 'pages/login.php');
 
 sh_expect(str_contains($htaccess, 'RewriteRule (^|/)\. - [F,L]'), 'Root .htaccess does not block dot-directory paths such as .git/config', $failures);
-sh_expect(str_contains($apacheConf, '/(\.|ai_verification_service|config|database|docs|includes|ops|tests|tools|websocket_gateway)'), 'Docker Apache config does not block dot-directories', $failures);
+sh_expect(str_contains($apacheConf, '/(\.|ai|apps|backend|config|database|docs|includes|infrastructure|realtime|tests|tools)'), 'Docker Apache config does not block internal architecture directories', $failures);
 sh_expect(str_contains($tunnelRouter, "'/ridesync/.git'"), 'Tunnel router does not block .git paths for local security scans', $failures);
 sh_expect(str_contains($tunnelRouter, 'ridesync_tunnel_security_headers'), 'Tunnel router does not attach security headers to blocked/static responses', $failures);
 sh_expect(str_contains($tunnelRouter, "Content-Security-Policy: default-src 'self'"), 'Tunnel router does not emit CSP for non-PHP responses', $failures);

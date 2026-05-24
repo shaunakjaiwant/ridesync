@@ -111,7 +111,7 @@ services:
 
   websocket-gateway:
     build:
-      context: ./websocket_gateway
+      context: ./realtime/websocket-gateway
       dockerfile: Dockerfile
     ports:
       - "8081:8081"
@@ -124,14 +124,17 @@ services:
       RIDESYNC_DB_NAME: ridesync_db
       RIDESYNC_DB_USER: ridesync_app
       RIDESYNC_DB_PASSWORD: ${RIDESYNC_DB_PASSWORD:?Set RIDESYNC_DB_PASSWORD before starting RideSync}
+      RIDESYNC_REDIS_URL: redis://redis:6379/2
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
 
   ai-verification:
     build:
-      context: ./ai_verification_service
+      context: ./apps/ai-verification
       dockerfile: Dockerfile
     environment:
       RIDESYNC_ENV: production

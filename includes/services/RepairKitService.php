@@ -481,12 +481,12 @@ class RideSyncRepairKitService
         $findings = [];
         $requiredFiles = [
             'package-lock.json',
-            'websocket_gateway/package-lock.json',
-            'ai_verification_service/app/main.py',
-            'ai_verification_service/scripts/selftest_service.py',
+            'realtime/websocket-gateway/package-lock.json',
+            'apps/ai-verification/app/main.py',
+            'apps/ai-verification/scripts/selftest_service.py',
             'docker-compose.yml',
             'Dockerfile',
-            'ops/cron/ridesync-maintenance.cron',
+            'infrastructure/scripts/cron/ridesync-maintenance.cron',
         ];
         foreach ($requiredFiles as $relative) {
             if (!is_file(RIDESYNC_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative))) {

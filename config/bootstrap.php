@@ -143,6 +143,12 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         return is_dir($path) || mkdir($path, 0755, true);
     }
 
+    function ridesync_prepare_storage_directories() {
+        foreach (['cache', 'logs', 'rate_limits', 'uploads', 'temp', 'exports'] as $relative) {
+            ridesync_ensure_directory(ridesync_storage_path($relative));
+        }
+    }
+
     function ridesync_request_id() {
         static $requestId = null;
 
@@ -504,7 +510,10 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         });
     }
 
+    require_once RIDESYNC_ROOT . '/backend/bootstrap.php';
+
     ridesync_configure_runtime();
+    ridesync_prepare_storage_directories();
     require_once RIDESYNC_ROOT . '/includes/logger.php';
     ridesync_register_error_handlers();
     ridesync_send_security_headers();

@@ -1,14 +1,15 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 
-$host     = ridesync_env('RIDESYNC_DB_HOST', 'localhost');
-$username = ridesync_env('RIDESYNC_DB_USER', 'root');
-$password = ridesync_env('RIDESYNC_DB_PASSWORD', '');
-$database = ridesync_env('RIDESYNC_DB_NAME', 'ridesync_db');
-$port     = (int) ridesync_env('RIDESYNC_DB_PORT', 3306);
+$mysqlConfig = ridesync_config('database.connections.mysql', []);
+$host     = $mysqlConfig['host'] ?? 'localhost';
+$username = $mysqlConfig['username'] ?? 'root';
+$password = $mysqlConfig['password'] ?? '';
+$database = $mysqlConfig['database'] ?? 'ridesync_db';
+$port     = (int) ($mysqlConfig['port'] ?? 3306);
 
 $conn = mysqli_init();
-mysqli_options($conn, MYSQLI_OPT_CONNECT_TIMEOUT, (int) ridesync_env('RIDESYNC_DB_CONNECT_TIMEOUT', 5));
+mysqli_options($conn, MYSQLI_OPT_CONNECT_TIMEOUT, (int) ($mysqlConfig['connect_timeout'] ?? 5));
 
 $connectExceptionMessage = null;
 try {

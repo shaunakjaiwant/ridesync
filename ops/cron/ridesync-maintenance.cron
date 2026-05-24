@@ -1,7 +1,0 @@
-# RideSync runtime maintenance
-# Install with: crontab ops/cron/ridesync-maintenance.cron
-
-RIDESYNC_ROOT=/var/www/html/ridesync
-
-# Remove expired realtime events, stale cache files, and old completed queue jobs.
-*/15 * * * * cd $RIDESYNC_ROOT && php tools/prune_runtime_tables.php --days=14 >> storage/logs/maintenance.log 2>&1

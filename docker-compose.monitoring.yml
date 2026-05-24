@@ -7,8 +7,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./ops/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
       - ridesync_prometheus:/prometheus
     secrets:
       - ridesync_metrics_token
@@ -23,7 +23,7 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./ops/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./infrastructure/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ridesync_alertmanager:/alertmanager
     restart: unless-stopped
 
