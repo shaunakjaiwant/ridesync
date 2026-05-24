@@ -93,12 +93,9 @@ require_once __DIR__ . '/../includes/driver_header.php';
 
 <div class="driver-metrics-grid">
     <div class="driver-metric">
-        <span>Today</span>
+        <span>Earnings</span>
         <strong data-driver-today><?php echo ridesync_format_money($state['today_earnings']); ?></strong>
-    </div>
-    <div class="driver-metric">
-        <span>This Week</span>
-        <strong data-driver-week><?php echo ridesync_format_money($state['week_earnings']); ?></strong>
+        <small><?php echo ridesync_format_money($state['week_earnings']); ?> this week</small>
     </div>
     <div class="driver-metric">
         <span>Pending Requests</span>
@@ -117,23 +114,18 @@ require_once __DIR__ . '/../includes/driver_header.php';
 <nav class="panel-action-rail driver-command-rail" aria-label="Primary driver actions">
     <a class="panel-action-card is-primary" href="/ridesync/pages/driver_requests.php">
         <span>Dispatch</span>
-        <strong>Work Queue</strong>
-        <small>Requests, claims, and active trips.</small>
+        <strong>Queue</strong>
+        <small>Requests and active trips.</small>
     </a>
     <a class="panel-action-card" href="/ridesync/pages/driver_earnings.php">
         <span>Settlement</span>
         <strong>Earnings</strong>
-        <small>Trips, totals, and weekly view.</small>
+        <small>Trips and weekly totals.</small>
     </a>
     <a class="panel-action-card" href="/ridesync/pages/driver_profile.php">
         <span>Readiness</span>
         <strong>Profile</strong>
-        <small>Documents and vehicle details.</small>
-    </a>
-    <a class="panel-action-card" href="/ridesync/pages/notifications.php?actor_type=driver">
-        <span>Alerts</span>
-        <strong>Updates</strong>
-        <small>Unread notices and decisions.</small>
+        <small>Documents and vehicle.</small>
     </a>
 </nav>
 

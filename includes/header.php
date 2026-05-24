@@ -39,13 +39,13 @@ if (isset($_SESSION['user_id'])) {
 
     <ul class="nav-links">
         <?php if (isset($_SESSION['user_id'])): ?>
-            <li><a class="<?php echo $currentPage === 'dashboard.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/dashboard.php">Overview</a></li>
+            <li><a class="<?php echo $currentPage === 'dashboard.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/dashboard.php">Dashboard</a></li>
             <li><a class="<?php echo $currentPage === 'post_ride.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/post_ride.php">Post Ride</a></li>
-            <li><a class="<?php echo $currentPage === 'search_rides.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/search_rides.php">Find Ride</a></li>
-            <li><a class="<?php echo $currentPage === 'my_rides.php' || $currentPage === 'my_matches.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/my_rides.php">My Trips</a></li>
+            <li><a class="<?php echo $currentPage === 'search_rides.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/search_rides.php">Search</a></li>
+            <li><a class="<?php echo $currentPage === 'my_rides.php' || $currentPage === 'my_matches.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/my_rides.php">Trips</a></li>
             <li>
                 <a class="<?php echo $currentPage === 'notifications.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/notifications.php?actor_type=user">
-                    Notifications
+                    Alerts
                     <?php if ($unreadNotifications > 0): ?>
                         <span class="nav-badge"><?php echo min(99, $unreadNotifications); ?></span>
                     <?php endif; ?>

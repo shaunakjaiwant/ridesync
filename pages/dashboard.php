@@ -71,24 +71,19 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
 
 <nav class="panel-action-rail quick-actions" aria-label="Primary rider actions">
     <a class="panel-action-card is-primary" href="/ridesync/pages/post_ride.php">
-        <span>Offer seats</span>
+        <span>Offer</span>
         <strong>Post Ride</strong>
-        <small>Create a route for others to join.</small>
+        <small>Create a route.</small>
     </a>
     <a class="panel-action-card" href="/ridesync/pages/search_rides.php">
-        <span>Find movement</span>
+        <span>Find</span>
         <strong>Search Rides</strong>
-        <small>Match with open campus routes.</small>
+        <small>Join an open route.</small>
     </a>
     <a class="panel-action-card" href="/ridesync/pages/my_rides.php">
         <span>Manage</span>
         <strong>My Trips</strong>
-        <small>Review requests and live status.</small>
-    </a>
-    <a class="panel-action-card" href="/ridesync/pages/insights.php">
-        <span>Signals</span>
-        <strong>Insights</strong>
-        <small>See route demand and savings.</small>
+        <small>Review requests.</small>
     </a>
 </nav>
 
@@ -96,11 +91,8 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
 <div class="dashboard-stats">
     <div class="stat-box">
         <span class="stat-number"><?php echo $ridesPosted; ?></span>
-        <span class="stat-label">Rides Posted</span>
-    </div>
-    <div class="stat-box">
-        <span class="stat-number"><?php echo $openRides; ?></span>
-        <span class="stat-label">Open Now</span>
+        <span class="stat-label">Posted Trips</span>
+        <small><?php echo $openRides; ?> open now</small>
     </div>
     <div class="stat-box">
         <span class="stat-number"><?php echo $requestsSent; ?></span>
@@ -108,7 +100,7 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
     </div>
     <div class="stat-box stat-box-alert">
         <span class="stat-number"><?php echo $pendingIncoming; ?></span>
-        <span class="stat-label">Awaiting Your Approval</span>
+        <span class="stat-label">Need Approval</span>
     </div>
     <div class="stat-box">
         <span class="stat-number"><?php echo formatCost($walletSummary['pending_due']); ?></span>
