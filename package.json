@@ -30,10 +30,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Shaunak-j/ridesync.git"
+    "url": "git+https://github.com/shaunakjaiwant/ridesync.git"
   },
   "bugs": {
-    "url": "https://github.com/Shaunak-j/ridesync/issues"
+    "url": "https://github.com/shaunakjaiwant/ridesync/issues"
   },
-  "homepage": "https://github.com/Shaunak-j/ridesync#readme"
+  "homepage": "https://github.com/shaunakjaiwant/ridesync#readme"
 }
