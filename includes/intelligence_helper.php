@@ -36,7 +36,7 @@ function ridesync_fetch_popular_routes($conn, $limit = 6) {
     $routes = [];
 
     $rideResult = mysqli_query($conn,
-        "SELECT origin, destination, COUNT(*) AS total,
+        "SELECT MIN(origin) AS origin, MIN(destination) AS destination, COUNT(*) AS total,
                 COALESCE(AVG(route_distance_km), 0) AS avg_distance,
                 MAX(created_at) AS last_seen
          FROM rides
