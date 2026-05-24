@@ -21,16 +21,14 @@ $adminSearchValue = trim($_GET['q'] ?? '');
 $styleVersion = ridesync_stylesheet_version();
 $needsMapAssets = ridesync_page_needs_map_assets();
 $adminNavItems = [
-    ['key' => 'overview', 'label' => 'Overview'],
-    ['key' => 'users', 'label' => 'Users'],
-    ['key' => 'drivers', 'label' => 'Drivers'],
+    ['key' => 'overview', 'label' => 'Dashboard'],
     ['key' => 'rides', 'label' => 'Rides'],
+    ['key' => 'drivers', 'label' => 'Drivers'],
+    ['key' => 'users', 'label' => 'Users'],
     ['key' => 'requests', 'label' => 'Requests'],
     ['key' => 'reports', 'label' => 'Reports'],
-    ['key' => 'services', 'label' => 'Services', 'capability' => 'run_ai_verification'],
-    ['key' => 'audit', 'label' => 'Audit', 'capability' => 'view_audit_logs'],
-    ['key' => 'bulk', 'label' => 'Bulk', 'capability' => 'run_bulk_operations'],
-    ['key' => 'remove', 'label' => 'Removal', 'capability' => 'remove_accounts'],
+    ['key' => 'services', 'label' => 'Operations', 'capability' => 'run_ai_verification'],
+    ['key' => 'profiles', 'label' => 'Settings'],
 ];
 ?>
 <!DOCTYPE html>
@@ -49,11 +47,11 @@ $adminNavItems = [
 <body class="driver-app admin-app admin-command-shell admin-section-<?php echo htmlspecialchars($currentAdminSection); ?>">
 
 <aside class="admin-sidebar" aria-label="Admin navigation">
-    <a class="admin-sidebar-top" href="/ridesync/pages/admin_dashboard.php?section=profiles" aria-label="Open admin profiles">
+    <a class="admin-sidebar-top" href="/ridesync/pages/admin_dashboard.php?section=overview" aria-label="RideSync admin dashboard">
         <span class="admin-orb">RS</span>
         <div>
-            <strong>Admin OS</strong>
-            <span>Operations</span>
+            <strong>RideSync</strong>
+            <span>Admin</span>
         </div>
     </a>
 
@@ -74,16 +72,15 @@ $adminNavItems = [
     </nav>
 
     <div class="admin-sidebar-bottom">
-        <a href="/ridesync/pages/dashboard.php">Rider App</a>
-        <a href="/ridesync/pages/driver_login.php">Driver App</a>
+        <a href="/ridesync/pages/dashboard.php">Rider</a>
+        <a href="/ridesync/pages/driver_login.php">Driver</a>
     </div>
 </aside>
 
 <header class="admin-topbar">
     <form class="admin-global-search" action="/ridesync/pages/admin_dashboard.php" method="GET" role="search">
         <input type="hidden" name="section" value="<?php echo htmlspecialchars($currentAdminSection); ?>">
-        <span>Search</span>
-        <input type="search" name="q" value="<?php echo htmlspecialchars($adminSearchValue); ?>" placeholder="Search admin records" aria-label="Search admin records" data-admin-global-search data-search-context="admin_global">
+        <input type="search" name="q" value="<?php echo htmlspecialchars($adminSearchValue); ?>" placeholder="Search users, drivers, rides, reports" aria-label="Search admin records" data-admin-global-search data-search-context="admin_global">
         <kbd>Ctrl K</kbd>
     </form>
 
@@ -91,11 +88,10 @@ $adminNavItems = [
         <a class="admin-mobile-profile-link mobile-only" href="/ridesync/pages/admin_dashboard.php?section=profiles" aria-label="View admin profiles">
             <span class="admin-mobile-profile-orb">RS</span>
             <span class="admin-mobile-profile-copy">
-                <strong>Admin OS</strong>
-                <small>Profiles</small>
+                <strong>RideSync</strong>
+                <small>Admin</small>
             </span>
         </a>
-        <span class="admin-system-pill"><span></span> System live</span>
         <div class="admin-profile-chip">
             <strong><?php echo htmlspecialchars($_SESSION['admin_name'] ?? 'Admin'); ?></strong>
             <span><?php echo htmlspecialchars($_SESSION['admin_role'] ?? 'operator'); ?></span>
@@ -105,9 +101,6 @@ $adminNavItems = [
             <input type="hidden" name="action_type" value="logout">
             <button type="submit" class="btn btn-logout btn-sm">Logout</button>
         </form>
-        <a class="admin-logo-link" href="/ridesync/pages/admin_dashboard.php?section=overview" aria-label="RideSync Admin home">
-            <img src="/ridesync/logo-mark.png" alt="RideSync" class="logo-img">
-        </a>
     </div>
 </header>
 

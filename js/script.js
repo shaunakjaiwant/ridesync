@@ -214,6 +214,18 @@ function isValidEmail(email) {
     return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email);
 }
 
+function ridesyncDebounce(callback, wait) {
+    var timer = null;
+    return function () {
+        var context = this;
+        var args = arguments;
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            callback.apply(context, args);
+        }, wait);
+    };
+}
+
 function initNavigationPrefetch() {
     var links = document.querySelectorAll('.nav-links a[href], .driver-nav-links a[href], .admin-side-nav a[href], .admin-section-tabs a[href], .nav-right .btn-user[href], .driver-action-row a[href], .quick-actions a[href]');
     if (!links.length || !document.head) {
@@ -731,7 +743,8 @@ function initAdminTableFilters() {
 
     controls.forEach(function (control) {
         var tableId = control.dataset.adminTableSearch || control.dataset.adminTableStatus;
-        control.addEventListener('input', function () { applyFilter(tableId); });
+        var applyDebounced = ridesyncDebounce(function () { applyFilter(tableId); }, 120);
+        control.addEventListener('input', applyDebounced);
         control.addEventListener('change', function () { applyFilter(tableId); });
         applyFilter(tableId);
     });
@@ -751,7 +764,8 @@ function initAdminPanelFilters() {
             });
         }
 
-        input.addEventListener('input', applyFilter);
+        var applyDebounced = ridesyncDebounce(applyFilter, 120);
+        input.addEventListener('input', applyDebounced);
         input.addEventListener('change', applyFilter);
         applyFilter();
     });
@@ -921,7 +935,7 @@ function initSmartSearchSuggestions() {
         }
         activeRequest = window.AbortController ? new AbortController() : null;
 
-        return fetch('/ridesync/api/search_suggestions.php?context=' + encodeURIComponent(context) + '&q=' + encodeURIComponent(query) + '&limit=10', {
+        return fetch('/ridesync/api/v1/search_suggestions.php?context=' + encodeURIComponent(context) + '&q=' + encodeURIComponent(query) + '&limit=10', {
             credentials: 'same-origin',
             headers: { 'Accept': 'application/json' },
             signal: activeRequest ? activeRequest.signal : undefined
@@ -932,7 +946,9 @@ function initSmartSearchSuggestions() {
             })
             .then(function (payload) {
                 if (requestId !== sequence) return [];
-                var suggestions = payload && Array.isArray(payload.suggestions) ? payload.suggestions : [];
+                var suggestions = payload && Array.isArray(payload.suggestions)
+                    ? payload.suggestions
+                    : (payload && payload.data && Array.isArray(payload.data.suggestions) ? payload.data.suggestions : []);
                 cache[cacheKey] = suggestions;
                 return suggestions;
             })

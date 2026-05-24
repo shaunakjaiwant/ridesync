@@ -5982,3 +5982,228 @@ body.admin-app .admin-command-card + .admin-command-card {
         padding: 9px;
     }
 }
+
+/* Final admin cleanup layer: this sits after legacy responsive rules on purpose. */
+body.admin-app {
+    --admin-sidebar-width: 224px;
+    --admin-shell-bg: #f6f8fb;
+    --admin-panel-border: rgba(203, 213, 225, 0.82);
+    --admin-panel-shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
+    background: var(--admin-shell-bg);
+}
+
+body.admin-app .admin-sidebar {
+    width: var(--admin-sidebar-width);
+    padding: 14px 12px;
+    background: #101820;
+}
+
+body.admin-app .admin-side-nav {
+    gap: 3px;
+    padding-top: 12px;
+}
+
+body.admin-app .admin-side-nav a {
+    min-height: 38px;
+    padding: 0 11px;
+    border-radius: 8px;
+    color: #cdd6e3;
+    font-size: 0.83rem;
+    font-weight: 850;
+}
+
+body.admin-app .admin-side-nav a:hover,
+body.admin-app .admin-side-nav a.is-active {
+    background: #ffffff;
+    color: #101820;
+}
+
+body.admin-app .admin-topbar {
+    min-height: 60px;
+    margin-left: var(--admin-sidebar-width);
+    padding: 10px 18px;
+    border-bottom-color: var(--admin-panel-border);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: none;
+}
+
+body.admin-app.admin-command-shell .admin-main,
+body.admin-app.admin-command-shell .site-footer {
+    margin-left: var(--admin-sidebar-width);
+}
+
+body.admin-app.admin-command-shell .admin-main {
+    padding: 18px;
+}
+
+body.admin-app .admin-global-search {
+    min-height: 40px;
+    max-width: 760px;
+    padding: 0 8px 0 12px;
+    border-color: var(--admin-panel-border);
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+body.admin-app .admin-hero-panel,
+body.admin-app .admin-command-card,
+body.admin-app .admin-op-card,
+body.admin-app .admin-risk-card,
+body.admin-app .admin-search-column,
+body.admin-app .admin-report-card,
+body.admin-app .admin-review-card,
+body.admin-app .admin-service-tile,
+body.admin-app .admin-profile-panel,
+body.admin-app .admin-profile-card,
+body.admin-app .admin-profile-identity-card {
+    border: 1px solid var(--admin-panel-border);
+    background: #ffffff;
+    box-shadow: var(--admin-panel-shadow);
+}
+
+body.admin-app .admin-command-card:hover,
+body.admin-app .admin-op-card:hover,
+body.admin-app .admin-risk-card:hover,
+body.admin-app .admin-service-tile:hover,
+body.admin-app .admin-profile-card:hover {
+    transform: none;
+    box-shadow: var(--admin-panel-shadow);
+}
+
+body.admin-app .admin-hero-panel {
+    min-height: 110px;
+    padding: 18px;
+}
+
+body.admin-app .admin-command-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+body.admin-app .admin-priority-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+body.admin-app .admin-readiness-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+body.admin-app .admin-readiness-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 76px;
+    padding: 11px 12px;
+    border: 1px solid var(--admin-panel-border);
+    border-radius: 8px;
+    background: #f8fafc;
+    transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+body.admin-app .admin-readiness-row:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    background: #ffffff;
+}
+
+body.admin-app .admin-readiness-row span {
+    display: block;
+    color: #657184;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+body.admin-app .admin-readiness-row strong {
+    display: block;
+    margin-top: 4px;
+    color: #111827;
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
+body.admin-app .admin-readiness-row b {
+    flex: 0 0 auto;
+    min-width: 44px;
+    color: #111827;
+    font-size: 1.1rem;
+    text-align: right;
+}
+
+body.admin-app .admin-readiness-row.is-healthy b {
+    color: #047857;
+}
+
+body.admin-app .admin-readiness-row.is-warning b,
+body.admin-app .admin-readiness-row.is-info b {
+    color: #83510f;
+}
+
+body.admin-app .admin-readiness-row.is-critical b,
+body.admin-app .admin-readiness-row.is-danger b {
+    color: #b91c1c;
+}
+
+body.admin-app .admin-table-wrap {
+    max-height: min(680px, calc(100vh - 230px));
+    border-color: var(--admin-panel-border);
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: none;
+}
+
+body.admin-app .admin-smart-table {
+    min-width: 860px;
+}
+
+body.admin-app .admin-smart-table th {
+    top: 0;
+    background: #f8fafc;
+    color: #566174;
+    font-size: 0.7rem;
+}
+
+body.admin-app .admin-smart-table th,
+body.admin-app .admin-smart-table td {
+    padding: 9px 11px;
+}
+
+body.admin-app .admin-smart-table tbody tr:hover td {
+    background: #f8fbff;
+}
+
+body.admin-app .admin-table-tools input,
+body.admin-app .admin-table-tools select {
+    min-height: 38px;
+    box-shadow: none;
+}
+
+@media (max-width: 1100px) {
+    body.admin-app .admin-readiness-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767px) {
+    body.admin-app.admin-command-shell .admin-main,
+    body.admin-app.admin-command-shell .site-footer,
+    body.admin-app .admin-topbar {
+        margin-left: 0;
+    }
+
+    body.admin-app .admin-sidebar {
+        width: auto;
+    }
+
+    body.admin-app .admin-command-rail,
+    body.admin-app .admin-readiness-grid {
+        grid-template-columns: 1fr;
+    }
+
+    body.admin-app .admin-table-wrap {
+        max-height: none;
+    }
+}
