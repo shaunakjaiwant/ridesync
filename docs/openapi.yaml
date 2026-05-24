@@ -392,6 +392,48 @@ paths:
           description: Verification schema is unavailable.
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
+  /api/v1/health.php:
+    get:
+      tags: [Health]
+      summary: Versioned health probe using the stable API v1 response envelope.
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiV1HealthResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          description: Service is degraded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiV1HealthResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /api/v1/readiness.php:
+    get:
+      tags: [Health]
+      summary: Versioned readiness probe using the stable API v1 response envelope.
+      responses:
+        "200":
+          description: Service is ready for traffic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiV1ReadinessResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          description: Service is alive but not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiV1ReadinessResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
 components:
   securitySchemes:
     sessionCookie:
@@ -556,6 +598,62 @@ components:
             timestamp:
               type: string
               format: date-time
+    ApiV1Envelope:
+      type: object
+      required: [ok, request_id, timestamp]
+      properties:
+        ok:
+          type: boolean
+        request_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        meta:
+          type: object
+    ApiV1HealthResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiV1Envelope"
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: object
+              required: [service, status, environment, checks]
+              properties:
+                service:
+                  type: string
+                status:
+                  type: string
+                  enum: [healthy, degraded]
+                environment:
+                  type: string
+                checks:
+                  type: object
+                  additionalProperties: true
+    ApiV1ReadinessResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiV1Envelope"
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: object
+              required: [service, status, environment, checks, details]
+              properties:
+                service:
+                  type: string
+                status:
+                  type: string
+                  enum: [ready, not_ready]
+                environment:
+                  type: string
+                checks:
+                  type: object
+                  additionalProperties:
+                    type: boolean
+                details:
+                  type: object
     LocationSuggestionsResponse:
       allOf:
         - $ref: "#/components/schemas/RequestId"

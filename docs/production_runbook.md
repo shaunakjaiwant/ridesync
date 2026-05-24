@@ -5,13 +5,16 @@
 1. Run `npm test`.
 2. Run `npm run test:syntax`.
 3. Run `npm audit --omit=dev`.
-4. Run `npm run test:kyc-provider -- --required` after setting sandbox KYC variables.
-5. Run `php tools/apply_schema_upgrade.php` against the target database.
-6. Run `php tools/queue_worker.php --once --queue=verification` against staging.
-7. Verify `/ridesync/api/live.php` returns `200`.
-8. Verify `/ridesync/api/readiness.php` returns `200`.
-9. Verify `/ridesync/api/metrics.php` returns Prometheus metrics with `Authorization: Bearer $RIDESYNC_METRICS_TOKEN`.
-10. Confirm GitHub Actions is unblocked and the `RideSync Quality Gate` passes, unless explicitly waived for a non-production merge.
+4. Run `php tools/db_bootstrap_check.php --required` against the target database.
+5. Run `npm run test:kyc-provider -- --required` after setting sandbox KYC variables.
+6. Run `php tools/apply_schema_upgrade.php` against the target database.
+7. Run `php tools/queue_worker.php --once --queue=verification` against staging.
+8. Verify `/ridesync/api/live.php` returns `200`.
+9. Verify `/ridesync/api/readiness.php` and `/ridesync/api/v1/readiness.php` return `200`.
+10. Verify `/ridesync/api/metrics.php` returns Prometheus metrics with `Authorization: Bearer $RIDESYNC_METRICS_TOKEN`.
+11. Confirm GitHub Actions is unblocked and the `RideSync Quality Gate` passes, unless explicitly waived for a non-production merge.
+
+The GitHub Actions quality gate now provisions MySQL, imports `database/ridesync_db.sql`, applies schema upgrades, runs DB bootstrap diagnostics, executes the full DB-backed quality gate, and runs `npm audit`. A green syntax-only pass is not sufficient for production.
 
 ## Container Deployment
 
@@ -39,11 +42,24 @@ The compose stack includes:
 
 - Liveness: `/ridesync/api/live.php`
 - Readiness: `/ridesync/api/readiness.php`
+- API v1 health: `/ridesync/api/v1/health.php`
+- API v1 readiness: `/ridesync/api/v1/readiness.php`
 - Legacy health: `/ridesync/api/health.php`
 - Metrics: `/ridesync/api/metrics.php`
 - WebSocket gateway: `http://127.0.0.1:8081/health`
 
 Use liveness for container restart checks and readiness for load balancer membership.
+Use the `/api/v1/*` checks for mobile/API clients because they return the stable v1 response envelope with `ok`, `data`, `meta`, `request_id`, and `timestamp`.
+
+## Database Bootstrap Diagnostics
+
+Before any release, run:
+
+```bash
+php tools/db_bootstrap_check.php --required
+```
+
+This validates DB environment variables, connectivity, connection latency, required tables, critical indexes, foreign-key coverage, and transactional rollback writes. A failure here means the target environment is not eligible for deployment even if static syntax checks pass.
 
 ## Workers And Realtime
 

@@ -107,10 +107,13 @@ $requiredOperationalFiles = [
     'ai_verification_service/scripts/validate_provider_contract.py',
     'api/metrics.php',
     'api/realtime_token.php',
+    'api/v1/health.php',
+    'api/v1/readiness.php',
     'docs/device_lab_test_plan.md',
     'docs/dast_security_test_plan.md',
     'docs/dast_zap_validation_2026-05-21.md',
     'docs/openapi.yaml',
+    'docs/production_hardening_report_2026-05-24.md',
     'docs/production_ops_validation_report.md',
     'docs/production_runbook.md',
     'docs/screen_reader_test_plan.md',
@@ -124,6 +127,8 @@ $requiredOperationalFiles = [
     'ops/systemd/ridesync-backup.service',
     'ops/systemd/ridesync-backup.timer',
     'ops/systemd/ridesync-queue-worker.service',
+    'includes/api_helper.php',
+    'tools/db_bootstrap_check.php',
     'tools/production_readiness_check.php',
     'tools/prune_runtime_tables.php',
     'websocket_gateway/Dockerfile',
@@ -175,6 +180,12 @@ $skipDb = in_array('--syntax-only', $argv ?? [], true)
 if ($skipDb) {
     qg_note('SKIP', 'DB smoke checks disabled by RIDESYNC_SKIP_DB_TESTS');
 } else {
+    $output = '';
+    $code = qg_run('php tools/db_bootstrap_check.php', $root, $output);
+    if ($code !== 0) {
+        $failures[] = 'DB bootstrap check failed' . PHP_EOL . $output;
+    }
+
     foreach ([
         'php tools/smoke_check.php',
         'php tools/smoke_admin_dashboard.php overview',
@@ -205,7 +216,7 @@ if ($skipDb) {
             $failures[] = 'Smoke command failed: ' . $command . PHP_EOL . $output;
         }
     }
-    qg_note(count(array_filter($failures, static fn($failure) => str_contains($failure, 'Smoke command failed'))) === 0 ? 'OK' : 'FAIL', 'DB smoke checks');
+    qg_note(count(array_filter($failures, static fn($failure) => str_contains($failure, 'DB bootstrap check failed') || str_contains($failure, 'Smoke command failed'))) === 0 ? 'OK' : 'FAIL', 'DB smoke checks');
 }
 
 if (!empty($failures)) {

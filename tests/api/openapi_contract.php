@@ -77,8 +77,15 @@ foreach ($lines as $line) {
 
 sort($paths);
 $actualApiFiles = [];
-foreach (glob($apiDir . DIRECTORY_SEPARATOR . '*.php') ?: [] as $file) {
-    $actualApiFiles[] = '/api/' . basename($file);
+$iterator = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($apiDir, FilesystemIterator::SKIP_DOTS)
+);
+foreach ($iterator as $file) {
+    if (!$file->isFile() || strtolower($file->getExtension()) !== 'php') {
+        continue;
+    }
+    $relative = str_replace('\\', '/', substr($file->getPathname(), strlen($apiDir) + 1));
+    $actualApiFiles[] = '/api/' . $relative;
 }
 sort($actualApiFiles);
 
@@ -93,10 +100,12 @@ foreach ($paths as $path) {
     contract_expect(!empty($hasResponse[$path]), "{$path} has no responses block", $failures);
     contract_expect(!empty($hasMethodNotAllowed[$path]), "{$path} must document 405 Method Not Allowed", $failures);
 
-    $file = $apiDir . DIRECTORY_SEPARATOR . basename($path);
+    $file = $apiDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, substr($path, strlen('/api/')));
     $fileContents = is_file($file) ? file_get_contents($file) : '';
     contract_expect(
-        is_string($fileContents) && str_contains($fileContents, "ridesync_require_method('GET')"),
+        is_string($fileContents)
+            && (str_contains($fileContents, "ridesync_require_method('GET')")
+                || str_contains($fileContents, "ridesync_api_require_method('GET')")),
         "{$path} must explicitly reject non-GET methods",
         $failures
     );
