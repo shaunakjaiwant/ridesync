@@ -97,7 +97,7 @@ function checkHealth(child, port, output, timeout) {
 }
 
 const gatewayDir = path.resolve(__dirname, '..');
-const env = { ...process.env, RIDESYNC_WS_PORT: '0', RIDESYNC_WS_POLL_MS: '10000' };
+const env = { ...process.env, RIDESYNC_WS_PORT: '0', RIDESYNC_WS_POLL_MS: '10000', RIDESYNC_REDIS_URL: '' };
 loadDotEnv(path.resolve(gatewayDir, '..', '..', '.env'), env);
 
 const child = spawn(process.execPath, ['server.js'], {

@@ -181,7 +181,13 @@ async function subscribeRedisEvents() {
   }
 
   try {
-    redisClient = createClient({ url: redisUrl });
+    redisClient = createClient({
+      url: redisUrl,
+      socket: {
+        connectTimeout: 500,
+        reconnectStrategy: false,
+      },
+    });
     redisClient.on('error', (error) => {
       console.error(JSON.stringify({
         level: 'warning',
