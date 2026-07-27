@@ -104,7 +104,16 @@ final class RideLifecycleService
         if ($assignedDriverId > 0) {
             $distanceKm = ridesync_float_or_null($ride['route_distance_km'] ?? null);
             if ($distanceKm === null || $distanceKm <= 0) {
-                $distanceKm = ridesync_estimate_route_distance($ride['origin'], $ride['destination']);
+                // Use Haversine if GPS coordinates are available, else string-based fallback
+                if (!empty($ride['origin_lat']) && !empty($ride['origin_lng'])
+                    && !empty($ride['destination_lat']) && !empty($ride['destination_lng'])) {
+                    $distanceKm = ridesync_haversine_distance(
+                        $ride['origin_lat'], $ride['origin_lng'],
+                        $ride['destination_lat'], $ride['destination_lng']
+                    );
+                } else {
+                    $distanceKm = ridesync_estimate_route_distance($ride['origin'], $ride['destination']);
+                }
             }
             ridesync_record_driver_trip(
                 $this->conn,

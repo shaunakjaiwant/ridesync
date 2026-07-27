@@ -129,4 +129,43 @@ function ridesync_api_require_static_token(string $envKey, int $minLength = 32):
     }
 }
 
+function ridesync_api_validate_schema(array $data, array $schema): void
+{
+    foreach ($schema as $field => $rules) {
+        $isRequired = in_array('required', $rules, true);
+        if (!isset($data[$field])) {
+            if ($isRequired) {
+                ridesync_api_error('validation_error', "Field '{$field}' is required.", 400);
+            }
+            continue;
+        }
+
+        $val = $data[$field];
+        if (in_array('int', $rules, true) && filter_var($val, FILTER_VALIDATE_INT) === false) {
+            ridesync_api_error('validation_error', "Field '{$field}' must be an integer.", 400);
+        }
+        if (in_array('string', $rules, true) && !is_string($val)) {
+            ridesync_api_error('validation_error', "Field '{$field}' must be a string.", 400);
+        }
+        if (in_array('float', $rules, true) && filter_var($val, FILTER_VALIDATE_FLOAT) === false) {
+            ridesync_api_error('validation_error', "Field '{$field}' must be a float.", 400);
+        }
+    }
+}
+
+function ridesync_api_get_json_payload(array $schema = []): array
+{
+    $input = file_get_contents('php://input');
+    $payload = json_decode($input, true);
+    if (!is_array($payload)) {
+        ridesync_api_error('invalid_json', 'Request body must be valid JSON.', 400);
+    }
+
+    if (!empty($schema)) {
+        ridesync_api_validate_schema($payload, $schema);
+    }
+
+    return $payload;
+}
+
 ?>

@@ -117,23 +117,25 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
         <?php if (mysqli_num_rows($recentRides) === 0): ?>
             <p class="empty-state">No rides posted yet. <a href="/ridesync/pages/post_ride.php">Post one!</a></p>
         <?php else: ?>
-            <div class="mini-ride-list">
+            <ul class="mini-ride-list" style="list-style: none; padding: 0;">
                 <?php while ($ride = mysqli_fetch_assoc($recentRides)): ?>
-                    <a href="/ridesync/pages/ride_detail.php?id=<?php echo $ride['id']; ?>" class="mini-ride-item">
-                        <div class="mini-ride-route">
-                            <strong><?php echo htmlspecialchars($ride['origin']); ?></strong>
-                            <span class="arrow">&rarr;</span>
-                            <strong><?php echo htmlspecialchars($ride['destination']); ?></strong>
-                        </div>
-                        <div class="mini-ride-meta">
-                            <span><?php echo date('M j', strtotime($ride['travel_date'])); ?> at <?php echo date('g:i A', strtotime($ride['travel_time'])); ?></span>
-                            <span class="badge badge-<?php echo $ride['status']; ?>">
-                                <?php echo ucfirst($ride['status']); ?>
-                            </span>
-                        </div>
-                    </a>
+                    <li>
+                        <a href="/ridesync/pages/ride_detail.php?id=<?php echo $ride['id']; ?>" class="mini-ride-item">
+                            <div class="mini-ride-route">
+                                <strong><?php echo htmlspecialchars($ride['origin']); ?></strong>
+                                <span class="arrow">&rarr;</span>
+                                <strong><?php echo htmlspecialchars($ride['destination']); ?></strong>
+                            </div>
+                            <div class="mini-ride-meta">
+                                <span><?php echo date('M j', strtotime($ride['travel_date'])); ?> at <?php echo date('g:i A', strtotime($ride['travel_time'])); ?></span>
+                                <span class="badge badge-<?php echo $ride['status']; ?>">
+                                    <?php echo ucfirst($ride['status']); ?>
+                                </span>
+                            </div>
+                        </a>
+                    </li>
                 <?php endwhile; ?>
-            </div>
+            </ul>
             <a href="/ridesync/pages/my_rides.php" class="view-all-link">View all rides &rarr;</a>
         <?php endif; ?>
     </div>
@@ -144,23 +146,25 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
         <?php if (mysqli_num_rows($recentMatches) === 0): ?>
             <p class="empty-state">No requests yet. <a href="/ridesync/pages/search_rides.php">Find a ride!</a></p>
         <?php else: ?>
-            <div class="mini-ride-list">
+            <ul class="mini-ride-list" style="list-style: none; padding: 0;">
                 <?php while ($match = mysqli_fetch_assoc($recentMatches)): ?>
-                    <a href="/ridesync/pages/ride_detail.php?id=<?php echo $match['ride_id']; ?>" class="mini-ride-item">
-                        <div class="mini-ride-route">
-                            <strong><?php echo htmlspecialchars($match['origin']); ?></strong>
-                            <span class="arrow">&rarr;</span>
-                            <strong><?php echo htmlspecialchars($match['destination']); ?></strong>
-                        </div>
-                        <div class="mini-ride-meta">
-                            <span>By <?php echo htmlspecialchars($match['poster_name']); ?></span>
-                            <span class="badge badge-<?php echo $match['match_status']; ?>">
-                                <?php echo ucfirst($match['match_status']); ?>
-                            </span>
-                        </div>
-                    </a>
+                    <li>
+                        <a href="/ridesync/pages/ride_detail.php?id=<?php echo $match['ride_id']; ?>" class="mini-ride-item">
+                            <div class="mini-ride-route">
+                                <strong><?php echo htmlspecialchars($match['origin']); ?></strong>
+                                <span class="arrow">&rarr;</span>
+                                <strong><?php echo htmlspecialchars($match['destination']); ?></strong>
+                            </div>
+                            <div class="mini-ride-meta">
+                                <span>By <?php echo htmlspecialchars($match['poster_name']); ?></span>
+                                <span class="badge badge-<?php echo $match['match_status']; ?>">
+                                    <?php echo ucfirst($match['match_status']); ?>
+                                </span>
+                            </div>
+                        </a>
+                    </li>
                 <?php endwhile; ?>
-            </div>
+            </ul>
             <a href="/ridesync/pages/my_matches.php" class="view-all-link">View all requests &rarr;</a>
         <?php endif; ?>
     </div>

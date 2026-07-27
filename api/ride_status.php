@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
-require_once __DIR__ . '/../includes/http_helper.php';
+require_once __DIR__ . '/../includes/api_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
 
 ridesync_require_method('GET');
@@ -18,10 +18,7 @@ ridesync_enforce_rate_limit('api:ride_status', 120, 60, $actorIdentity, [
     'message' => 'Too many ride status checks. Please slow down briefly.',
 ]);
 
-$rideId = (int) ($_GET['ride_id'] ?? 0);
-if ($rideId <= 0) {
-    ridesync_error_response('Invalid ride', 400);
-}
+$rideId = ridesync_api_param_int('ride_id', 0, 1);
 
 $stmt = mysqli_prepare($conn,
     "SELECT r.*, ls.live_status, ls.driver_id, ls.eta_minutes, ls.note, ls.updated_at AS live_updated_at,
@@ -85,16 +82,17 @@ if ($ride['status'] === 'cancelled') {
 }
 
 $steps = [
-    ['key' => 'searching', 'label' => 'Ride Created'],
-    ['key' => 'matched', 'label' => 'Passengers Matched'],
+    ['key' => 'searching',       'label' => 'Ride Created'],
+    ['key' => 'matched',         'label' => 'Passengers Matched'],
     ['key' => 'driver_assigned', 'label' => 'Driver Assigned'],
-    ['key' => 'active', 'label' => 'Trip Started'],
-    ['key' => 'completed', 'label' => 'Completed'],
+    ['key' => 'arriving',        'label' => 'Driver Arriving'],
+    ['key' => 'active',          'label' => 'Trip Started'],
+    ['key' => 'completed',       'label' => 'Completed'],
 ];
 $order = array_column($steps, 'key');
 $currentIndex = array_search($liveStatus, $order, true);
 if ($currentIndex === false) {
-    $currentIndex = $liveStatus === 'cancelled' ? 0 : 0;
+    $currentIndex = 0;
 }
 
 foreach ($steps as $index => &$step) {

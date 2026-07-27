@@ -62,7 +62,33 @@ function ridesync_wallet_record($conn, $userId, $transactionType, $amount, $desc
              description = VALUES(description)"
     );
     mysqli_stmt_bind_param($stmt, "iiiisdssi", $walletId, $userId, $rideId, $driverId, $transactionType, $amount, $description, $referenceType, $referenceId);
-    return mysqli_stmt_execute($stmt);
+    $inserted = mysqli_stmt_execute($stmt);
+
+    if ($inserted) {
+        // Keep wallet_accounts.balance in sync — balance = credits+cash_paid - fare_due
+        // Uses a single atomic UPDATE from the ledger to avoid race conditions.
+        $balanceStmt = mysqli_prepare($conn,
+            "UPDATE wallet_accounts wa
+             JOIN (
+                 SELECT
+                     wallet_id,
+                     COALESCE(SUM(CASE WHEN transaction_type IN ('credit','adjustment') THEN amount ELSE 0 END), 0)
+                     - COALESCE(SUM(CASE WHEN transaction_type IN ('debit','fare_due') THEN amount ELSE 0 END), 0)
+                     + COALESCE(SUM(CASE WHEN transaction_type = 'cash_paid' THEN amount ELSE 0 END), 0)
+                     AS computed_balance
+                 FROM wallet_transactions
+                 WHERE wallet_id = ?
+                 GROUP BY wallet_id
+             ) ledger ON ledger.wallet_id = wa.id
+             SET wa.balance = ledger.computed_balance,
+                 wa.updated_at = CURRENT_TIMESTAMP
+             WHERE wa.id = ?"
+        );
+        mysqli_stmt_bind_param($balanceStmt, "ii", $walletId, $walletId);
+        mysqli_stmt_execute($balanceStmt);
+    }
+
+    return $inserted;
 }
 
 function ridesync_wallet_record_fare_due($conn, $userId, $rideId, $driverId, $amount, $description, $referenceType, $referenceId) {

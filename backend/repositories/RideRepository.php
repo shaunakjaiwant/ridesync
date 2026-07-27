@@ -10,6 +10,7 @@ final class RideRepository extends BaseRepository
             $this->conn,
             "SELECT r.id, r.user_id, r.status AS ride_status, r.origin, r.destination,
                     r.route_distance_km,
+                    r.origin_lat, r.origin_lng, r.destination_lat, r.destination_lng,
                     COALESCE(ls.live_status, 'searching') AS live_status,
                     ls.driver_id
              FROM rides r

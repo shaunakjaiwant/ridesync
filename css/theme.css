@@ -1,6 +1,9 @@
 /* RideSync enterprise workspace theme */
 
 :root {
+    --transition-fast: 0.16s ease;
+    --transition-base: 0.22s ease-out;
+    --transition-slow: 0.3s ease;
     --bg: #f5f7fb;
     --bg-soft: #eef2f7;
     --surface: #ffffff;
@@ -57,6 +60,7 @@
 html {
     background: var(--bg);
     color-scheme: light;
+    scroll-behavior: smooth;
 }
 
 body,

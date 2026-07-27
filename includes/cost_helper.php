@@ -24,12 +24,33 @@ function ridesync_route_seed($origin, $destination) {
 }
 
 function ridesync_estimate_route_distance($origin, $destination) {
+    // String-based fallback used only when real GPS coordinates are unavailable.
+    // Uses a deterministic formula scaled to Karnataka route length distributions.
     $originLength = max(4, strlen(trim($origin)));
     $destinationLength = max(4, strlen(trim($destination)));
     $seed = ridesync_route_seed($origin, $destination);
     $distance = (($originLength + $destinationLength) * 0.52) + (($seed % 120) / 10);
 
     return round(max(4.5, min(58, $distance)), 1);
+}
+
+/**
+ * Calculate real geographic distance between two lat/lng points using the
+ * Haversine formula. Returns distance in kilometres.
+ */
+function ridesync_haversine_distance($lat1, $lon1, $lat2, $lon2): float {
+    $lat1 = deg2rad((float) $lat1);
+    $lon1 = deg2rad((float) $lon1);
+    $lat2 = deg2rad((float) $lat2);
+    $lon2 = deg2rad((float) $lon2);
+
+    $dlat = $lat2 - $lat1;
+    $dlon = $lon2 - $lon1;
+
+    $a = sin($dlat / 2) ** 2 + cos($lat1) * cos($lat2) * sin($dlon / 2) ** 2;
+    $c = 2 * asin(sqrt($a));
+
+    return round($c * 6371, 2); // Earth radius 6371 km
 }
 
 function ridesync_normalize_distance_km($distanceKm, $fallbackKm = 1) {
@@ -56,10 +77,10 @@ function calculateCostSplit($totalRiders, $baseFare = 0, $distanceKm = 0, $rateP
     $costPerPerson = ceil($totalCost / $totalRiders);
 
     return [
-        'total_cost' => $totalCost,
+        'total_cost' => (float) $totalCost,
         'total_riders' => $totalRiders,
-        'cost_per_person' => $costPerPerson,
-        'savings' => max(0, $totalCost - $costPerPerson)
+        'cost_per_person' => (float) $costPerPerson,
+        'savings' => (float) max(0, $totalCost - $costPerPerson)
     ];
 }
 

@@ -39,11 +39,18 @@ qa_artifacts/
 qa-artifacts/
 
 # Test/load tool output
+.phpunit.result.cache
 .codex-live/
 k6-results/
 playwright-report/
 test-results/
 .nyc_output/
+
+# Local scratch/copied assets
+11.5.1
+assets - Copy/
+refactor.py
+remove_bom.php
 
 # OS/editor noise
 .DS_Store

@@ -104,14 +104,14 @@ function authenticate(request) {
     return null;
   }
 
-  const expected = sign(audienceType, audienceType === 'admin' ? 0 : audienceId, expiresAt);
+  const expected = sign(audienceType, audienceId, expiresAt);
   if (!safeEqual(token, expected)) {
     return null;
   }
 
   return {
     audienceType,
-    audienceId: audienceType === 'admin' ? 0 : audienceId,
+    audienceId,
     lastSeenId: Number(url.searchParams.get('after_id') || 0),
   };
 }
@@ -121,7 +121,12 @@ function matchesClient(event, client) {
     return false;
   }
 
-  return event.audience_id === null || Number(event.audience_id) === client.audienceId;
+  // audience_id null in the event means broadcast to all of that audience type
+  if (event.audience_id === null) {
+    return true;
+  }
+
+  return Number(event.audience_id) === client.audienceId;
 }
 
 function send(client, event) {

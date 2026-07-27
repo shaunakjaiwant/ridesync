@@ -71,6 +71,7 @@ function metric_count($conn, $table, $where = '1=1') {
         'rides' => true,
         'reports' => true,
         'driver_verification_sessions' => true,
+        'background_jobs' => true,
     ];
     static $allowedPredicates = [
         '1=1' => true,
@@ -83,6 +84,7 @@ function metric_count($conn, $table, $where = '1=1') {
         "report_status IN ('open', 'reviewing')" => true,
         "status = 'queued'" => true,
         "status = 'processing'" => true,
+        "status = 'succeeded'" => true,
         "status = 'verified'" => true,
         "status = 'suspicious'" => true,
         "status = 'fake_tampered'" => true,
@@ -145,6 +147,12 @@ echo "# HELP ridesync_verification_sessions_total Driver verification sessions b
 echo "# TYPE ridesync_verification_sessions_total gauge\n";
 foreach (['queued', 'processing', 'verified', 'suspicious', 'fake_tampered', 'needs_manual_review', 'failed', 'cancelled'] as $status) {
     echo metric_line('ridesync_verification_sessions_total', metric_count($conn, 'driver_verification_sessions', "status = '{$status}'"), ['status' => $status]);
+}
+
+echo "# HELP ridesync_background_jobs_total Background job queue depth by status.\n";
+echo "# TYPE ridesync_background_jobs_total gauge\n";
+foreach (['queued', 'processing', 'succeeded', 'failed', 'cancelled'] as $status) {
+    echo metric_line('ridesync_background_jobs_total', metric_count($conn, 'background_jobs', "status = '{$status}'"), ['status' => $status]);
 }
 
 ?>

@@ -16,6 +16,7 @@ if (strlen($query) < 2) {
         'query' => $query,
         'suggestions' => [],
     ]);
+    exit;
 }
 
 ridesync_json_response([

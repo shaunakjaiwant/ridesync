@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/driver_account_helper.php';
-require_once __DIR__ . '/../includes/http_helper.php';
+require_once __DIR__ . '/../includes/api_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
 
 ridesync_require_method('GET');

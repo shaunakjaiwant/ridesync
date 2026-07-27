@@ -3,8 +3,9 @@
 namespace RideSync\Backend\Repositories;
 
 use mysqli;
+use RideSync\Backend\Contracts\RepositoryContract;
 
-abstract class BaseRepository
+abstract class BaseRepository implements RepositoryContract
 {
     public function __construct(protected mysqli $conn)
     {

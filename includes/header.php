@@ -18,6 +18,22 @@ if (isset($_SESSION['user_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RideSync</title>
     <link rel="icon" type="image/png" href="/ridesync/logo-mark.png">
+    <link rel="manifest" href="/ridesync/manifest.json">
+    <meta name="theme-color" content="#0d1117">
+    <link rel="apple-touch-icon" href="/ridesync/logo-mark.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/ridesync/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
     <?php if ($needsMapAssets): ?>
     <link rel="stylesheet" href="/ridesync/assets/vendor/leaflet/1.9.4/leaflet.css?v=<?php echo ridesync_script_version('assets/vendor/leaflet/1.9.4/leaflet.css'); ?>">
     <?php endif; ?>

@@ -366,6 +366,43 @@ def image_text(document: DocumentPayload) -> tuple[str, dict[str, Any]]:
         return "", {"decode_error": True}
 
 
+def face_similarity_score(img_bytes_a: bytes, img_bytes_b: bytes) -> float | None:
+    """Compare two face images using ORB feature matching as a lightweight proxy
+    when DeepFace/FaceNet are not available. Returns a 0–100 similarity score,
+    or None if OpenCV is unavailable or either image cannot be decoded."""
+    if cv2 is None:
+        return None
+
+    try:
+        arr_a = cv2.imdecode(
+            __import__("numpy").frombuffer(img_bytes_a, dtype=__import__("numpy").uint8), cv2.IMREAD_GRAYSCALE
+        )
+        arr_b = cv2.imdecode(
+            __import__("numpy").frombuffer(img_bytes_b, dtype=__import__("numpy").uint8), cv2.IMREAD_GRAYSCALE
+        )
+        if arr_a is None or arr_b is None:
+            return None
+
+        orb = cv2.ORB_create(nfeatures=500)
+        kp_a, des_a = orb.detectAndCompute(arr_a, None)
+        kp_b, des_b = orb.detectAndCompute(arr_b, None)
+        if des_a is None or des_b is None or len(kp_a) == 0 or len(kp_b) == 0:
+            return None
+
+        matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        matches = matcher.match(des_a, des_b)
+        if not matches:
+            return 0.0
+
+        matches = sorted(matches, key=lambda m: m.distance)
+        good = [m for m in matches if m.distance < 64]
+        total = min(len(kp_a), len(kp_b))
+        score = (len(good) / total) * 100.0 if total > 0 else 0.0
+        return min(100.0, round(score, 2))
+    except Exception:  # pragma: no cover
+        return None
+
+
 def is_identity_photo(document: DocumentPayload) -> bool:
     return document.document_type in {"selfie", "profile_photo"}
 
@@ -391,6 +428,16 @@ def identity_photo_is_usable(document: DocumentPayload, extracted: dict[str, Any
     return not image_decode_failed(extracted) and not image_low_resolution(extracted)
 
 
+def identity_photo_bytes(document: DocumentPayload) -> bytes | None:
+    """Return raw decoded bytes for a usable identity photo, or None."""
+    if not document.file_base64:
+        return None
+    try:
+        return base64.b64decode(document.file_base64, validate=True)
+    except (binascii.Error, ValueError):
+        return None
+
+
 def extract_document(document: DocumentPayload, driver: DriverPayload) -> dict[str, Any]:
     text, image_meta = image_text(document)
     doc_type = document.document_type
@@ -413,7 +460,10 @@ def extract_document(document: DocumentPayload, driver: DriverPayload) -> dict[s
         found = re.search(r"\b([A-Z]{2}\s?[0-9]{1,2}\s?[A-Z]{0,3}\s?[0-9]{3,4})\b", text.upper())
         extracted["vehicle_registration_number"] = found.group(1) if found else driver.vehicle_number
     elif doc_type in {"selfie", "profile_photo"}:
-        extracted["face_detected"] = identity_photo_is_usable(document, extracted)
+        # identity_photo_is_usable checks that the image decoded correctly and
+        # meets minimum resolution requirements. It does NOT perform face
+        # detection — a separate computer-vision step would be needed for that.
+        extracted["selfie_image_usable"] = identity_photo_is_usable(document, extracted)
 
     return {k: v for k, v in extracted.items() if v not in ("", None, {})}
 
@@ -481,22 +531,48 @@ def mismatches(document: DocumentPayload, extracted: dict[str, Any], driver: Dri
     return issues
 
 
-def score_payload(document_scores: list[float], checks: list[dict[str, Any]], flags: list[dict[str, Any]], has_selfie: bool) -> dict[str, Any]:
+def score_payload(
+    document_scores: list[float],
+    checks: list[dict[str, Any]],
+    flags: list[dict[str, Any]],
+    has_selfie: bool,
+    face_similarity: float | None = None,
+) -> dict[str, Any]:
     ocr_score = sum(document_scores) / len(document_scores) if document_scores else 0.0
     passed = len([c for c in checks if c["status"] == "passed"])
     api_score = (passed / len(checks) * 100.0) if checks else 0.0
-    face_score = 93.4 if has_selfie else 58.0
+
+    # Real face score: use computed similarity when OpenCV is available and a selfie was provided.
+    # Fall back to a conservative estimate when face matching isn't possible.
+    if has_selfie:
+        if face_similarity is not None:
+            # Scale ORB feature-match similarity into a usable 0–100 score.
+            # ORB similarity tends to be conservative (rarely hits 100), so we
+            # apply a mild boost while keeping the raw value meaningful.
+            face_score = min(100.0, face_similarity * 1.2)
+        else:
+            # OpenCV unavailable — selfie present but unverified; give a neutral score
+            face_score = 65.0
+    else:
+        face_score = 0.0
+
     penalty = sum({"critical": 38, "high": 24, "medium": 14, "low": 6, "info": 2}.get(f["severity"], 6) for f in flags)
     fraud_score = max(0.0, 100.0 - penalty)
     confidence = round((ocr_score * 0.25) + (api_score * 0.30) + (face_score * 0.20) + (fraud_score * 0.25))
 
+    has_critical = any(f["severity"] == "critical" for f in flags)
     has_high = any(f["severity"] in {"critical", "high"} for f in flags)
-    if any(f["severity"] == "critical" for f in flags) or confidence < 50:
+
+    if has_critical or confidence < 50:
         status = "fake_tampered"
     elif confidence >= 85 and not has_high and has_selfie:
         status = "verified"
     elif confidence >= 65:
         status = "needs_manual_review" if not has_selfie else "suspicious"
+    elif confidence >= 50:
+        # Low confidence but no critical flag — escalate to manual review rather than
+        # auto-rejecting, giving an admin the chance to make the final call.
+        status = "needs_manual_review"
     else:
         status = "fake_tampered"
 
@@ -526,6 +602,7 @@ def readiness_payload() -> tuple[bool, dict[str, Any]]:
             "mock_provider": provider_is_mock,
             "opencv_available": cv2 is not None,
             "tesseract_available": pytesseract is not None,
+            "face_matching_available": cv2 is not None,
             "limits": {
                 "max_request_bytes": MAX_REQUEST_BYTES,
                 "max_file_base64_bytes": MAX_FILE_BASE64_BYTES,
@@ -545,6 +622,7 @@ def healthz() -> dict[str, Any]:
         "service": "ridesync-driver-verification",
         "opencv_available": cv2 is not None,
         "tesseract_available": pytesseract is not None,
+        "face_matching_available": cv2 is not None,
         "provider": provider.name,
     }
 
@@ -572,6 +650,10 @@ def analyze(payload: AnalyzePayload) -> dict[str, Any]:
     has_submitted_selfie = False
     has_valid_selfie = False
 
+    # Collect identity photo bytes for face-match comparison (selfie vs ID photo)
+    selfie_bytes: bytes | None = None
+    id_photo_bytes: bytes | None = None
+
     for document in payload.documents:
         extracted = extract_document(document, payload.driver)
         doc_mismatches = mismatches(document, extracted, payload.driver)
@@ -589,7 +671,14 @@ def analyze(payload: AnalyzePayload) -> dict[str, Any]:
         all_mismatches.extend(doc_mismatches)
         if is_identity_photo(document) and document.is_file:
             has_submitted_selfie = True
-            has_valid_selfie = has_valid_selfie or identity_photo_is_usable(document, extracted)
+            usable = identity_photo_is_usable(document, extracted)
+            has_valid_selfie = has_valid_selfie or usable
+            if usable:
+                raw_bytes = identity_photo_bytes(document)
+                if document.document_type == "selfie" and raw_bytes:
+                    selfie_bytes = raw_bytes
+                elif document.document_type in {"profile_photo"} and raw_bytes:
+                    id_photo_bytes = raw_bytes
 
         document_results.append(
             {
@@ -603,13 +692,26 @@ def analyze(payload: AnalyzePayload) -> dict[str, Any]:
             }
         )
 
-    final = score_payload(document_scores, all_checks, all_flags, has_valid_selfie)
+    # Compute real face similarity when both selfie and an ID/profile photo are available
+    computed_face_similarity: float | None = None
+    if selfie_bytes and id_photo_bytes:
+        computed_face_similarity = face_similarity_score(selfie_bytes, id_photo_bytes)
+    elif selfie_bytes:
+        # Only selfie present — self-consistency check (same image decoded twice is always ~100)
+        # Skip self-comparison; leave similarity as None so score_payload uses the fallback
+        computed_face_similarity = None
+
+    final = score_payload(document_scores, all_checks, all_flags, has_valid_selfie, computed_face_similarity)
     reasons = all_mismatches + [flag["flag_label"] for flag in all_flags]
     if not has_submitted_selfie:
         reasons.append("Selfie is missing for face match verification.")
     if not reasons and final["status"] == "verified":
         reasons.append("All submitted evidence passed automated consistency checks.")
+
     face_status = "passed" if has_valid_selfie else ("failed" if has_submitted_selfie else "not_available")
+    # Similarity is the computed ORB score when both selfie and ID photo are present,
+    # otherwise 0.0 — never use a hardcoded magic number here.
+    face_similarity_pct = computed_face_similarity if (computed_face_similarity is not None and has_valid_selfie) else 0.0
 
     return {
         "ok": True,
@@ -621,8 +723,9 @@ def analyze(payload: AnalyzePayload) -> dict[str, Any]:
         "documents": document_results,
         "face_match": {
             "status": face_status,
-            "similarity_percent": 93.4 if has_valid_selfie else 0.0,
+            "similarity_percent": round(face_similarity_pct, 2),
             "threshold_percent": 82.0,
+            "method": "orb_feature_match" if computed_face_similarity is not None else ("not_computed" if has_valid_selfie else "not_available"),
         },
         "provider": provider.name,
     }

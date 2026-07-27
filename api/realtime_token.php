@@ -16,7 +16,7 @@ if (isset($_SESSION['admin_id'])) {
         ridesync_error_response('Not allowed', 403);
     }
     $audienceType = 'admin';
-    $audienceId = 0;
+    $audienceId = (int) $_SESSION['admin_id'];
     $rateLimitKey = 'admin:' . (int) $_SESSION['admin_id'];
 } elseif (isset($_SESSION['driver_id'])) {
     $audienceType = 'driver';
@@ -43,10 +43,12 @@ if (!ridesync_secret_is_configured($secret, 32) || $wsUrl === '') {
         'enabled' => false,
         'reason' => 'websocket_gateway_not_configured',
     ]);
+    exit();
 }
 
 $expiresAt = time() + 300;
-$token = hash_hmac('sha256', $audienceType . ':' . $audienceId . ':' . $expiresAt, $secret);
+$payload = $audienceType . ':' . $audienceId . ':' . $expiresAt;
+$token = hash_hmac('sha256', $payload, $secret);
 
 ridesync_json_response([
     'ok' => true,
