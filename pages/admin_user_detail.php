@@ -201,6 +201,20 @@ require_once __DIR__ . '/../includes/admin_header.php';
             <?php if (!empty($user['linked_driver_id'])): ?>
                 <a class="btn btn-primary" href="/ridesync/pages/admin_driver_verification.php?driver_id=<?php echo (int) $user['linked_driver_id']; ?>">Open Linked Driver</a>
             <?php endif; ?>
+            <?php $isUserSuspended = ($user['status'] ?? 'active') === 'suspended'; ?>
+            <form action="/ridesync/actions/admin_action.php" method="POST" data-confirm-message="<?php echo $isUserSuspended ? 'Reinstate this rider account?' : 'Suspend this rider account?'; ?>" style="display: inline-flex; gap: 0.4rem; align-items: center;">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="action_type" value="user_account_status">
+                <input type="hidden" name="user_id" value="<?php echo (int) $userId; ?>">
+                <input type="hidden" name="status" value="<?php echo $isUserSuspended ? 'active' : 'suspended'; ?>">
+                <input type="hidden" name="return_to" value="/ridesync/pages/admin_user_detail.php?user_id=<?php echo (int) $userId; ?>">
+                <?php if (!$isUserSuspended): ?>
+                    <input type="text" name="reason" placeholder="Reason (optional)" style="font-size: 0.8rem; padding: 0.35rem 0.6rem; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; width: 160px;">
+                    <button type="submit" class="btn btn-danger btn-sm">Suspend Account</button>
+                <?php else: ?>
+                    <button type="submit" class="btn btn-primary btn-sm">Reinstate Account</button>
+                <?php endif; ?>
+            </form>
         </div>
     </section>
 

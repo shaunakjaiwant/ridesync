@@ -609,13 +609,16 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     <input type="hidden" name="return_to" value="/ridesync/pages/admin_driver_verification.php?driver_id=<?php echo (int) $driverId; ?>">
                     <button type="submit" class="btn btn-secondary btn-sm">Approve Profile Only</button>
                 </form>
-                <form action="/ridesync/actions/admin_action.php" method="POST">
+                <form action="/ridesync/actions/admin_action.php" method="POST" data-confirm-message="Reject this driver profile?">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="action_type" value="driver_profile_decision">
                     <input type="hidden" name="profile_id" value="<?php echo (int) $driver['profile_id']; ?>">
                     <input type="hidden" name="decision" value="rejected">
                     <input type="hidden" name="return_to" value="/ridesync/pages/admin_driver_verification.php?driver_id=<?php echo (int) $driverId; ?>">
-                    <button type="submit" class="btn btn-danger btn-sm">Reject Driver</button>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.25rem;">
+                        <input type="text" name="rejection_reason" placeholder="Reason for rejection (optional)" style="font-size: 0.8rem; padding: 0.35rem 0.6rem; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; flex: 1 1 180px;">
+                        <button type="submit" class="btn btn-danger btn-sm">Reject Driver</button>
+                    </div>
                 </form>
             <?php else: ?>
                 <div class="driver-empty-card">No profile record found for this driver.</div>

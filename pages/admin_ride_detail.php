@@ -164,6 +164,16 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 <a class="btn btn-secondary" href="/ridesync/pages/admin_driver_verification.php?driver_id=<?php echo (int) $ride['driver_id']; ?>">Open Driver</a>
                 <a class="btn btn-secondary" href="/ridesync/pages/admin_view_as.php?type=driver&id=<?php echo (int) $ride['driver_id']; ?>">View As Driver</a>
             <?php endif; ?>
+            <?php if (($ride['status'] ?? '') !== 'cancelled'): ?>
+                <form action="/ridesync/actions/admin_action.php" method="POST" data-confirm-message="Force cancel this ride? All active requests will be rejected." style="display: inline-flex; gap: 0.4rem; align-items: center;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <input type="hidden" name="action_type" value="admin_force_cancel_ride">
+                    <input type="hidden" name="ride_id" value="<?php echo (int) $rideId; ?>">
+                    <input type="hidden" name="return_to" value="/ridesync/pages/admin_ride_detail.php?ride_id=<?php echo (int) $rideId; ?>">
+                    <input type="text" name="reason" placeholder="Reason (optional)" style="font-size: 0.8rem; padding: 0.35rem 0.6rem; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; width: 160px;">
+                    <button type="submit" class="btn btn-danger btn-sm">Force Cancel Ride</button>
+                </form>
+            <?php endif; ?>
         </div>
     </section>
 

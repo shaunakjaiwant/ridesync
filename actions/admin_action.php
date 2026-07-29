@@ -152,6 +152,7 @@ if ($action === 'user_verification_decision') {
 if ($action === 'driver_profile_decision') {
     $profileId = (int) ($_POST['profile_id'] ?? 0);
     $decision = $_POST['decision'] ?? '';
+    $rejectionReason = trim($_POST['rejection_reason'] ?? '');
 
     if ($profileId <= 0 || !in_array($decision, ['verified', 'rejected'], true)) {
         $_SESSION['admin_error'] = "Invalid driver profile decision.";
@@ -160,7 +161,7 @@ if ($action === 'driver_profile_decision') {
 
     $stmt = mysqli_prepare(
         $conn,
-        "SELECT p.driver_id, d.name
+        "SELECT p.driver_id, p.verification_status, d.name
          FROM driver_account_profiles p
          JOIN driver_accounts d ON d.id = p.driver_id
          WHERE p.id = ?
@@ -175,24 +176,36 @@ if ($action === 'driver_profile_decision') {
         ridesync_admin_redirect();
     }
 
+    if ($profile['verification_status'] === $decision) {
+        $_SESSION['admin_error'] = "This driver profile was already " . ridesync_admin_status_label($decision) . ".";
+        ridesync_admin_redirect();
+    }
+
     $stmt = mysqli_prepare($conn, "UPDATE driver_account_profiles SET verification_status = ? WHERE id = ?");
     mysqli_stmt_bind_param($stmt, "si", $decision, $profileId);
     mysqli_stmt_execute($stmt);
 
     if ($decision === 'rejected') {
         ridesync_driver_set_availability($conn, (int) $profile['driver_id'], 'offline');
+        if ($rejectionReason !== '') {
+            $stmt = mysqli_prepare($conn, "UPDATE driver_accounts SET rejection_reason = ? WHERE id = ?");
+            mysqli_stmt_bind_param($stmt, "si", $rejectionReason, $profile['driver_id']);
+            mysqli_stmt_execute($stmt);
+        }
     }
+
+    $notifyMessage = $decision === 'verified'
+        ? 'Your driver profile has been approved. You can go online from the driver dashboard.'
+        : ($rejectionReason !== '' ? 'Your driver profile was rejected. Reason: ' . $rejectionReason : 'Your driver profile was rejected. Please update your license and vehicle details.');
 
     ridesync_admin_notify(
         $conn,
         null,
         (int) $profile['driver_id'],
         $decision === 'verified' ? 'Driver verification approved' : 'Driver verification needs update',
-        $decision === 'verified'
-            ? 'Your driver profile has been approved. You can go online from the driver dashboard.'
-            : 'Your driver profile was rejected. Please update your license and vehicle details.'
+        $notifyMessage
     );
-    ridesync_admin_log($conn, $adminId, 'driver_profile_' . $decision, 'driver_profile', $profileId, $profile['name']);
+    ridesync_admin_log($conn, $adminId, 'driver_profile_' . $decision, 'driver_profile', $profileId, $profile['name'] . ($rejectionReason !== '' ? ' (' . $rejectionReason . ')' : ''));
 
     $_SESSION['admin_success'] = "Driver profile marked as " . ridesync_admin_status_label($decision) . ".";
     ridesync_admin_redirect();
@@ -720,6 +733,107 @@ if ($action === 'report_decision') {
 
     ridesync_admin_log($conn, $adminId, 'report_' . $decision, 'report', $reportId, $report['reason']);
     $_SESSION['admin_success'] = "Report marked as " . ridesync_admin_status_label($decision) . ".";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'user_account_status') {
+    $userId = (int) ($_POST['user_id'] ?? 0);
+    $status = strtolower(trim((string) ($_POST['status'] ?? '')));
+    $reason = trim((string) ($_POST['reason'] ?? ''));
+
+    if ($userId <= 0 || !in_array($status, ['active', 'suspended'], true)) {
+        $_SESSION['admin_error'] = "Invalid user account status request.";
+        ridesync_admin_redirect();
+    }
+
+    $stmt = mysqli_prepare($conn, "SELECT name, email, status FROM users WHERE id = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt, "i", $userId);
+    mysqli_stmt_execute($stmt);
+    $user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+    if (!$user) {
+        $_SESSION['admin_error'] = "User account not found.";
+        ridesync_admin_redirect();
+    }
+
+    if ($user['status'] === $status) {
+        $_SESSION['admin_error'] = "User account is already " . $status . ".";
+        ridesync_admin_redirect();
+    }
+
+    $stmt = mysqli_prepare($conn, "UPDATE users SET status = ?, status_reason = ? WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "ssi", $status, $reason, $userId);
+    mysqli_stmt_execute($stmt);
+
+    ridesync_admin_notify(
+        $conn,
+        $userId,
+        null,
+        'Account ' . ridesync_admin_status_label($status),
+        $status === 'suspended'
+            ? 'Your rider account has been suspended by RideSync admin' . ($reason ? '. Reason: ' . $reason : '.')
+            : 'Your rider account has been reinstated by RideSync admin.'
+    );
+    ridesync_admin_log($conn, $adminId, 'user_account_' . $status, 'user', $userId, $user['name'] . ($reason ? ' (' . $reason . ')' : ''));
+
+    $_SESSION['admin_success'] = "User account marked as " . ridesync_admin_status_label($status) . ".";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_force_cancel_ride') {
+    $rideId = (int) ($_POST['ride_id'] ?? 0);
+    $reason = trim((string) ($_POST['reason'] ?? ''));
+
+    if ($rideId <= 0) {
+        $_SESSION['admin_error'] = "Invalid ride cancellation request.";
+        ridesync_admin_redirect();
+    }
+
+    $stmt = mysqli_prepare($conn, "SELECT user_id, origin, destination, status FROM rides WHERE id = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt, "i", $rideId);
+    mysqli_stmt_execute($stmt);
+    $ride = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+    if (!$ride) {
+        $_SESSION['admin_error'] = "Ride not found.";
+        ridesync_admin_redirect();
+    }
+
+    if ($ride['status'] === 'cancelled') {
+        $_SESSION['admin_error'] = "This ride is already cancelled.";
+        ridesync_admin_redirect();
+    }
+
+    mysqli_begin_transaction($conn);
+
+    try {
+        $stmt = mysqli_prepare($conn, "UPDATE rides SET status = 'cancelled' WHERE id = ?");
+        mysqli_stmt_bind_param($stmt, "i", $rideId);
+        mysqli_stmt_execute($stmt);
+
+        // Reject pending or accepted matches
+        $stmt = mysqli_prepare($conn, "UPDATE matches SET status = 'rejected' WHERE ride_id = ? AND status IN ('pending', 'accepted')");
+        mysqli_stmt_bind_param($stmt, "i", $rideId);
+        mysqli_stmt_execute($stmt);
+
+        mysqli_commit($conn);
+    } catch (Throwable $e) {
+        mysqli_rollback($conn);
+        $_SESSION['admin_error'] = "Could not cancel this ride safely.";
+        ridesync_admin_redirect();
+    }
+
+    // Notify rider owner
+    ridesync_admin_notify(
+        $conn,
+        (int) $ride['user_id'],
+        null,
+        'Ride Cancelled by Admin',
+        'Your ride from ' . $ride['origin'] . ' to ' . $ride['destination'] . ' was cancelled by RideSync admin' . ($reason ? '. Reason: ' . $reason : '.')
+    );
+
+    ridesync_admin_log($conn, $adminId, 'admin_force_cancel_ride', 'ride', $rideId, 'Cancelled ride #' . $rideId . ($reason ? ' (' . $reason . ')' : ''));
+    $_SESSION['admin_success'] = "Ride #" . $rideId . " was force-cancelled by admin.";
     ridesync_admin_redirect();
 }
 

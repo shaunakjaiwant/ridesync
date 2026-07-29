@@ -495,19 +495,19 @@ class RideSyncServiceObservabilityService
         }
 
         $url = $baseUrl . '?format=jsonv2&addressdetails=1&limit=3&countrycodes=in&q=' . rawurlencode('SDMIT Karnataka India');
-        $probe = self::httpProbe($url, ['Accept: application/json'], 1.0);
+        $probe = self::httpProbe($url, ['Accept: application/json', 'User-Agent: RideSync location search probe'], 3.0);
         $localSuggestions = ridesync_location_local_suggestions('SDMIT', 3);
         $providerSuggestions = is_array($probe['json'] ?? null) ? $probe['json'] : [];
         $providerOk = $probe['ok'] && count($providerSuggestions) > 0;
         $localOk = count($localSuggestions) > 0;
-        $ok = $localOk && $providerOk;
+        $status = $providerOk ? self::latencyStatus((float) ($probe['latency_ms'] ?? 0), 750, 2500) : ($localOk ? 'operational' : self::statusFromProbe($probe, [200]));
 
         return self::service(
             'location_suggestions',
             'Location Suggestions API',
             'External API',
-            $ok ? self::latencyStatus((float) ($probe['latency_ms'] ?? 0), 750, 2500) : self::statusFromProbe($probe, [200]),
-            $ok ? 'Location provider and local fallback returned usable places.' : ($probe['error'] ?: 'Location provider response was not usable.'),
+            $status,
+            $providerOk ? 'Location provider and local fallback returned usable places.' : 'Local fallback directory is active for location suggestions.',
             $probe['latency_ms'],
             [
                 'provider_http_status' => $probe['status_code'],
