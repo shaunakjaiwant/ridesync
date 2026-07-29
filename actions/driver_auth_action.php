@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/email_helper.php';
 require_once __DIR__ . '/../includes/driver_account_helper.php';
 require_once __DIR__ . '/../includes/driver_document_helper.php';
 require_once __DIR__ . '/../includes/verification_helper.php';
+require_once __DIR__ . '/../includes/document_verification_helper.php';
 require_once __DIR__ . '/../includes/http_helper.php';
 require_once __DIR__ . '/../includes/rate_limit_helper.php';
 
@@ -232,6 +233,7 @@ if ($action === 'register') {
 
         mysqli_commit($conn);
         ridesync_verification_start_for_driver($conn, $driverId, 'driver_registration');
+        $autoVer = ridesync_verify_driver_documents_automated($conn, $driverId);
         ridesync_rate_limit_clear('auth:driver_register', $rateIdentity);
         unset($_SESSION['driver_register_old']);
         $_SESSION['selected_role'] = 'driver';

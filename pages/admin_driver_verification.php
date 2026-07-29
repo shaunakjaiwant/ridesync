@@ -739,6 +739,30 @@ require_once __DIR__ . '/../includes/admin_header.php';
                                         <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
+                                <?php
+                                $pipelineExtracted = ridesync_verification_decode($doc['extracted_data'] ?? '{}', []);
+                                $pipelineFlags = ridesync_verification_decode($doc['flag_reasons'] ?? '[]', []);
+                                ?>
+                                <?php if (!empty($pipelineExtracted) || !empty($pipelineFlags)): ?>
+                                    <div class="admin-analysis-panel" style="margin-top: 0.5rem; background: var(--surface-muted); padding: 0.6rem; border-radius: 6px;">
+                                        <?php if (!empty($pipelineExtracted)): ?>
+                                            <details open>
+                                                <summary style="font-size: 0.82rem; font-weight: 600;">AI Structured Extraction Data</summary>
+                                                <?php ridesync_admin_render_analysis_fields($pipelineExtracted); ?>
+                                            </details>
+                                        <?php endif; ?>
+                                        <?php if (!empty($pipelineFlags)): ?>
+                                            <details open style="margin-top: 0.4rem;">
+                                                <summary style="font-size: 0.82rem; font-weight: 600; color: #dc2626;">⚠️ AI Flagged Reasons</summary>
+                                                <ul class="admin-finding-list" style="margin-top: 0.3rem;">
+                                                    <?php foreach ($pipelineFlags as $flag): ?>
+                                                        <li style="color: #dc2626; font-size: 0.8rem;"><?php echo htmlspecialchars((string) $flag); ?></li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                            </details>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
 
                             <div class="admin-actions">
