@@ -31,6 +31,13 @@ $reviewedId = (int) ($_POST['reviewed_user_id'] ?? 0);
 $rating = (int) ($_POST['rating'] ?? 0);
 $comment = trim($_POST['comment'] ?? '');
 
+require_once __DIR__ . '/../includes/rate_limit_helper.php';
+
+$rateIdentity = ridesync_client_ip() . '|rating|user_' . $reviewerId;
+ridesync_enforce_rate_limit('action:rating_submit', 10, 60, $rateIdentity, [
+    'message' => 'Too many rating submissions. Please retry in a moment.',
+]);
+
 if ($rideId <= 0 || $reviewedId <= 0 || $reviewedId === $reviewerId || $rating < 1 || $rating > 5) {
     $_SESSION['error'] = "Choose a valid rider and rating.";
     header("Location: /ridesync/pages/ride_detail.php?id=" . $rideId);
@@ -39,6 +46,21 @@ if ($rideId <= 0 || $reviewedId <= 0 || $reviewedId === $reviewerId || $rating <
 
 if (strlen($comment) > 255) {
     $comment = substr($comment, 0, 255);
+}
+
+// Anti-Spam & Link Filtering for Review Comments
+if ($comment !== '') {
+    if (preg_match('/https?:\/\/|www\./i', $comment)) {
+        $_SESSION['error'] = "Review comments cannot contain external links or URLs.";
+        header("Location: /ridesync/pages/ride_detail.php?id=" . $rideId);
+        exit();
+    }
+
+    if (preg_match('/(.)\1{7,}/i', $comment)) {
+        $_SESSION['error'] = "Please enter a meaningful review comment.";
+        header("Location: /ridesync/pages/ride_detail.php?id=" . $rideId);
+        exit();
+    }
 }
 
 $stmt = mysqli_prepare($conn,

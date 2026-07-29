@@ -314,7 +314,7 @@ $posterTrust = $userTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_u
                 <span class="trust-badge trust-badge-verified">Verified student</span>
             <?php endif; ?>
             <?php if ((int) $posterTrust['rating_count'] > 0): ?>
-                <span class="trust-badge">Rated <?php echo number_format((float) $posterTrust['rating_average'], 1); ?>/5</span>
+                <span class="trust-badge trust-badge-verified" title="Verified ratings from completed trips">★ <?php echo number_format((float) $posterTrust['rating_average'], 1); ?>/5 Verified Trip</span>
             <?php else: ?>
                 <span class="trust-badge trust-badge-soft">New rider</span>
             <?php endif; ?>
@@ -342,7 +342,7 @@ $posterTrust = $userTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_u
                                     <span class="trust-badge trust-badge-verified">Verified student</span>
                                 <?php endif; ?>
                                 <?php if ((int) $riderTrust['rating_count'] > 0): ?>
-                                    <span class="trust-badge">Rated <?php echo number_format((float) $riderTrust['rating_average'], 1); ?>/5</span>
+                                    <span class="trust-badge trust-badge-verified" title="Verified ratings from completed trips">★ <?php echo number_format((float) $riderTrust['rating_average'], 1); ?>/5 Verified Trip</span>
                                 <?php else: ?>
                                     <span class="trust-badge trust-badge-soft">New rider</span>
                                 <?php endif; ?>
