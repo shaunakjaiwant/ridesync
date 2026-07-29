@@ -69,6 +69,45 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
     <p>Your current rides, requests, and route signals.</p>
 </div>
 
+<?php if ($ridesPosted === 0 && $requestsSent === 0): ?>
+    <section class="quick-start-onboarding-banner" style="background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.75rem;">
+        <div style="max-width: 600px; margin-bottom: 1rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0284c7; display: flex; align-items: center; gap: 0.35rem;">
+                <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-3.05 11a22.35 22.35 0 0 1-3.95 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+                Welcome to RideSync
+            </span>
+            <h2 style="font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0.25rem 0 0.5rem 0;">Get your campus mobility moving</h2>
+            <p style="font-size: 0.92rem; color: #334155; margin: 0; line-height: 1.5;">You haven't posted or requested any rides yet. Choose an action below or pick a popular campus route to get started.</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+            <a href="/ridesync/pages/search_rides.php" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.25rem;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: #2563eb; display: flex; align-items: center; gap: 0.35rem;">
+                    Find a Ride
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </span>
+                <strong style="font-size: 1rem; color: #0f172a;">Search Campus Routes</strong>
+                <small style="color: #64748b;">Find students heading your way right now.</small>
+            </a>
+            <a href="/ridesync/pages/post_ride.php" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.25rem;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: #059669; display: flex; align-items: center; gap: 0.35rem;">
+                    Offer a Ride
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.05 10.9 2 11.2 2 11.5V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                </span>
+                <strong style="font-size: 1rem; color: #0f172a;">Post Your First Ride</strong>
+                <small style="color: #64748b;">Share your route and split travel costs.</small>
+            </a>
+            <a href="/ridesync/pages/post_ride.php?origin=SDMIT+Campus&destination=Ujire+Bus+Stand" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.25rem;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: #d97706; display: flex; align-items: center; gap: 0.35rem;">
+                    Popular Route
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                </span>
+                <strong style="font-size: 1rem; color: #0f172a;">SDMIT &rarr; Ujire Bus Stand</strong>
+                <small style="color: #64748b;">Pre-fill the most common campus route.</small>
+            </a>
+        </div>
+    </section>
+<?php endif; ?>
+
 <nav class="panel-action-rail quick-actions" aria-label="Primary rider actions">
     <a class="panel-action-card is-primary" href="/ridesync/pages/post_ride.php">
         <span>Offer</span>

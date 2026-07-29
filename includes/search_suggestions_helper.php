@@ -7,7 +7,7 @@ function ridesync_search_query($query) {
 }
 
 function ridesync_search_like($query) {
-    return '%' . ridesync_search_query($query) . '%';
+    return '%' . addcslashes(ridesync_search_query($query), '%_\\') . '%';
 }
 
 function ridesync_search_rows($conn, $sql, $types = '', $params = []) {

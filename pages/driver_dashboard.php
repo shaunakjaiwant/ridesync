@@ -47,6 +47,37 @@ require_once __DIR__ . '/../includes/driver_header.php';
 <?php ridesync_flash('driver_success', 'alert-success'); ?>
 <?php ridesync_flash('driver_error', 'alert-error'); ?>
 
+<?php if ((int) ($state['completed_trips'] ?? 0) === 0 && (int) ($state['pending_requests'] ?? 0) === 0): ?>
+    <section class="quick-start-onboarding-banner" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.75rem;">
+        <div style="max-width: 600px; margin-bottom: 1rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #15803d; display: flex; align-items: center; gap: 0.35rem;">
+                <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.05 10.9 2 11.2 2 11.5V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                Driver Onboarding
+            </span>
+            <h2 style="font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0.25rem 0 0.5rem 0;">Ready to start accepting passenger requests?</h2>
+            <p style="font-size: 0.92rem; color: #334155; margin: 0; line-height: 1.5;">Set your availability status to Online to start receiving passenger matching requests across campus.</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+            <a href="/ridesync/pages/driver_requests.php" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.25rem;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: #2563eb; display: flex; align-items: center; gap: 0.35rem;">
+                    View Requests
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+                </span>
+                <strong style="font-size: 1rem; color: #0f172a;">Passenger Ride Requests</strong>
+                <small style="color: #64748b;">Review incoming rider requests.</small>
+            </a>
+            <a href="/ridesync/pages/driver_profile.php" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.25rem;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: #059669; display: flex; align-items: center; gap: 0.35rem;">
+                    Verification Docs
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+                </span>
+                <strong style="font-size: 1rem; color: #0f172a;">Driver Documents</strong>
+                <small style="color: #64748b;">Keep your verification up to date.</small>
+            </a>
+        </div>
+    </section>
+<?php endif; ?>
+
 <section id="driver-availability" class="driver-home-card">
     <div>
         <span class="driver-kicker">Availability</span>

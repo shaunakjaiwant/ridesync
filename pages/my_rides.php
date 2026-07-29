@@ -233,7 +233,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
                 <div class="ride-manage-actions">
                     <?php if ($canCloseRide): ?>
-                        <form method="POST" style="display:inline;">
+                        <form method="POST" style="display:inline;" data-confirm-message="Close this ride to new join requests?">
                             <input type="hidden" name="ride_id" value="<?php echo $ride['id']; ?>">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <button type="submit" name="ride_action" value="close" class="btn btn-small btn-warning">Close Ride</button>
@@ -291,7 +291,7 @@ require_once __DIR__ . '/../includes/header.php';
                                             <input type="hidden" name="return_to" value="/ridesync/pages/my_rides.php">
                                             <button type="submit" class="btn btn-small btn-primary">Accept</button>
                                         </form>
-                                        <form method="POST" action="/ridesync/actions/match_action.php" style="display:inline;">
+                                        <form method="POST" action="/ridesync/actions/match_action.php" style="display:inline;" data-confirm-message="Reject this join request?">
                                             <input type="hidden" name="action" value="reject">
                                             <input type="hidden" name="match_id" value="<?php echo $m['match_id']; ?>">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">

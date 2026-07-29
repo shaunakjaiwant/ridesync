@@ -139,6 +139,7 @@ $requiredOperationalFiles = [
     'tests/load/k6-smoke.js',
     'tests/load/k6-production.js',
     'tests/api/negative_api.php',
+    'tests/api/authenticated_api.php',
     'tests/api/openapi_contract.php',
     'tests/regression/ride_status_and_match_integrity.php',
     'tests/regression/session_principal_integrity.php',
@@ -154,6 +155,27 @@ qg_note(
     count(array_filter($failures, static fn($failure) => str_contains($failure, 'Missing operational readiness file'))) === 0 ? 'OK' : 'FAIL',
     'Operational readiness files'
 );
+
+$skipUnit = in_array('--syntax-only', $argv ?? [], true)
+    || filter_var(getenv('RIDESYNC_SKIP_UNIT_TESTS') ?: 'false', FILTER_VALIDATE_BOOLEAN);
+if ($skipUnit) {
+    qg_note('SKIP', 'PHPUnit suite disabled');
+} else {
+    $output = '';
+    if (is_file($root . '/vendor/phpunit/phpunit/phpunit')) {
+        $phpunitBin = 'php vendor/phpunit/phpunit/phpunit';
+    } elseif (PHP_OS_FAMILY === 'Windows' && is_file($root . '/vendor/bin/phpunit.bat')) {
+        $phpunitBin = 'vendor\\bin\\phpunit.bat';
+    } else {
+        $phpunitBin = 'php vendor/bin/phpunit';
+    }
+    $code = qg_run($phpunitBin, $root, $output);
+    if ($code !== 0) {
+        $failures[] = 'PHPUnit unit suite failed.' . PHP_EOL . $output;
+    }
+    qg_note($code === 0 ? 'OK' : 'FAIL', 'PHPUnit unit suite');
+}
+
 
 $output = '';
 $code = qg_run('php tools/production_readiness_check.php', $root, $output);
@@ -212,6 +234,8 @@ if ($skipDb) {
         'php tools/smoke_admin_view_as.php user',
         'php tools/smoke_admin_view_as.php driver',
         'php tools/smoke_admin_record_intelligence.php',
+        'php tests/api/negative_api.php',
+        'php tests/api/authenticated_api.php',
         'php tests/api/openapi_contract.php',
         'php tests/regression/ride_status_and_match_integrity.php',
         'php tests/regression/session_principal_integrity.php',

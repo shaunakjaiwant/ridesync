@@ -44,11 +44,13 @@ function ridesync_admin_ops_prepared_rows($conn, $sql, $types = '', $params = []
             $refs[$index] = &$params[$index];
         }
         if (!mysqli_stmt_bind_param($stmt, $types, ...$refs)) {
+            mysqli_stmt_close($stmt);
             return [];
         }
     }
 
     if (!mysqli_stmt_execute($stmt)) {
+        mysqli_stmt_close($stmt);
         return [];
     }
 
@@ -57,6 +59,7 @@ function ridesync_admin_ops_prepared_rows($conn, $sql, $types = '', $params = []
     while ($result && ($row = mysqli_fetch_assoc($result))) {
         $rows[] = $row;
     }
+    mysqli_stmt_close($stmt);
 
     return $rows;
 }

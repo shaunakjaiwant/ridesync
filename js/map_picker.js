@@ -76,29 +76,51 @@
                 setActiveMode(picker, activeMode);
             });
 
-            var currentButton = picker.querySelector('[data-use-current-location]');
-            if (currentButton) {
-                currentButton.addEventListener('click', function () {
+            var container = picker.closest('form') || picker.closest('.form-container') || picker.parentElement || document;
+            var currentButtons = container.querySelectorAll('[data-use-current-location], [data-use-current-location-departure]');
+            currentButtons.forEach(function (currentButton) {
+                currentButton.addEventListener('click', function (e) {
+                    e.preventDefault();
                     if (!navigator.geolocation) {
                         setStatus(picker, 'Your browser does not support location detection.');
+                        alert('Location access is not supported by your browser. Please type your location manually.');
                         return;
                     }
 
-                    setStatus(picker, 'Finding your current location...');
+                    setStatus(picker, 'Detecting your current location...');
+                    currentButton.disabled = true;
+                    var originalText = currentButton.textContent;
+                    currentButton.textContent = 'Locating...';
+
                     navigator.geolocation.getCurrentPosition(function (position) {
+                        currentButton.disabled = false;
+                        currentButton.textContent = originalText;
                         var latlng = L.latLng(position.coords.latitude, position.coords.longitude);
                         setPoint('origin', latlng, true);
                         map.setView(latlng, 15);
                         activeMode = 'destination';
                         setActiveMode(picker, activeMode);
-                    }, function () {
-                        setStatus(picker, 'Location permission was blocked. Click the map to set departure.');
+                        setStatus(picker, 'Departure set to your current location! Click the map to set destination.');
+                    }, function (err) {
+                        currentButton.disabled = false;
+                        currentButton.textContent = originalText;
+                        var errMsg = 'Location permission was denied or failed. Please type your location or click the map.';
+                        if (err && err.code === 1) {
+                            errMsg = 'Location permission was denied. Please allow location access in your browser or type your location.';
+                        } else if (err && err.code === 2) {
+                            errMsg = 'Location unavailable. Please check your GPS settings or type your location.';
+                        } else if (err && err.code === 3) {
+                            errMsg = 'Location detection timed out. Please try again or type your location.';
+                        }
+                        setStatus(picker, errMsg);
+                        alert(errMsg);
                     }, {
                         enableHighAccuracy: true,
-                        timeout: 10000
+                        timeout: 12000,
+                        maximumAge: 30000
                     });
                 });
-            }
+            });
 
             var originSearch = picker.querySelector('[data-map-search-origin]');
             if (originSearch) {
@@ -133,6 +155,7 @@
                     if (routeFareLabel) routeFareLabel.textContent = 'Fare estimate appears here';
                     activeMode = 'origin';
                     setActiveMode(picker, activeMode);
+                    updatePinReadinessBadges();
                     setStatus(picker, 'Choose departure, then destination.');
                 });
             }
@@ -251,6 +274,21 @@
                 } else {
                     destinationLat.value = latlng.lat.toFixed(7);
                     destinationLng.value = latlng.lng.toFixed(7);
+                }
+                updatePinReadinessBadges();
+            }
+
+            function updatePinReadinessBadges() {
+                var originBadge = picker.querySelector('[data-pin-origin-badge]');
+                var destBadge = picker.querySelector('[data-pin-destination-badge]');
+                var hasOrigin = !!(originLat && originLat.value);
+                var hasDest = !!(destinationLat && destinationLat.value);
+
+                if (originBadge) {
+                    originBadge.innerHTML = 'Departure Pin: ' + (hasOrigin ? '<strong style="color: #16a34a;">Set ✓</strong>' : '<strong style="color: #d97706;">Not set</strong>');
+                }
+                if (destBadge) {
+                    destBadge.innerHTML = 'Destination Pin: ' + (hasDest ? '<strong style="color: #16a34a;">Set ✓</strong>' : '<strong style="color: #d97706;">Not set</strong>');
                 }
             }
 
@@ -566,11 +604,16 @@
     }
 
     function reverseGeocode(type, latlng, input) {
+        if (input) {
+            input.value = latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
+        }
         fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + encodeURIComponent(latlng.lat) + '&lon=' + encodeURIComponent(latlng.lng))
             .then(function (response) { return response.json(); })
             .then(function (result) {
                 if (!input || !result) return;
-                input.value = result.display_name || (latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5));
+                if (result.display_name) {
+                    input.value = result.display_name;
+                }
             })
             .catch(function () {
                 if (input && input.value.trim() === '') {

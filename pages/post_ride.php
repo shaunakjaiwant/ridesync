@@ -71,7 +71,13 @@ require_once __DIR__ . '/../includes/header.php';
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
         <div class="form-group">
-            <label for="origin">Departure Location</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label for="origin" style="margin-bottom: 0;">Departure Location</label>
+                <button type="button" class="btn btn-secondary btn-sm" data-use-current-location-departure style="font-size: 0.8rem; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Use My Location
+                </button>
+            </div>
             <input type="text" id="origin" name="origin" required placeholder="e.g. SDMIT Campus" value="<?php echo ridesync_post_ride_old_value($rideFormOld, 'origin'); ?>">
         </div>
 
@@ -87,7 +93,17 @@ require_once __DIR__ . '/../includes/header.php';
                     <h2>Set departure and destination on map</h2>
                     <p>Type in Departure/Destination for suggestions, use current location, or click the map to place pins.</p>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" data-use-current-location>Use my location</button>
+            </div>
+
+            <div class="map-pin-readiness-banner" style="display: flex; gap: 1rem; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.6rem 1rem; margin: 0.75rem 0; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <div style="font-size: 0.88rem; font-weight: 500; color: #334155;">
+                    <span style="margin-right: 1rem;" data-pin-origin-badge>Departure Pin: <strong style="color: #d97706;">Not set</strong></span>
+                    <span data-pin-destination-badge>Destination Pin: <strong style="color: #d97706;">Not set</strong></span>
+                </div>
+                <span style="font-size: 0.78rem; color: #64748b; font-weight: 500; display: inline-flex; align-items: center; gap: 0.3rem;">
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+                    Typing locations auto-places map pins
+                </span>
             </div>
 
             <div class="map-picker-tools">

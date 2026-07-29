@@ -85,7 +85,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
                             <input type="hidden" name="decision" value="accepted">
                             <button type="submit" class="btn btn-primary">Accept</button>
                         </form>
-                        <form action="/ridesync/actions/driver_account_action.php" method="POST">
+                        <form action="/ridesync/actions/driver_account_action.php" method="POST" data-confirm-message="Are you sure you want to reject this passenger request?">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <input type="hidden" name="action_type" value="respond_request">
                             <input type="hidden" name="request_id" value="<?php echo (int) $request['id']; ?>">

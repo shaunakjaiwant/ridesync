@@ -315,7 +315,7 @@
     border-radius: 8px;
 }
 
-.public-vibe-highlights article > span {
+.public-vibe-highlights article>span {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -436,6 +436,7 @@
 }
 
 @keyframes publicRoutePulse {
+
     0%,
     100% {
         transform: translateX(-18px);
@@ -832,7 +833,7 @@
     font-size: 0.88rem;
 }
 
-.auth-panel .auth-switch-text + .auth-switch-text {
+.auth-panel .auth-switch-text+.auth-switch-text {
     margin-top: 0;
 }
 
@@ -847,9 +848,9 @@
     column-gap: 12px;
 }
 
-.auth-panel-register form > .auth-submit,
+.auth-panel-register form>.auth-submit,
 .auth-driver-register-panel .form-group-wide,
-.auth-driver-register-panel form > .auth-submit {
+.auth-driver-register-panel form>.auth-submit {
     grid-column: 1 / -1;
 }
 
@@ -871,6 +872,7 @@
 }
 
 @media (max-width: 900px) {
+
     .auth-shell,
     .auth-shell-wide {
         width: min(100% - 24px, 720px);
@@ -893,6 +895,7 @@
 }
 
 @media (max-width: 640px) {
+
     .auth-shell,
     .auth-shell-wide {
         width: calc(100% - 24px);
@@ -970,7 +973,30 @@
         overflow-x: hidden;
         background: #f8fafc;
         font-size: 14px;
-        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(var(--mobile-bottom-nav-height) + 24px + env(safe-area-inset-bottom, 0px));
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    .btn,
+    select,
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"] {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    .btn-sm,
+    .btn-small {
+        min-height: 38px;
+    }
+
+    img, svg, canvas {
+        max-width: 100%;
     }
 
     .navbar,
@@ -1539,7 +1565,7 @@
         padding: 8px 10px;
     }
 
-    .admin-global-search > span,
+    .admin-global-search>span,
     .admin-global-search kbd,
     .admin-system-pill,
     .admin-profile-chip {
@@ -1703,6 +1729,7 @@
 }
 
 @media (min-width: 768px) {
+
     .navbar,
     .driver-navbar,
     .admin-sidebar,
@@ -1713,6 +1740,7 @@
 
 /* Dense-screen mobile refinements for ride discovery, trip detail, and driver work. */
 @media (max-width: 767px) {
+
     .rider-app .nav-links a::before,
     .driver-app .driver-nav-links a::before {
         display: block;
@@ -2043,7 +2071,8 @@
 
 /* Phones in landscape can report a wide CSS viewport, so use input style and
    short-height checks to keep the admin panel in the mobile shell. */
-@media (hover: none) and (max-width: 1024px), (pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+@media (hover: none) and (max-width: 1024px),
+(pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
     :root {
         --mobile-bottom-nav-height: 76px;
     }
@@ -2175,7 +2204,7 @@
         padding: 7px 10px;
     }
 
-    .admin-global-search > span,
+    .admin-global-search>span,
     .admin-global-search kbd,
     .admin-system-pill,
     .admin-profile-chip {
@@ -2289,7 +2318,9 @@
     }
 }
 
-@media (hover: none) and (max-width: 1024px) and (orientation: landscape), (pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+@media (hover: none) and (max-width: 1024px) and (orientation: landscape),
+(pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+
     .admin-priority-grid,
     .admin-connection-grid,
     .admin-profile-grid {
@@ -2299,7 +2330,9 @@
 
 /* Admin mobile command surface. This intentionally overrides the generic
    responsive rules above so the admin panel feels designed for phones. */
-@media (max-width: 767px), (hover: none) and (max-width: 1024px), (pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+@media (max-width: 767px),
+(hover: none) and (max-width: 1024px),
+(pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
     body.admin-app {
         --mobile-bottom-nav-height: 84px;
         background:
@@ -2618,6 +2651,7 @@
 /* Rider and driver mobile app surfaces. Keep these scoped away from the admin
    shell, which also carries the driver-app class for shared admin styling. */
 @media (max-width: 767px) {
+
     body.rider-app,
     body.driver-app:not(.admin-app) {
         --mobile-bottom-nav-height: 86px;
@@ -2972,6 +3006,7 @@
 }
 
 @media (max-width: 360px) {
+
     .rider-app .dashboard-stats,
     .driver-app:not(.admin-app) .driver-metrics-grid,
     .rider-app .quick-actions {
@@ -3027,13 +3062,13 @@
     opacity: 0.78;
 }
 
-.admin-service-tile > div:first-child {
+.admin-service-tile>div:first-child {
     display: grid;
     gap: 3px;
     min-width: 0;
 }
 
-.admin-service-tile > div:first-child span {
+.admin-service-tile>div:first-child span {
     color: #64748b;
     font-size: 0.7rem;
     font-weight: 900;
@@ -3041,7 +3076,7 @@
     text-transform: uppercase;
 }
 
-.admin-service-tile > div:first-child strong {
+.admin-service-tile>div:first-child strong {
     color: #0f172a;
     font-size: 1rem;
     line-height: 1.22;
@@ -3359,15 +3394,15 @@
     background: #f0fdf4;
 }
 
-.admin-incident-card > div,
-.admin-inbox-row > div,
-.admin-timeline-row > div,
+.admin-incident-card>div,
+.admin-inbox-row>div,
+.admin-timeline-row>div,
 .admin-bulk-card-head,
 .admin-rule-row {
     min-width: 0;
 }
 
-.admin-incident-card > div,
+.admin-incident-card>div,
 .admin-bulk-card-head {
     display: flex;
     align-items: flex-start;
@@ -3431,7 +3466,7 @@
     align-items: center;
 }
 
-.admin-risk-score-hero > strong {
+.admin-risk-score-hero>strong {
     display: grid;
     place-items: center;
     width: 82px;
@@ -3661,7 +3696,7 @@
     padding: 10px;
 }
 
-.admin-note-panel > div:first-child {
+.admin-note-panel>div:first-child {
     display: flex;
     justify-content: space-between;
     gap: 10px;
@@ -3777,7 +3812,7 @@
 
 .admin-rule-row dt,
 .admin-metric-strip span,
-.admin-comparison-columns > div > span {
+.admin-comparison-columns>div>span {
     color: #64748b;
     font-size: 0.7rem;
     font-weight: 900;
@@ -3800,7 +3835,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.admin-comparison-columns > div {
+.admin-comparison-columns>div {
     min-width: 0;
     padding: 12px;
     border: 1px solid rgba(226, 232, 240, 0.9);
@@ -3828,11 +3863,11 @@
     background: #ffffff;
 }
 
-.admin-document-item + .admin-document-item {
+.admin-document-item+.admin-document-item {
     margin-top: 12px;
 }
 
-.admin-document-item > div {
+.admin-document-item>div {
     min-width: 0;
 }
 
@@ -3847,7 +3882,10 @@
 /* Mobile parity layer for the operational/admin features added after the
    original responsive shell. These rules keep the same desktop functionality
    reachable on phones without compressing dense tools into unreadable grids. */
-@media (max-width: 767px), (hover: none) and (max-width: 1024px), (pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+@media (max-width: 767px),
+(hover: none) and (max-width: 1024px),
+(pointer: coarse) and (max-height: 560px) and (max-width: 1100px) {
+
     input[type="checkbox"],
     input[type="radio"] {
         width: auto;
@@ -3898,16 +3936,16 @@
         gap: 10px;
     }
 
-    .admin-card-head > div,
-    .admin-card-head > span,
-    .admin-card-head > a,
+    .admin-card-head>div,
+    .admin-card-head>span,
+    .admin-card-head>a,
     .admin-card-head .admin-table-tools,
     .admin-card-head .admin-live-pill {
         min-width: 0;
         justify-self: stretch;
     }
 
-    .admin-card-head > span,
+    .admin-card-head>span,
     .admin-card-head .admin-live-pill {
         width: fit-content;
         max-width: 100%;
@@ -3963,7 +4001,7 @@
         gap: 12px;
     }
 
-    .admin-risk-score-hero > strong {
+    .admin-risk-score-hero>strong {
         width: 72px;
         height: 72px;
         border-radius: 16px;
@@ -4024,8 +4062,8 @@
     }
 
     .admin-bulk-card-head,
-    .admin-incident-card > div,
-    .admin-note-panel > div:first-child,
+    .admin-incident-card>div,
+    .admin-note-panel>div:first-child,
     .admin-document-item .admin-actions {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -4053,7 +4091,7 @@
 
     .admin-kyc-summary form,
     .admin-kyc-summary .btn,
-    .admin-kyc-summary > a.btn {
+    .admin-kyc-summary>a.btn {
         width: 100%;
     }
 
@@ -4096,16 +4134,17 @@
 }
 
 @media (max-width: 420px) {
+
     .admin-risk-score-hero,
     .admin-risk-component-list div,
     .admin-ops-check,
     .admin-bulk-card-head,
-    .admin-incident-card > div,
-    .admin-note-panel > div:first-child {
+    .admin-incident-card>div,
+    .admin-note-panel>div:first-child {
         grid-template-columns: 1fr;
     }
 
-    .admin-risk-score-hero > strong,
+    .admin-risk-score-hero>strong,
     .admin-ops-check b {
         justify-self: start;
     }
@@ -4119,6 +4158,7 @@
 
 /* Final responsive polish pass */
 @media (min-width: 768px) {
+
     .rider-app .page-header,
     .driver-app:not(.admin-app) .driver-page-header {
         display: flex;
@@ -4138,6 +4178,7 @@
 }
 
 @media (max-width: 767px) {
+
     body,
     .public-app,
     .rider-app,
@@ -4419,6 +4460,7 @@
 }
 
 @media (max-width: 420px) {
+
     .admin-risk-score-hero,
     .admin-ops-check,
     .admin-timeline-row {
@@ -4725,6 +4767,7 @@ body.admin-app .admin-smart-table th {
 }
 
 @media (max-width: 767px) {
+
     .rider-app,
     .driver-app:not(.admin-app),
     body.admin-app {
@@ -4877,7 +4920,7 @@ body.admin-app .admin-profile-status-row {
 
 body.admin-app .admin-profile-role-pill,
 body.admin-app .admin-profile-count,
-body.admin-app .admin-profile-panel .admin-card-head > span {
+body.admin-app .admin-profile-panel .admin-card-head>span {
     display: inline-flex;
     align-items: center;
     min-height: 30px;
@@ -5020,7 +5063,7 @@ body.admin-app .admin-profile-timeline div {
     padding: 0 0 0 20px;
 }
 
-body.admin-app .admin-profile-timeline div > span {
+body.admin-app .admin-profile-timeline div>span {
     position: absolute;
     left: 0;
     top: 5px;
@@ -5105,6 +5148,7 @@ body.admin-app .admin-profile-card .admin-profile-role {
 }
 
 @media (max-width: 1100px) {
+
     body.admin-app .admin-profile-hero,
     body.admin-app .admin-profile-insight-grid,
     body.admin-app .admin-profile-lower-grid,
@@ -5250,6 +5294,7 @@ body.admin-app .admin-record-timeline .admin-timeline-row {
 }
 
 @media (max-width: 767px) {
+
     body.admin-app .admin-record-health-score,
     body.admin-app .admin-record-timeline .admin-timeline-row {
         grid-template-columns: 1fr;
@@ -5341,7 +5386,7 @@ body.admin-app .admin-record-timeline .admin-timeline-row {
 }
 
 .mini-ride-route,
-.route-heat-item > div:first-child strong,
+.route-heat-item>div:first-child strong,
 .driver-opportunity-main h3 {
     min-width: 0;
     overflow-wrap: anywhere;
@@ -5619,7 +5664,7 @@ body.admin-app .admin-record-health-score {
     padding: 10px;
 }
 
-body.admin-app .admin-risk-score-hero > strong,
+body.admin-app .admin-risk-score-hero>strong,
 body.admin-app .admin-record-health-score strong {
     font-size: 1.8rem;
 }
@@ -5706,7 +5751,7 @@ body.admin-app .admin-profile-card .admin-profile-avatar {
     height: 48px;
 }
 
-body.admin-app .admin-services-shell > .admin-card-head {
+body.admin-app .admin-services-shell>.admin-card-head {
     margin-bottom: 0;
 }
 
@@ -5735,6 +5780,7 @@ body.admin-app .admin-live-map {
 }
 
 @media (max-width: 680px) {
+
     body.admin-app .admin-main,
     body.admin-app .admin-command-center,
     body.admin-app .admin-services-shell,
@@ -5824,8 +5870,8 @@ body.admin-app .admin-section {
     margin-top: 10px;
 }
 
-body.admin-app .admin-section + .admin-section,
-body.admin-app .admin-command-card + .admin-command-card {
+body.admin-app .admin-section+.admin-section,
+body.admin-app .admin-command-card+.admin-command-card {
     margin-top: 10px;
 }
 
@@ -6188,6 +6234,7 @@ body.admin-app .admin-table-tools select {
 }
 
 @media (max-width: 767px) {
+
     body.admin-app.admin-command-shell .admin-main,
     body.admin-app.admin-command-shell .site-footer,
     body.admin-app .admin-topbar {
@@ -6386,6 +6433,7 @@ body.admin-app .admin-table-tools select {
 }
 
 @media (max-width: 980px) {
+
     .rider-app .dashboard-stats,
     .driver-app:not(.admin-app) .driver-metrics-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -6393,6 +6441,7 @@ body.admin-app .admin-table-tools select {
 }
 
 @media (max-width: 767px) {
+
     .rider-app .main-content,
     .driver-app:not(.admin-app) .driver-main {
         width: min(100% - 24px, 1160px);
@@ -6421,5 +6470,60 @@ body.admin-app .admin-table-tools select {
 
     .driver-app:not(.admin-app) .driver-home-card {
         grid-template-columns: 1fr;
+    }
+
+    .map-picker-tools {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        width: 100% !important;
+        margin-bottom: 10px !important;
+    }
+
+    .map-picker-tools .btn {
+        width: 100% !important;
+        min-height: 40px !important;
+        padding: 6px 8px !important;
+        font-size: 0.8rem !important;
+        white-space: nowrap !important;
+    }
+
+    .ride-map {
+        min-height: 280px !important;
+        max-height: 320px !important;
+    }
+
+    .fare-map-card {
+        width: 100% !important;
+        overflow: hidden !important;
+        border-radius: 14px !important;
+    }
+
+    .fare-route-svg {
+        width: 100% !important;
+        height: auto !important;
+        max-height: 200px !important;
+    }
+
+    .ride-manage-actions,
+    .match-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-top: 8px !important;
+    }
+
+    .ride-manage-actions form,
+    .match-actions form {
+        display: inline-flex !important;
+        margin: 0 !important;
+    }
+
+    .ride-manage-actions .btn,
+    .match-actions .btn {
+        min-height: 40px !important;
+        padding: 6px 12px !important;
+        font-size: 0.82rem !important;
     }
 }

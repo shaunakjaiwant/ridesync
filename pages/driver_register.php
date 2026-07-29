@@ -39,6 +39,10 @@ require_once __DIR__ . '/../includes/public_header.php';
     </aside>
 
     <div class="form-container auth-panel auth-register-form auth-driver-register-panel">
+        <div class="auth-role-tabs" style="display: flex; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; gap: 0.5rem;">
+            <a href="/ridesync/pages/register.php" class="auth-role-tab" style="padding: 0.6rem 1rem; font-weight: 500; text-decoration: none; color: #64748b;">Rider Account</a>
+            <a href="/ridesync/pages/driver_register.php" class="auth-role-tab is-active" style="padding: 0.6rem 1rem; font-weight: 600; text-decoration: none; border-bottom: 3px solid #2563eb; color: #2563eb;">Driver Account</a>
+        </div>
         <span class="auth-panel-eyebrow">Driver onboarding</span>
         <h1>Register as a Driver</h1>
 

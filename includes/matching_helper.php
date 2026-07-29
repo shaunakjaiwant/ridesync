@@ -4,20 +4,25 @@ require_once __DIR__ . '/cost_helper.php';
 require_once __DIR__ . '/services/NotificationService.php';
 require_once __DIR__ . '/services/RideService.php';
 
-function ridesync_table_exists($conn, $table) {
+function ridesync_table_exists($conn, $table, $forceRefresh = false) {
     if (!$conn instanceof mysqli) {
         return false;
     }
 
     static $cache = [];
-    static $loadedAllTables = false;
-    $key = strtolower($table);
+    static $loadedAllTables = [];
 
-    if (array_key_exists($key, $cache)) {
-        return $cache[$key];
+    $connId = spl_object_hash($conn);
+    if ($forceRefresh) {
+        unset($cache[$connId], $loadedAllTables[$connId]);
     }
 
-    if (!$loadedAllTables) {
+    $key = strtolower($table);
+    if (isset($cache[$connId][$key])) {
+        return $cache[$connId][$key];
+    }
+
+    if (empty($loadedAllTables[$connId])) {
         $result = mysqli_query(
             $conn,
             "SELECT TABLE_NAME
@@ -25,39 +30,47 @@ function ridesync_table_exists($conn, $table) {
              WHERE TABLE_SCHEMA = DATABASE()"
         );
         if ($result) {
+            $cache[$connId] = [];
             while ($row = mysqli_fetch_assoc($result)) {
-                $cache[strtolower((string) $row['TABLE_NAME'])] = true;
+                $cache[$connId][strtolower((string) $row['TABLE_NAME'])] = true;
             }
-            $loadedAllTables = true;
-            return $cache[$key] ?? false;
+            $loadedAllTables[$connId] = true;
+            return $cache[$connId][$key] ?? false;
         }
     }
 
     $safeTable = mysqli_real_escape_string($conn, $table);
     $result = mysqli_query($conn, "SHOW TABLES LIKE '{$safeTable}'");
-    $cache[$key] = $result && mysqli_num_rows($result) > 0;
+    $exists = $result && mysqli_num_rows($result) > 0;
+    $cache[$connId][$key] = $exists;
 
-    return $cache[$key];
+    return $exists;
 }
 
-function ridesync_column_exists($conn, $table, $column) {
+function ridesync_column_exists($conn, $table, $column, $forceRefresh = false) {
     if (!$conn instanceof mysqli) {
         return false;
     }
 
     static $cache = [];
+    $connId = spl_object_hash($conn);
+    if ($forceRefresh) {
+        unset($cache[$connId]);
+    }
+
     $key = strtolower($table . '.' . $column);
 
-    if (array_key_exists($key, $cache)) {
-        return $cache[$key];
+    if (isset($cache[$connId][$key])) {
+        return $cache[$connId][$key];
     }
 
     $safeTable = mysqli_real_escape_string($conn, $table);
     $safeColumn = mysqli_real_escape_string($conn, $column);
     $result = mysqli_query($conn, "SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
-    $cache[$key] = $result && mysqli_num_rows($result) > 0;
+    $exists = $result && mysqli_num_rows($result) > 0;
+    $cache[$connId][$key] = $exists;
 
-    return $cache[$key];
+    return $exists;
 }
 
 function ridesync_float_or_null($value) {

@@ -2,11 +2,20 @@
 require_once __DIR__ . '/matching_helper.php';
 require_once __DIR__ . '/driver_document_helper.php';
 
-function ridesync_driver_schema_ready($conn) {
-    static $ready = null;
+function ridesync_driver_schema_ready($conn, $forceRefresh = false) {
+    if (!$conn instanceof mysqli) {
+        return false;
+    }
 
-    if ($ready !== null) {
-        return $ready;
+    static $cache = [];
+    $connId = spl_object_hash($conn);
+
+    if ($forceRefresh) {
+        unset($cache[$connId]);
+    }
+
+    if (isset($cache[$connId])) {
+        return $cache[$connId];
     }
 
     $required = [
@@ -28,8 +37,8 @@ function ridesync_driver_schema_ready($conn) {
            AND TABLE_NAME IN ({$placeholders})"
     );
     if (!$stmt) {
-        $ready = false;
-        return $ready;
+        $cache[$connId] = false;
+        return false;
     }
 
     $types = str_repeat('s', count($required));
@@ -46,9 +55,10 @@ function ridesync_driver_schema_ready($conn) {
     while ($row = mysqli_fetch_assoc($result)) {
         $found[strtolower((string) $row['TABLE_NAME'])] = true;
     }
+    mysqli_stmt_close($stmt);
 
-    $ready = count($found) === count($required);
-    return $ready;
+    $cache[$connId] = count($found) === count($required);
+    return $cache[$connId];
 }
 
 function ridesync_require_driver_login() {

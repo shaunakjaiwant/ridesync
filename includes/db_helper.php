@@ -21,7 +21,12 @@ function ridesync_db_prepared_statement($conn, $sql, $types = '', array $params 
 
 function ridesync_db_fetch_all($conn, $sql, $types = '', array $params = []) {
     $stmt = ridesync_db_prepared_statement($conn, $sql, $types, $params);
-    if (!$stmt || !mysqli_stmt_execute($stmt)) {
+    if (!$stmt) {
+        return [];
+    }
+
+    if (!mysqli_stmt_execute($stmt)) {
+        mysqli_stmt_close($stmt);
         return [];
     }
 
@@ -30,6 +35,7 @@ function ridesync_db_fetch_all($conn, $sql, $types = '', array $params = []) {
     while ($result && ($row = mysqli_fetch_assoc($result))) {
         $rows[] = $row;
     }
+    mysqli_stmt_close($stmt);
 
     return $rows;
 }

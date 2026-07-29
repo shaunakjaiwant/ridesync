@@ -8,6 +8,22 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
+
+$rootUser = ridesync_env('RIDESYNC_DB_ADMIN_USER', 'root');
+$rootPass = ridesync_env('RIDESYNC_DB_ROOT_PASSWORD', '');
+$dbHost = ridesync_env('RIDESYNC_DB_HOST', 'localhost');
+$dbPort = (int) ridesync_env('RIDESYNC_DB_PORT', 3306);
+$dbName = ridesync_env('RIDESYNC_DB_NAME', 'ridesync_db');
+
+try {
+    $adminConn = @mysqli_connect($dbHost, $rootUser, $rootPass, $dbName, $dbPort);
+    if ($adminConn) {
+        $conn = $adminConn;
+    }
+} catch (Throwable $e) {
+    // Keep standard $conn from db.php
+}
+
 header('Content-Type: text/plain; charset=utf-8');
 
 $applied = 0;
@@ -590,45 +606,6 @@ function schema_create_admin_alert_rules($conn) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
         'Create admin_alert_rules'
     );
-
-    if (!schema_table_exists($conn, 'admin_alert_rules')) {
-        return;
-    }
-
-    $defaults = [
-        ['ai_failed_24h', 'AI failures in last 24h', 'workflows.failed_24h', 'greater_than', 0, 'critical', 10],
-        ['stale_processing_jobs', 'Stale processing jobs', 'queues.stale_processing', 'greater_than', 0, 'warning', 10],
-        ['provider_failures', 'Provider validation failures', 'api_checks.failed_24h', 'greater_than', 2, 'warning', 15],
-        ['runtime_errors', 'Runtime errors in logs', 'logs.error_events_24h', 'greater_than', 0, 'warning', 15],
-        ['service_degraded', 'Degraded service count', 'summary.services_degraded', 'greater_than', 0, 'warning', 15],
-        ['service_down', 'Down service count', 'summary.services_down', 'greater_than', 0, 'critical', 5],
-    ];
-
-    foreach ($defaults as $rule) {
-        $ruleKey = $rule[0];
-        $label = $rule[1];
-        $metricKey = $rule[2];
-        $operator = $rule[3];
-        $threshold = (float) $rule[4];
-        $severity = $rule[5];
-        $cooldownMinutes = (int) $rule[6];
-        $stmt = mysqli_prepare(
-            $conn,
-            "INSERT IGNORE INTO admin_alert_rules
-                (rule_key, label, metric_key, operator, threshold, severity, cooldown_minutes)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
-        if (!$stmt) {
-            schema_note('FAIL', 'Seed admin alert rule ' . $rule[0], mysqli_error($conn));
-            continue;
-        }
-        mysqli_stmt_bind_param($stmt, 'ssssdsi', $ruleKey, $label, $metricKey, $operator, $threshold, $severity, $cooldownMinutes);
-        if (mysqli_stmt_execute($stmt)) {
-            schema_note(mysqli_stmt_affected_rows($stmt) > 0 ? 'APPLIED' : 'SKIP', 'Seed admin alert rule ' . $ruleKey);
-        } else {
-            schema_note('FAIL', 'Seed admin alert rule ' . $ruleKey, mysqli_stmt_error($stmt));
-        }
-    }
 }
 
 function schema_create_admin_notes($conn) {
@@ -686,43 +663,6 @@ function schema_create_feature_flags($conn) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
         'Create feature_flags'
     );
-
-    $featureTable = mysqli_query($conn, "SHOW TABLES LIKE 'feature_flags'");
-    if (!$featureTable || mysqli_num_rows($featureTable) === 0) {
-        schema_note('SKIP', 'Seed feature flags', 'feature_flags table missing');
-        return;
-    }
-
-    $defaults = [
-        ['rides_marketplace', 'Ride marketplace', 'Rider ride posting, search, and join-request flows.', 'rides'],
-        ['driver_panel', 'Driver panel', 'Driver availability, requests, documents, and earnings workflows.', 'drivers'],
-        ['ai_verification', 'AI verification', 'AI document analysis, provider checks, and compliance scoring.', 'ai'],
-        ['reports_moderation', 'Reports moderation', 'User report intake, triage, decisions, and audit visibility.', 'trust'],
-        ['payments_wallet', 'Payments and wallet', 'Fare due tracking, cash-paid records, and wallet ledgers.', 'payments'],
-        ['realtime_gateway', 'Realtime gateway', 'Websocket events, polling fallbacks, and live ride status sync.', 'realtime'],
-    ];
-
-    foreach ($defaults as $flag) {
-        $flagKey = $flag[0];
-        $label = $flag[1];
-        $description = $flag[2];
-        $module = $flag[3];
-        $stmt = mysqli_prepare(
-            $conn,
-            "INSERT IGNORE INTO feature_flags (flag_key, label, description, module)
-             VALUES (?, ?, ?, ?)"
-        );
-        if (!$stmt) {
-            schema_note('FAIL', 'Seed feature flag ' . $flagKey, mysqli_error($conn));
-            continue;
-        }
-        mysqli_stmt_bind_param($stmt, 'ssss', $flagKey, $label, $description, $module);
-        if (mysqli_stmt_execute($stmt)) {
-            schema_note(mysqli_stmt_affected_rows($stmt) > 0 ? 'APPLIED' : 'SKIP', 'Seed feature flag ' . $flagKey);
-        } else {
-            schema_note('FAIL', 'Seed feature flag ' . $flagKey, mysqli_stmt_error($stmt));
-        }
-    }
 }
 
 function schema_create_repair_kit_runs($conn) {
@@ -782,6 +722,93 @@ function schema_reject_stale_pending_matches($conn) {
         schema_note('FAIL', 'Reject stale pending matches', mysqli_error($conn));
     }
 }
+
+function schema_ensure_migrations_table($conn) {
+    schema_query($conn,
+        "CREATE TABLE IF NOT EXISTS schema_migrations (
+            version VARCHAR(120) NOT NULL PRIMARY KEY,
+            migration_name VARCHAR(255) NOT NULL,
+            executed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            execution_time_ms INT UNSIGNED NOT NULL DEFAULT 0,
+            batch INT UNSIGNED NOT NULL DEFAULT 1
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        'Create schema_migrations table'
+    );
+}
+
+function schema_run_versioned_migrations($conn, $showStatusOnly = false) {
+    schema_ensure_migrations_table($conn);
+
+    $appliedVersions = [];
+    $res = mysqli_query($conn, "SELECT version, executed_at FROM schema_migrations ORDER BY version ASC");
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $appliedVersions[$row['version']] = $row['executed_at'];
+        }
+    }
+
+    $migrationsDir = __DIR__ . '/../database/migrations';
+    $files = glob($migrationsDir . '/*.php');
+    sort($files);
+
+    if ($showStatusOnly) {
+        echo "=== RideSync Schema Migration Version Status ===" . PHP_EOL;
+        foreach ($files as $file) {
+            $migration = include $file;
+            if (is_array($migration) && isset($migration['version'])) {
+                $ver = $migration['version'];
+                $status = isset($appliedVersions[$ver]) ? "[APPLIED at {$appliedVersions[$ver]}]" : "[PENDING]";
+                echo sprintf("%-55s %s", $ver, $status) . PHP_EOL;
+            }
+        }
+        return;
+    }
+
+    $batch = 1;
+    $batchRes = mysqli_query($conn, "SELECT MAX(batch) FROM schema_migrations");
+    if ($batchRes) {
+        $row = mysqli_fetch_row($batchRes);
+        $batch = ($row && $row[0] !== null) ? ((int) $row[0] + 1) : 1;
+    }
+
+    foreach ($files as $file) {
+        $migration = include $file;
+        if (!is_array($migration) || !isset($migration['version'], $migration['up'])) {
+            continue;
+        }
+
+        $ver = $migration['version'];
+        $desc = $migration['description'] ?? basename($file);
+
+        if (isset($appliedVersions[$ver])) {
+            schema_note('SKIP', "Migration {$ver}");
+            continue;
+        }
+
+        $start = microtime(true);
+        $ok = call_user_func($migration['up'], $conn);
+        $elapsedMs = (int) round((microtime(true) - $start) * 1000);
+
+        if ($ok) {
+            $stmt = mysqli_prepare($conn, "INSERT INTO schema_migrations (version, migration_name, execution_time_ms, batch) VALUES (?, ?, ?, ?)");
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, "ssii", $ver, $desc, $elapsedMs, $batch);
+                mysqli_stmt_execute($stmt);
+            }
+            schema_note('APPLIED', "Migration {$ver}", "{$elapsedMs} ms");
+        } else {
+            schema_note('FAIL', "Migration {$ver}");
+        }
+    }
+}
+
+$showStatus = in_array('--status', $argv ?? [], true);
+if ($showStatus) {
+    schema_run_versioned_migrations($conn, true);
+    exit(0);
+}
+
+schema_run_versioned_migrations($conn, false);
 
 schema_add_column($conn, 'ride_routes', 'encoded_polyline', 'LONGTEXT NULL AFTER ride_id');
 schema_add_column($conn, 'route_demand_signals', 'encoded_polyline', 'LONGTEXT NULL AFTER route_distance_km');

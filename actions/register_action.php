@@ -100,7 +100,11 @@ if (mysqli_stmt_execute($stmt)) {
     $_SESSION['register_success'] = "Account created! You can now log in.";
     header("Location: /ridesync/pages/login.php");
 } else {
-    $_SESSION['register_error'] = "Something went wrong. Please try again.";
+    if ((int) mysqli_errno($conn) === 1062) {
+        $_SESSION['register_error'] = "An account with that email already exists.";
+    } else {
+        $_SESSION['register_error'] = "Something went wrong. Please try again.";
+    }
     header("Location: /ridesync/pages/register.php");
 }
 exit();

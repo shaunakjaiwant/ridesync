@@ -1,10 +1,8 @@
 name: RideSync Quality Gate
 
 on:
-  pull_request:
   push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
   quality:
@@ -66,6 +64,9 @@ jobs:
       - name: Install system clients
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mysql-client
 
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist
+
       - name: Install Node dependencies
         run: npm ci
 
@@ -81,11 +82,21 @@ jobs:
       - name: Run syntax quality gate
         run: php tools/quality_gate.php --syntax-only
 
+      - name: Run PHPUnit unit test suite
+        run: vendor/bin/phpunit
+
       - name: Run DB bootstrap diagnostics
         run: php tools/db_bootstrap_check.php --required
 
+      - name: Run authenticated API integration tests
+        run: php tests/api/authenticated_api.php
+
+      - name: Run websocket startup check
+        run: npm run ws:check
+
       - name: Run full quality gate
-        run: php tools/quality_gate.php
+        run: npm test
 
       - name: Run dependency audit
         run: npm audit --omit=dev
+

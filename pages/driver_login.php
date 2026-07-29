@@ -37,7 +37,10 @@ require_once __DIR__ . '/../includes/public_header.php';
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="password">Password</label>
+                    <a href="/ridesync/pages/forgot_password.php?role=driver" style="font-size: 0.85rem; color: #2563eb; text-decoration: none;">Forgot password?</a>
+                </div>
                 <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Your password">
             </div>
 
