@@ -234,7 +234,8 @@ try {
                 mysqli_stmt_execute($routeStmt);
             }
 
-            $notifiedDemand = ridesync_notify_matching_demand($conn, $rideId, [
+            require_once __DIR__ . '/../includes/route_overlap_helper.php';
+            $newRideData = [
                 'id' => $rideId,
                 'user_id' => $user_id,
                 'origin' => $origin,
@@ -247,11 +248,15 @@ try {
                 'encoded_polyline' => $routePolyline,
                 'travel_date' => $travel_date,
                 'travel_time' => $travel_time,
-            ]);
+            ];
+
+            $notifiedDemand = ridesync_notify_matching_demand($conn, $rideId, $newRideData);
+            $notifiedWatches = ridesync_notify_matching_route_watches($conn, $rideId, $newRideData);
 
             $ridePosted = true;
-            $rideMessage = $notifiedDemand > 0
-                ? "Ride posted successfully! {$notifiedDemand} matching demand signal" . ($notifiedDemand === 1 ? '' : 's') . " notified."
+            $totalNotified = $notifiedDemand + $notifiedWatches;
+            $rideMessage = $totalNotified > 0
+                ? "Ride posted successfully! {$totalNotified} matching route watch & demand signal" . ($totalNotified === 1 ? '' : 's') . " notified."
                 : "Ride posted successfully!";
         }
     }

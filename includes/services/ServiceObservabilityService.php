@@ -322,6 +322,14 @@ class RideSyncServiceObservabilityService
         $probe = self::httpProbe($serviceUrl . '/readyz', [
             'Accept: application/json',
         ], 1.2);
+        if (!$probe['ok']) {
+            require_once __DIR__ . '/../../tools/ensure_ai_verification_service.php';
+            if (function_exists('ridesync_ensure_ai_verification_service') && ridesync_ensure_ai_verification_service()) {
+                $probe = self::httpProbe($serviceUrl . '/readyz', [
+                    'Accept: application/json',
+                ], 1.2);
+            }
+        }
         $status = self::statusFromProbe($probe, [200]);
         if ($status === 'operational' && !$tokenConfigured && ridesync_app_env() === 'production') {
             $status = 'degraded';
@@ -447,6 +455,12 @@ class RideSyncServiceObservabilityService
         }
 
         $probe = self::httpProbe($healthUrl, ['Accept: application/json'], 1.0);
+        if (!$probe['ok']) {
+            require_once __DIR__ . '/../../tools/ensure_websocket_gateway.php';
+            if (function_exists('ridesync_ensure_websocket_gateway') && ridesync_ensure_websocket_gateway()) {
+                $probe = self::httpProbe($healthUrl, ['Accept: application/json'], 1.0);
+            }
+        }
         $status = self::statusFromProbe($probe, [200]);
         if ($status === 'operational' && !$tokenReady && ridesync_app_env() === 'production') {
             $status = 'degraded';

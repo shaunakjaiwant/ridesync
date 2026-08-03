@@ -37,7 +37,6 @@ $adminNavItems = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RideSync Admin</title>
-    <link rel="icon" type="image/png" href="/ridesync/logo-mark.png">
     <?php if ($needsMapAssets): ?>
     <link rel="stylesheet" href="/ridesync/assets/vendor/leaflet/1.9.4/leaflet.css?v=<?php echo ridesync_script_version('assets/vendor/leaflet/1.9.4/leaflet.css'); ?>">
     <?php endif; ?>

@@ -31,7 +31,7 @@ if (!ridesync_admin_schema_ready($conn)) {
 }
 
 $adminId = (int) $_SESSION['admin_id'];
-$action = $_POST['action_type'] ?? '';
+$action = trim((string) ($_POST['action_type'] ?? $_POST['action'] ?? ''));
 $admin = ridesync_fetch_admin($conn, $adminId);
 if (!$admin || ($admin['status'] ?? '') !== 'active') {
     unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
@@ -834,6 +834,70 @@ if ($action === 'admin_force_cancel_ride') {
 
     ridesync_admin_log($conn, $adminId, 'admin_force_cancel_ride', 'ride', $rideId, 'Cancelled ride #' . $rideId . ($reason ? ' (' . $reason . ')' : ''));
     $_SESSION['admin_success'] = "Ride #" . $rideId . " was force-cancelled by admin.";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_repair_kit_execute') {
+    $operation = trim((string) ($_POST['repair_operation'] ?? ''));
+    $confirmation = trim((string) ($_POST['confirmation_text'] ?? ''));
+    $allowed = array_keys(RideSyncRepairKitService::operations());
+
+    if (!in_array($operation, $allowed, true)) {
+        $_SESSION['admin_error'] = "Invalid repair operation requested.";
+        ridesync_admin_redirect();
+    }
+
+    $result = RideSyncRepairKitService::execute($conn, $adminId, $operation, $confirmation);
+    ridesync_admin_log($conn, $adminId, 'admin_repair_' . $operation, 'repair_kit', null, $result['message'] ?? $operation);
+
+    if ($result['ok'] ?? false) {
+        $_SESSION['admin_success'] = "Repair Kit: " . ($result['message'] ?? 'Operation executed successfully.');
+    } else {
+        $_SESSION['admin_error'] = "Repair Kit: " . ($result['message'] ?? 'Operation failed or confirmation mismatch.');
+    }
+
+    $returnTo = trim((string) ($_POST['return_to'] ?? '/ridesync/pages/admin_dashboard.php?section=services#repair-kit'));
+    header("Location: " . $returnTo);
+    exit();
+}
+
+if ($action === 'admin_services_release_timeouts') {
+    $released = RideSyncServiceObservabilityService::releaseTimedOutJobs($conn, 600);
+    RideSyncServiceObservabilityService::clearSnapshotCache();
+    ridesync_admin_log($conn, $adminId, 'admin_services_release_timeouts', 'queue', null, 'Released ' . $released . ' timed-out jobs.');
+    $_SESSION['admin_success'] = "Released " . $released . " timed-out background job(s).";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_services_retry_failed_verifications') {
+    $summary = RideSyncServiceObservabilityService::retryFailedVerificationJobs($conn, 50);
+    $requeued = (int) $summary['jobs_requeued'] + (int) $summary['jobs_created'];
+    RideSyncServiceObservabilityService::clearSnapshotCache();
+    ridesync_admin_log($conn, $adminId, 'admin_services_retry_failed_verifications', 'queue', null, 'Requeued ' . $requeued . ' AI jobs.');
+    $_SESSION['admin_success'] = "Requeued " . $requeued . " failed AI verification job(s).";
+    ridesync_admin_redirect();
+}
+
+if ($action === 'admin_alert_rule_toggle') {
+    $ruleId = (int) ($_POST['rule_id'] ?? 0);
+    $enabled = (int) ($_POST['enabled'] ?? 0) === 1 ? 1 : 0;
+
+    if ($ruleId <= 0) {
+        $_SESSION['admin_error'] = "Invalid alert rule specified.";
+        ridesync_admin_redirect();
+    }
+
+    $stmt = mysqli_prepare($conn, "UPDATE admin_alert_rules SET enabled = ? WHERE id = ?");
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "ii", $enabled, $ruleId);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+        ridesync_admin_log($conn, $adminId, 'admin_alert_rule_toggle', 'alert_rule', $ruleId, 'Set enabled=' . $enabled);
+        $_SESSION['admin_success'] = "Alert rule " . ($enabled ? 'enabled' : 'disabled') . ".";
+    } else {
+        $_SESSION['admin_error'] = "Could not update alert rule.";
+    }
+
     ridesync_admin_redirect();
 }
 

@@ -159,7 +159,9 @@ if (count($rideIds) > 0) {
     $placeholders = implode(',', array_fill(0, count($rideIds), '?'));
     $types = str_repeat('i', count($rideIds));
     $m_stmt = $conn->prepare("
-        SELECT m.ride_id, m.id AS match_id, m.status AS match_status, m.match_score, m.route_overlap_percent, m.created_at AS requested_at,
+        SELECT m.ride_id, m.id AS match_id, m.status AS match_status, m.match_score, m.route_overlap_percent,
+               m.pickup_lat, m.pickup_lng, m.dropoff_lat, m.dropoff_lng, m.detour_distance_km, m.detour_time_minutes, m.source,
+               m.created_at AS requested_at,
                u.name, u.email, u.college, u.gender
         FROM matches m
         JOIN users u ON m.matched_user_id = u.id
@@ -280,6 +282,11 @@ require_once __DIR__ . '/../includes/header.php';
                                     <span class="match-detail">Requested <?php echo date('M j, g:i A', strtotime($m['requested_at'])); ?></span>
                                     <?php if ($m['match_score'] !== null): ?>
                                         <span class="match-detail">Smart score <?php echo number_format((float) $m['match_score'], 1); ?>% &middot; <?php echo (int) $m['route_overlap_percent']; ?>% overlap</span>
+                                    <?php endif; ?>
+                                    <?php if ($m['detour_distance_km'] !== null && (float) $m['detour_distance_km'] > 0): ?>
+                                        <span class="badge badge-info" style="display:inline-block; margin-top:0.25rem; font-size:0.78rem; background:rgba(37,99,235,0.12); color:#2563eb; padding:2px 8px; border-radius:12px; font-weight:600;">
+                                            Partial Path &middot; +<?php echo number_format((float) $m['detour_distance_km'], 1); ?> km detour (+<?php echo (int) ($m['detour_time_minutes'] ?? 0); ?> min)
+                                        </span>
                                     <?php endif; ?>
                                 </div>
                                 <div class="match-actions">

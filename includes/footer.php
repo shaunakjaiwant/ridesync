@@ -20,5 +20,6 @@ $scriptNonce = htmlspecialchars(ridesync_csp_nonce(), ENT_QUOTES, 'UTF-8');
 <?php if ($needsMapPicker): ?>
 <script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/map_picker.js?v=<?php echo ridesync_script_version('js/map_picker.js'); ?>"></script>
 <?php endif; ?>
+<script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/live_tracking.js?v=<?php echo ridesync_script_version('js/live_tracking.js'); ?>"></script>
 </body>
 </html>

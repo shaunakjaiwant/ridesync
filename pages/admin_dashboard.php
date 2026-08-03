@@ -11,6 +11,7 @@ require_once __DIR__ . '/../includes/admin_operations_helper.php';
 require_once __DIR__ . '/../includes/services/CacheService.php';
 require_once __DIR__ . '/../includes/services/ServiceObservabilityService.php';
 require_once __DIR__ . '/../includes/services/RepairKitService.php';
+require_once __DIR__ . '/../includes/sos_helper.php';
 
 ridesync_require_admin_login();
 
@@ -134,7 +135,7 @@ $adminProfiles = [
     [
         'name' => 'Vinay H Gowda',
         'initials' => 'VG',
-        'image' => '/ridesync/vinay.jpeg',
+        'image' => '/ridesync/assets/images/team/vinay.jpeg',
         'role' => 'Project Director & Operations Coordinator',
         'accent' => 'gold',
         'traits' => ['Leadership', 'Support', 'Operations', 'Workflow'],
@@ -143,7 +144,7 @@ $adminProfiles = [
     [
         'name' => 'Shaunak N Jaiwant',
         'initials' => 'SJ',
-        'image' => '/ridesync/shaunak.png',
+        'image' => '/ridesync/assets/images/team/shaunak.png',
         'image_zoom' => '99%',
         'image_position' => 'center 34%',
         'image_shift_y' => '-1px',
@@ -155,7 +156,7 @@ $adminProfiles = [
     [
         'name' => 'Vishal D Naik',
         'initials' => 'VN',
-        'image' => '/ridesync/vishal.png',
+        'image' => '/ridesync/assets/images/team/vishal.png',
         'image_zoom' => '100%',
         'image_position' => 'center 20%',
         'image_shift_y' => '-5px',
@@ -1116,10 +1117,24 @@ foreach ($routeDemandRows as $demand) {
     }
 }
 
+$mapSosPayload = [];
+foreach ($activeSosAlerts as $sos) {
+    if ($sos['latitude'] !== null && $sos['longitude'] !== null) {
+        $mapSosPayload[] = [
+            'type' => 'sos',
+            'name' => '🚨 SOS Alert #' . $sos['id'] . ' (' . ($sos['triggerer_name'] ?? 'User') . ')',
+            'lat' => (float) $sos['latitude'],
+            'lng' => (float) $sos['longitude'],
+            'status' => 'critical_active',
+        ];
+    }
+}
+
 $mapPayload = [
     'drivers' => $mapDriverPayload,
     'rides' => $mapRidePayload,
     'demand' => $mapDemand,
+    'sos_beacons' => $mapSosPayload,
 ];
 
 if ($section === 'overview') {
@@ -1168,6 +1183,54 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
 </script>
 
 <div class="admin-command-center" data-admin-command-center>
+    <?php
+    $activeSosAlerts = ridesync_get_active_sos_alerts($conn);
+    ?>
+    <?php if (count($activeSosAlerts) > 0): ?>
+        <section class="admin-sos-emergency-panel" style="background: #7f1d1d; color: #ffffff; border: 3px solid #ef4444; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 10px 25px rgba(220, 38, 38, 0.35);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <span style="background: #dc2626; color: #fff; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; padding: 0.25rem 0.65rem; border-radius: 4px; letter-spacing: 0.08em;">CRITICAL SAFETY ALERT</span>
+                    <h2 style="font-size: 1.5rem; font-weight: 900; margin: 0.35rem 0 0 0; color: #ffffff;">🚨 ACTIVE IN-APP SOS ALERTS (<?php echo count($activeSosAlerts); ?>)</h2>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 0.92rem; color: #fca5a5;">Immediate admin attention required. The following users/drivers triggered emergency alerts.</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+                <?php foreach ($activeSosAlerts as $sos): ?>
+                    <div style="background: #991b1b; border: 1px solid #f87171; border-radius: 8px; padding: 1.15rem; color: #ffffff;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #fca5a5;">
+                            <span>Alert #<?php echo (int) $sos['id']; ?> &middot; <?php echo ucfirst($sos['triggered_by_type']); ?></span>
+                            <span><?php echo date('M j, g:i:s A', strtotime($sos['created_at'])); ?></span>
+                        </div>
+                        <h3 style="font-size: 1.15rem; margin: 0.35rem 0; color: #ffffff;"><?php echo htmlspecialchars($sos['triggerer_name'] ?? 'Unknown'); ?></h3>
+                        <p style="font-size: 0.88rem; margin: 0 0 0.5rem 0; color: #fecaca;">Contact: <?php echo htmlspecialchars($sos['triggerer_contact'] ?? 'N/A'); ?></p>
+                        
+                        <div style="font-size: 0.88rem; background: #7f1d1d; padding: 0.6rem; border-radius: 6px; margin-bottom: 0.85rem;">
+                            <strong>Ride #<?php echo (int) $sos['ride_id']; ?>:</strong> <?php echo htmlspecialchars($sos['origin']); ?> &rarr; <?php echo htmlspecialchars($sos['destination']); ?><br>
+                            <?php if ($sos['latitude'] !== null && $sos['longitude'] !== null): ?>
+                                <strong>GPS Location:</strong> <?php echo number_format((float) $sos['latitude'], 6); ?>, <?php echo number_format((float) $sos['longitude'], 6); ?>
+                                (<a href="https://maps.google.com/?q=<?php echo (float) $sos['latitude']; ?>,<?php echo (float) $sos['longitude']; ?>" target="_blank" rel="noopener" style="color: #60a5fa; text-decoration: underline;">Open Map Pin</a>)
+                            <?php else: ?>
+                                <strong>GPS Location:</strong> Location ping unavailable
+                            <?php endif; ?>
+                        </div>
+
+                        <form action="/ridesync/actions/sos_action.php" method="POST" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="action" value="resolve">
+                            <input type="hidden" name="alert_id" value="<?php echo (int) $sos['id']; ?>">
+                            <input type="hidden" name="return_to" value="/ridesync/pages/admin_dashboard.php">
+                            <button type="submit" class="btn btn-sm" style="background: #16a34a; color: #ffffff; font-weight: 700; border: none; padding: 0.45rem 0.85rem; border-radius: 6px; cursor: pointer;">
+                                ✓ Mark SOS Resolved
+                            </button>
+                        </form>
+                        <a href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $sos['ride_id']; ?>" style="color: #ffffff; text-decoration: underline; font-size: 0.85rem; margin-left: 0.75rem;">View Ride Details</a>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
     <?php if ($isOverviewSection): ?>
         <section class="admin-hero-panel">
             <div>

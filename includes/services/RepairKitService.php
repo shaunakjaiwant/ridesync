@@ -29,10 +29,17 @@ class RideSyncRepairKitService
 
     public static function schemaReady($conn): bool
     {
-        return $conn instanceof mysqli
-            && ridesync_table_exists($conn, 'repair_kit_runs')
-            && ridesync_column_exists($conn, 'repair_kit_runs', 'log_ciphertext')
-            && ridesync_column_exists($conn, 'repair_kit_runs', 'checkpoint_json');
+        if (!$conn instanceof mysqli) {
+            return false;
+        }
+
+        try {
+            return ridesync_table_exists($conn, 'repair_kit_runs')
+                && ridesync_column_exists($conn, 'repair_kit_runs', 'log_ciphertext')
+                && ridesync_column_exists($conn, 'repair_kit_runs', 'checkpoint_json');
+        } catch (Throwable $exception) {
+            return false;
+        }
     }
 
     public static function operations(): array

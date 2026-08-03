@@ -38,12 +38,12 @@ document.addEventListener('DOMContentLoaded', function () {
     initConfirmActions();
     initAdminPanelFilters();
     initSmartSearchSuggestions();
+    initNotificationPolling();
 
     // --- Registration Form ---
     var regForm = document.querySelector('form[action*="register_action"]');
     if (regForm) {
         regForm.addEventListener('submit', function (e) {
-            var name = regForm.querySelector('[name="name"]');
             var email = regForm.querySelector('[name="email"]');
             var password = regForm.querySelector('[name="password"]');
             var confirmPw = regForm.querySelector('[name="confirm_password"]');
@@ -1732,4 +1732,37 @@ function showFormErrors(form, errors) {
 
     // Scroll to error
     errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function initNotificationPolling() {
+    var alertsLinks = document.querySelectorAll('a[href*="notifications.php"]');
+    if (!alertsLinks || alertsLinks.length === 0) return;
+
+    function poll() {
+        fetch('/ridesync/actions/notification_action.php?poll_unread=1', {
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+            if (!data || typeof data.unread_count === 'undefined') return;
+
+            alertsLinks.forEach(function (link) {
+                var badge = link.querySelector('.nav-badge');
+                if (data.unread_count > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'nav-badge nav-badge-pulse';
+                        link.appendChild(badge);
+                    }
+                    badge.textContent = Math.min(99, data.unread_count);
+                    badge.classList.add('nav-badge-pulse');
+                } else if (badge) {
+                    badge.remove();
+                }
+            });
+        })
+        .catch(function () {});
+    }
+
+    setInterval(poll, 25000);
 }

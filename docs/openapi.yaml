@@ -230,6 +230,199 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
+      responses:
+        "200":
+          description: Service is ready for traffic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
+          description: Service is alive but not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /api/health.php:
+    get:
+      tags: [Health]
+      summary: Legacy health probe with database, schema, and storage checks.
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          description: Service is degraded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /api/metrics.php:
+    get:
+      tags: [Operations]
+      summary: Prometheus metrics endpoint.
+      security:
+        - metricsBearer: []
+        - {}
+      responses:
+        "200":
+          description: Prometheus text exposition.
+          content:
+            text/plain:
+              schema:
+                type: string
+        "403":
+          description: Metrics token is missing or invalid.
+          content:
+            text/plain:
+              schema:
+                type: string
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /api/location_suggestions.php:
+    get:
+      tags: [Suggestions]
+      summary: Public location suggestions.
+      parameters:
+        - $ref: "#/components/parameters/QueryQ"
+      responses:
+        "200":
+          description: Local and provider-backed location suggestions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationSuggestionsResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /api/search_suggestions.php:
+    get:
+      tags: [Admin, Suggestions]
+      summary: Admin global search suggestions.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: context
+          in: query
+          schema:
+            type: string
+            default: admin_global
+        - $ref: "#/components/parameters/QueryQ"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        "200":
+          description: Admin search suggestions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSearchSuggestionsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/driver_state.php:
+    get:
+      tags: [RiderDriver]
+      summary: Current authenticated driver state.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Driver dashboard state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverStateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /api/ride_status.php:
+    get:
+      tags: [RiderDriver]
+      summary: Live ride status for authorized participants or assigned driver.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: ride_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Live ride status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RideStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /api/realtime_events.php:
+    get:
+      tags: [Realtime]
+      summary: Poll realtime event outbox for the authenticated audience.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: after_id
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Realtime events for the current user, driver, or admin.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RealtimeEventsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
           $ref: "#/components/responses/Forbidden"
         "429":
           $ref: "#/components/responses/RateLimited"
@@ -254,6 +447,45 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /api/v1/admin_sos_check.php:
+    get:
+      tags: [Admin, Realtime]
+      summary: Poll active emergency SOS alerts for admin command center.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: since_id
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Active SOS emergency alert summary and alerts list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  active_count:
+                    type: integer
+                  latest_alert_id:
+                    type: integer
+                  has_new:
+                    type: boolean
+                  alerts:
+                    type: array
+                    items:
+                      type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
   /api/events.php:

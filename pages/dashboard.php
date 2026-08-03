@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/cost_helper.php';
 require_once __DIR__ . '/../includes/intelligence_helper.php';
 require_once __DIR__ . '/../includes/wallet_helper.php';
+require_once __DIR__ . '/../includes/eco_helper.php';
 
 // Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
@@ -13,6 +14,7 @@ if (!isset($_SESSION['user_id'])) {
 require_once __DIR__ . '/../includes/header.php';
 
 $userId = $_SESSION['user_id'];
+$monthlyEco = ridesync_get_user_monthly_eco_impact($conn, (int) $userId);
 
 // ---- FETCH STATS ----
 
@@ -64,45 +66,57 @@ $greenScore = ridesync_green_score_for_user($conn, (int) $userId);
 $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
 ?>
 
-<div class="page-header">
-    <h1>Welcome back, <?php echo htmlspecialchars($_SESSION['user_name']); ?></h1>
-    <p>Your current rides, requests, and route signals.</p>
+<div class="rider-hero-deck">
+    <div class="rider-hero-content">
+        <div class="rider-kicker-pill">
+            <span class="pulse-dot"></span>
+            <span>Rider Workspace</span>
+        </div>
+        <h1>Welcome back, <?php echo htmlspecialchars($_SESSION['user_name']); ?> 👋</h1>
+        <p>Coordinate campus trips, find verified route matches, and track your travel impact.</p>
+    </div>
+    <div class="rider-hero-action-slot">
+        <a href="/ridesync/pages/post_ride.php" class="btn btn-primary btn-glow">
+            <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Offer New Ride
+        </a>
+    </div>
 </div>
 
 <?php if ($ridesPosted === 0 && $requestsSent === 0): ?>
-    <section class="quick-start-onboarding-banner" style="background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.75rem;">
-        <div style="max-width: 600px; margin-bottom: 1rem;">
-            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0284c7; display: flex; align-items: center; gap: 0.35rem;">
+    <section class="quick-start-onboarding-banner">
+        <div class="onboarding-banner-info">
+            <span class="onboarding-badge">
                 <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-3.05 11a22.35 22.35 0 0 1-3.95 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
                 Welcome to RideSync
             </span>
-            <h2 style="font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0.25rem 0 0.5rem 0;">Get your campus mobility moving</h2>
-            <p style="font-size: 0.92rem; color: #334155; margin: 0; line-height: 1.5;">You haven't posted or requested any rides yet. Choose an action below or pick a popular campus route to get started.</p>
+            <h2>Get your campus mobility moving</h2>
+            <p>You haven't posted or requested any rides yet. Choose an action below or pick a popular campus route to get started.</p>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-            <a href="/ridesync/pages/search_rides.php" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.25rem;">
-                <span style="font-size: 0.8rem; font-weight: 600; color: #2563eb; display: flex; align-items: center; gap: 0.35rem;">
+        <div class="onboarding-cards-grid">
+            <a href="/ridesync/pages/search_rides.php" class="onboarding-card">
+                <span class="card-kicker kicker-blue">
                     Find a Ride
                     <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 </span>
-                <strong style="font-size: 1rem; color: #0f172a;">Search Campus Routes</strong>
-                <small style="color: #64748b;">Find students heading your way right now.</small>
+                <strong>Search Campus Routes</strong>
+                <small>Find students heading your way right now.</small>
             </a>
-            <a href="/ridesync/pages/post_ride.php" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.25rem;">
-                <span style="font-size: 0.8rem; font-weight: 600; color: #059669; display: flex; align-items: center; gap: 0.35rem;">
+            <a href="/ridesync/pages/post_ride.php" class="onboarding-card">
+                <span class="card-kicker kicker-green">
                     Offer a Ride
                     <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.05 10.9 2 11.2 2 11.5V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
                 </span>
-                <strong style="font-size: 1rem; color: #0f172a;">Post Your First Ride</strong>
-                <small style="color: #64748b;">Share your route and split travel costs.</small>
+                <strong>Post Your First Ride</strong>
+                <small>Share your route and split travel costs.</small>
             </a>
-            <a href="/ridesync/pages/post_ride.php?origin=SDMIT+Campus&destination=Ujire+Bus+Stand" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.25rem;">
-                <span style="font-size: 0.8rem; font-weight: 600; color: #d97706; display: flex; align-items: center; gap: 0.35rem;">
+            <a href="/ridesync/pages/post_ride.php?origin=SDMIT+Campus&destination=Ujire+Bus+Stand" class="onboarding-card">
+                <span class="card-kicker kicker-amber">
                     Popular Route
                     <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                 </span>
-                <strong style="font-size: 1rem; color: #0f172a;">SDMIT &rarr; Ujire Bus Stand</strong>
-                <small style="color: #64748b;">Pre-fill the most common campus route.</small>
+                <strong>SDMIT &rarr; Ujire Bus Stand</strong>
+                <small>Pre-fill the most common campus route.</small>
             </a>
         </div>
     </section>
@@ -110,40 +124,78 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
 
 <nav class="panel-action-rail quick-actions" aria-label="Primary rider actions">
     <a class="panel-action-card is-primary" href="/ridesync/pages/post_ride.php">
-        <span>Offer</span>
+        <div class="action-card-header">
+            <span class="action-icon-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            <span>Offer</span>
+        </div>
         <strong>Post Ride</strong>
-        <small>Create a route.</small>
+        <small>Share a route & split costs.</small>
     </a>
     <a class="panel-action-card" href="/ridesync/pages/search_rides.php">
-        <span>Find</span>
+        <div class="action-card-header">
+            <span class="action-icon-badge accent-blue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <span>Find</span>
+        </div>
         <strong>Search Rides</strong>
-        <small>Join an open route.</small>
+        <small>Join an open student trip.</small>
     </a>
     <a class="panel-action-card" href="/ridesync/pages/my_rides.php">
-        <span>Manage</span>
+        <div class="action-card-header">
+            <span class="action-icon-badge accent-purple">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <span>Manage</span>
+        </div>
         <strong>My Trips</strong>
-        <small>Review requests.</small>
+        <small>Review matches & requests.</small>
     </a>
 </nav>
 
-<!-- Stats Cards -->
+<!-- Stats Deck -->
 <div class="dashboard-stats">
-    <div class="stat-box">
+    <div class="stat-box stat-accent-blue">
+        <div class="stat-header">
+            <span class="stat-icon-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.05 10.9 2 11.2 2 11.5V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+            </span>
+            <span class="stat-label">Posted Trips</span>
+        </div>
         <span class="stat-number"><?php echo $ridesPosted; ?></span>
-        <span class="stat-label">Posted Trips</span>
-        <small><?php echo $openRides; ?> open now</small>
+        <small><?php echo $openRides; ?> open right now</small>
     </div>
-    <div class="stat-box">
+    <div class="stat-box stat-accent-cyan">
+        <div class="stat-header">
+            <span class="stat-icon-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </span>
+            <span class="stat-label">Requests Sent</span>
+        </div>
         <span class="stat-number"><?php echo $requestsSent; ?></span>
-        <span class="stat-label">Requests Sent</span>
+        <small>Outbound match queries</small>
     </div>
-    <div class="stat-box stat-box-alert">
+    <div class="stat-box stat-accent-amber stat-box-alert">
+        <div class="stat-header">
+            <span class="stat-icon-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </span>
+            <span class="stat-label">Need Approval</span>
+        </div>
         <span class="stat-number"><?php echo $pendingIncoming; ?></span>
-        <span class="stat-label">Need Approval</span>
+        <small>Incoming rider requests</small>
     </div>
-    <div class="stat-box">
+    <div class="stat-box stat-accent-emerald">
+        <div class="stat-header">
+            <span class="stat-icon-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </span>
+            <span class="stat-label">Fare Due</span>
+        </div>
         <span class="stat-number"><?php echo formatCost($walletSummary['pending_due']); ?></span>
-        <span class="stat-label">Fare Due</span>
+        <small>Settlements pending</small>
     </div>
 </div>
 
@@ -254,10 +306,14 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
                 <span>Shared distance</span>
             </div>
             <div>
-                <strong><?php echo number_format((float) $greenScore['co2_kg'], 1); ?> kg</strong>
+                <strong><?php echo number_format((float) max((float) $greenScore['co2_kg'], (float) $monthlyEco['co2_saved_kg']), 1); ?> kg</strong>
                 <span>Estimated CO2 saved</span>
             </div>
         </div>
+        <p style="font-size: 0.85rem; color: #059669; font-weight: 600; margin-top: 0.5rem; background: #ecfdf5; padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #a7f3d0;">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: middle; margin-right: 0.25rem;"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            You've saved an estimated <?php echo number_format((float) max((float) $greenScore['co2_kg'], (float) $monthlyEco['co2_saved_kg']), 1); ?> kg CO2 this month by sharing rides!
+        </p>
 
         <?php if (count($myDemandSignals) > 0): ?>
             <div class="route-demand-mini">

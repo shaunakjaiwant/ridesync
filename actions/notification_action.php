@@ -14,7 +14,7 @@ function ridesync_notification_redirect() {
 }
 
 function ridesync_notification_actor() {
-    $requestedActor = $_POST['actor_type'] ?? '';
+    $requestedActor = $_REQUEST['actor_type'] ?? '';
 
     if ($requestedActor === 'driver' && isset($_SESSION['driver_id'])) {
         return ['driver_id', (int) $_SESSION['driver_id']];
@@ -28,11 +28,24 @@ function ridesync_notification_actor() {
         return ['driver_id', (int) $_SESSION['driver_id']];
     }
 
-    return ['user_id', (int) $_SESSION['user_id']];
+    return ['user_id', (int) ($_SESSION['user_id'] ?? 0)];
 }
 
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['driver_id'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['poll_unread'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['unread_count' => 0]);
+        exit();
+    }
     header("Location: /ridesync/index.php");
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['poll_unread'])) {
+    header('Content-Type: application/json');
+    [$column, $actorId] = ridesync_notification_actor();
+    $count = ridesync_unread_notification_count($conn, $column, $actorId);
+    echo json_encode(['unread_count' => (int) $count]);
     exit();
 }
 
@@ -53,6 +66,7 @@ if (!RideSyncNotificationService::schemaReady($conn)) {
 $action = $_POST['action_type'] ?? 'mark_all_read';
 $notificationId = (int) ($_POST['notification_id'] ?? 0);
 [$column, $actorId] = ridesync_notification_actor();
+
 ridesync_enforce_rate_limit('notifications:mutate', 90, 60, $column . ':' . $actorId, [
     'redirect' => '/ridesync/pages/notifications.php?actor_type=' . urlencode($column === 'driver_id' ? 'driver' : 'user'),
     'flash_key' => 'notification_error',
@@ -106,4 +120,3 @@ $_SESSION['notification_success'] = RideSyncNotificationService::markAllRead($co
     ? "All notifications marked as read."
     : "Your inbox is already up to date.";
 ridesync_notification_redirect();
-?>

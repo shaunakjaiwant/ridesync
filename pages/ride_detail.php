@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/cost_helper.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/asset_helper.php';
 require_once __DIR__ . '/../includes/rider_experience_helper.php';
+require_once __DIR__ . '/../includes/eco_helper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
@@ -326,6 +327,45 @@ $posterTrust = $userTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_u
     </div>
 
     <?php if ($isOwner || ($existingMatch && $existingMatch['status'] === 'accepted')): ?>
+        <section class="safety-card" style="border: 2px solid #ef4444; background: #fff5f5; border-radius: 12px; padding: 1.25rem; margin-top: 1.5rem;" data-live-tracking-ride="<?php echo (int) $rideId; ?>">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <span class="fare-kicker" style="color: #dc2626; font-weight: 700; font-size: 0.8rem; text-transform: uppercase;">Safety & Emergency Tools</span>
+                    <h3 style="margin: 0.25rem 0 0.25rem 0; color: #991b1b; font-size: 1.2rem;">SOS & Emergency Response</h3>
+                    <span class="badge" data-live-gps-badge style="font-size: 0.75rem; background: #fee2e2; color: #991b1b;">GPS: Ready</span>
+                </div>
+                <div class="safety-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <form action="/ridesync/actions/sos_action.php" method="POST" style="display:inline;"
+                          data-confirm-message="TRIGGER EMERGENCY SOS ALERT? Platform administrators will be notified immediately with your location.">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <input type="hidden" name="ride_id" value="<?php echo (int) $rideId; ?>">
+                        <input type="hidden" name="action" value="trigger">
+                        <button type="submit" class="btn btn-danger" style="background: #dc2626; color: #fff; font-weight: 700; padding: 0.5rem 1rem;">
+                            🚨 In-App SOS Alert
+                        </button>
+                    </form>
+
+                    <a href="tel:112" class="btn btn-danger" style="background: #b91c1c; color: #fff; text-decoration: none; font-weight: 700; padding: 0.5rem 1rem;">
+                        📞 Call Local Emergency (112)
+                    </a>
+
+                    <button type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-share-trip
+                            data-share-title="RideSync trip"
+                            data-share-text="RideSync trip: <?php echo htmlspecialchars($ride['origin']); ?> to <?php echo htmlspecialchars($ride['destination']); ?>">
+                        Share Trip
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-top: 0.85rem; padding: 0.65rem 0.85rem; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.82rem; color: #7f1d1d; line-height: 1.45;">
+                <strong>Notice:</strong> Tapping <em>In-App SOS Alert</em> transmits your live location to RideSync platform administrators for immediate safety tracking. It is <strong>not a replacement for official emergency services</strong>. If you are in immediate physical danger, call local emergency services (112 / 911) directly.
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($isOwner || ($existingMatch && $existingMatch['status'] === 'accepted')): ?>
         <div class="ride-detail-riders">
             <h3>Accepted Riders (<?php echo $acceptedCount; ?>)</h3>
             <?php if (count($acceptedRiderRows) === 0): ?>
@@ -353,140 +393,6 @@ $posterTrust = $userTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_u
             <?php endif; ?>
         </div>
     <?php endif; ?>
-
-    <?php if ($isOwner || ($existingMatch && $existingMatch['status'] === 'accepted')): ?>
-        <section class="safety-card">
-            <div>
-                <span class="fare-kicker">Safety tools</span>
-                <h3>Share and protect this trip</h3>
-                <p>Use quick sharing for coordination and emergency support if something feels wrong.</p>
-            </div>
-            <div class="safety-actions">
-                <button type="button"
-                        class="btn btn-secondary btn-sm"
-                        data-share-trip
-                        data-share-title="RideSync trip"
-                        data-share-text="RideSync trip: <?php echo htmlspecialchars($ride['origin']); ?> to <?php echo htmlspecialchars($ride['destination']); ?>">
-                    Share Trip
-                </button>
-                <a href="tel:112" class="btn btn-danger btn-sm">Emergency 112</a>
-            </div>
-        </section>
-    <?php endif; ?>
-
-    <?php if ($canReportRide): ?>
-        <section class="report-card">
-            <div class="rating-card-header">
-                <div>
-                    <span class="fare-kicker">Moderation</span>
-                    <h3>Report a ride concern</h3>
-                    <p>Reports go to RideSync admin for review.</p>
-                </div>
-            </div>
-
-            <form action="/ridesync/actions/report_action.php" method="POST" class="report-form">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                <input type="hidden" name="ride_id" value="<?php echo (int) $rideId; ?>">
-                <input type="hidden" name="return_to" value="/ridesync/pages/ride_detail.php?id=<?php echo (int) $rideId; ?>">
-
-                <div class="form-group">
-                    <label for="reported_user_id">Person involved</label>
-                    <select id="reported_user_id" name="reported_user_id" required>
-                        <?php foreach ($reportTargets as $target): ?>
-                            <option value="<?php echo (int) $target['id']; ?>"><?php echo htmlspecialchars($target['label']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="reason">Reason</label>
-                    <select id="reason" name="reason" required>
-                        <option value="safety">Safety concern</option>
-                        <option value="misconduct">Misconduct</option>
-                        <option value="fake_profile">Fake profile</option>
-                        <option value="payment">Payment issue</option>
-                        <option value="spam">Spam or misuse</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-
-                <div class="form-group report-message-field">
-                    <label for="message">What happened?</label>
-                    <textarea id="message" name="message" required minlength="10" maxlength="1200" placeholder="Add the important details for admin review"></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-danger btn-sm">Submit Report</button>
-            </form>
-        </section>
-    <?php endif; ?>
-
-    <?php if ($canRateRide && (($isOwner && count($acceptedRiderRows) > 0) || ($existingMatch && $existingMatch['status'] === 'accepted'))): ?>
-        <section class="rating-card">
-            <div class="rating-card-header">
-                <div>
-                    <span class="fare-kicker">Reputation</span>
-                    <h3>Rate ride participants</h3>
-                    <p>Ratings improve future trust scores for smart matching.</p>
-                </div>
-            </div>
-
-            <div class="rating-grid">
-                <?php if ($isOwner): ?>
-                    <?php foreach ($acceptedRiderRows as $rider): ?>
-                        <form action="/ridesync/actions/rating_action.php" method="POST" class="rating-form">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                            <input type="hidden" name="ride_id" value="<?php echo (int) $rideId; ?>">
-                            <input type="hidden" name="reviewed_user_id" value="<?php echo (int) $rider['id']; ?>">
-                            <strong><?php echo htmlspecialchars($rider['name']); ?></strong>
-                            <select name="rating" aria-label="Rate <?php echo htmlspecialchars($rider['name']); ?>" required>
-                                <option value="">Rate</option>
-                                <?php for ($i = 5; $i >= 1; $i--): ?>
-                                    <option value="<?php echo $i; ?>" <?php echo ($ratingByReviewedUser[(int) $rider['id']] ?? 0) === $i ? 'selected' : ''; ?>><?php echo $i; ?>/5</option>
-                                <?php endfor; ?>
-                            </select>
-                            <input type="text" name="comment" maxlength="255" placeholder="Optional note" aria-label="Optional rating note for <?php echo htmlspecialchars($rider['name']); ?>">
-                            <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                        </form>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <form action="/ridesync/actions/rating_action.php" method="POST" class="rating-form">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                        <input type="hidden" name="ride_id" value="<?php echo (int) $rideId; ?>">
-                        <input type="hidden" name="reviewed_user_id" value="<?php echo (int) $ride['user_id']; ?>">
-                        <strong><?php echo htmlspecialchars($ride['poster_name']); ?></strong>
-                        <select name="rating" aria-label="Rate <?php echo htmlspecialchars($ride['poster_name']); ?>" required>
-                            <option value="">Rate</option>
-                            <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <option value="<?php echo $i; ?>" <?php echo ($ratingByReviewedUser[(int) $ride['user_id']] ?? 0) === $i ? 'selected' : ''; ?>><?php echo $i; ?>/5</option>
-                            <?php endfor; ?>
-                        </select>
-                        <input type="text" name="comment" maxlength="255" placeholder="Optional note" aria-label="Optional rating note for <?php echo htmlspecialchars($ride['poster_name']); ?>">
-                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                    </form>
-                <?php endif; ?>
-            </div>
-        </section>
-    <?php endif; ?>
-
-    <section class="fare-intel-card">
-        <div class="fare-intel-header">
-            <div>
-                <span class="fare-kicker">Transparent pricing</span>
-                <h3>Who pays what, and why</h3>
-                <p>
-                    <?php if ((int) $fareBreakdown['savings_percent'] > 0): ?>
-                        You saved <?php echo (int) $fareBreakdown['savings_percent']; ?>% by sharing this ride.
-                    <?php else: ?>
-                        Estimate synced from <?php echo number_format($fareBreakdown['direct_distance_km'], 1); ?> km at <?php echo formatFareRate(); ?>/km.
-                    <?php endif; ?>
-                </p>
-            </div>
-            <span class="fare-live-badge">Fair split verified</span>
-        </div>
-
-        <div class="fare-map-card">
-            <div class="fare-map-surface">
-                <svg class="fare-route-svg" viewBox="0 0 360 190" role="img" aria-label="Estimated shared ride route">
                     <path class="fare-route fare-route-personal" d="M34 146 C82 88 121 117 160 88" />
                     <path class="fare-route fare-route-shared" d="M160 88 C211 39 264 66 326 36" />
                     <path class="fare-route fare-route-detour" d="M116 122 C143 156 196 145 226 106" />
@@ -558,6 +464,33 @@ $posterTrust = $userTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_u
             <div class="fare-slider-output">
                 <span><strong data-fare-slider-output><?php echo formatCost($fareBreakdown['final_fare']); ?></strong> estimated share</span>
                 <span data-fare-slider-savings><?php echo (int) $fareBreakdown['savings_percent']; ?>% saved</span>
+            </div>
+        </div>
+    </section>
+
+    <?php
+    $rideDistanceForEco = (float) ($ride['route_distance_km'] ?? 0);
+    if ($rideDistanceForEco <= 0) {
+        $rideDistanceForEco = ridesync_estimate_route_distance($ride['origin'], $ride['destination']);
+    }
+    $rideEco = ridesync_calculate_ride_eco_impact($rideDistanceForEco, max(1, $acceptedCount + 1));
+    ?>
+    <section class="eco-impact-card" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 1.25rem; margin-top: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span class="fare-kicker" style="color: #16a34a; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Eco-Impact Estimator</span>
+                <h3 style="margin: 0.25rem 0 0.25rem 0; color: #14532d; font-size: 1.2rem;">Environmental Impact of this Ride</h3>
+                <p style="margin: 0; color: #166534; font-size: 0.9rem;">
+                    Sharing this trip with <?php echo max(1, $acceptedCount + 1); ?> rider<?php echo ($acceptedCount + 1) === 1 ? '' : 's'; ?> avoids an estimated 
+                    <strong><?php echo $rideEco['formatted']; ?></strong> vs. everyone driving solo.
+                </p>
+                <small style="color: #15803d; display: block; margin-top: 0.35rem; font-size: 0.8rem;">
+                    *Assumes average petrol vehicle emissions (~120g CO2/km). Equivalent to planting <?php echo number_format($rideEco['trees_equivalent'], 2); ?> tree-days of CO2 absorption.
+                </small>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #86efac; border-radius: 8px; padding: 0.75rem 1.25rem; text-align: center;">
+                <span style="font-size: 0.75rem; color: #166534; font-weight: 600; text-transform: uppercase;">CO2 Saved</span>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #15803d;"><?php echo number_format($rideEco['co2_saved_kg'], 1); ?> kg</div>
             </div>
         </div>
     </section>

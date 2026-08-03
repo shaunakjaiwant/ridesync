@@ -204,7 +204,28 @@ function ridesync_fetch_user_trust_summaries(mysqli $conn, array $userIds): arra
         }
     }
 
-    if (ridesync_table_exists($conn, 'user_ratings')) {
+    $ratingsTable = ridesync_table_exists($conn, 'ratings') ? 'ratings' : (ridesync_table_exists($conn, 'user_ratings') ? 'user_ratings' : null);
+    if ($ratingsTable === 'ratings') {
+        $stmt = mysqli_prepare($conn,
+            "SELECT rated_user_id AS reviewed_user_id, AVG(score) AS rating_average, COUNT(*) AS rating_count
+             FROM ratings
+             WHERE rated_user_type = 'user' AND rated_user_id IN ($placeholders)
+             GROUP BY rated_user_id"
+        );
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, $types, ...$userIds);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            while ($row = $result ? mysqli_fetch_assoc($result) : null) {
+                $reviewedUserId = (int) ($row['reviewed_user_id'] ?? 0);
+                if (isset($summaries[$reviewedUserId])) {
+                    $summaries[$reviewedUserId]['rating_average'] = round((float) ($row['rating_average'] ?? 0), 1);
+                    $summaries[$reviewedUserId]['rating_count'] = (int) ($row['rating_count'] ?? 0);
+                }
+            }
+            mysqli_stmt_close($stmt);
+        }
+    } elseif ($ratingsTable === 'user_ratings') {
         $stmt = mysqli_prepare($conn,
             "SELECT reviewed_user_id, AVG(rating) AS rating_average, COUNT(*) AS rating_count
              FROM user_ratings

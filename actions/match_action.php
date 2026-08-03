@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/redirect_helper.php';
 require_once __DIR__ . '/../includes/http_helper.php';
+require_once __DIR__ . '/../includes/route_overlap_helper.php';
 
 function ridesync_redirect($default) {
     ridesync_redirect_back($default);
@@ -108,21 +109,53 @@ if ($action === 'request' && $ride_id > 0) {
         : null;
     $matchSource = ($_POST['match_source'] ?? '') === 'smart' ? 'smart' : 'manual';
 
-    $ins = mysqli_prepare($conn,
-        "INSERT INTO matches
-            (ride_id, matched_user_id, status, match_score, pickup_distance_km, drop_distance_km, route_overlap_percent, time_score, match_source)
-         VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?)"
-    );
-    mysqli_stmt_bind_param($ins, "iidddiis", $ride_id, $user_id, $matchScore, $pickupDistance, $dropDistance, $routeOverlap, $timeScore, $matchSource);
+    $pickupLat = ridesync_float_or_null($_POST['pickup_lat'] ?? null);
+    $pickupLng = ridesync_float_or_null($_POST['pickup_lng'] ?? null);
+    $dropoffLat = ridesync_float_or_null($_POST['dropoff_lat'] ?? null);
+    $dropoffLng = ridesync_float_or_null($_POST['dropoff_lng'] ?? null);
+    $detourDist = ridesync_float_or_null($_POST['detour_distance_km'] ?? null);
+    $detourMins = isset($_POST['detour_time_minutes']) && $_POST['detour_time_minutes'] !== '' ? (int) $_POST['detour_time_minutes'] : null;
+    $requestSource = ($_POST['source'] ?? '') === 'route_watch' ? 'route_watch' : 'search';
+
+    $hasSnappedCoords = ridesync_column_exists($conn, 'matches', 'pickup_lat');
+
+    if ($hasSnappedCoords) {
+        $ins = mysqli_prepare($conn,
+            "INSERT INTO matches
+                (ride_id, matched_user_id, status, match_score, pickup_distance_km, drop_distance_km, route_overlap_percent, time_score, match_source, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, detour_distance_km, detour_time_minutes, source)
+             VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        mysqli_stmt_bind_param($ins, "iidddiisdddddis",
+            $ride_id, $user_id, $matchScore, $pickupDistance, $dropDistance, $routeOverlap, $timeScore, $matchSource,
+            $pickupLat, $pickupLng, $dropoffLat, $dropoffLng, $detourDist, $detourMins, $requestSource
+        );
+    } else {
+        $ins = mysqli_prepare($conn,
+            "INSERT INTO matches
+                (ride_id, matched_user_id, status, match_score, pickup_distance_km, drop_distance_km, route_overlap_percent, time_score, match_source)
+             VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?)"
+        );
+        mysqli_stmt_bind_param($ins, "iidddiis", $ride_id, $user_id, $matchScore, $pickupDistance, $dropDistance, $routeOverlap, $timeScore, $matchSource);
+    }
 
     if (mysqli_stmt_execute($ins)) {
         ridesync_ensure_live_status($conn, $ride_id, 'searching');
+
+        if (function_exists('ridesync_fulfill_user_route_watches') && !empty($ride['travel_date'])) {
+            ridesync_fulfill_user_route_watches($conn, $user_id, (string) $ride['travel_date']);
+        }
+
+        $notificationMsg = ($_SESSION['user_name'] ?? 'A rider') . ' requested to join your ride from ' . $ride['origin'] . ' to ' . $ride['destination'] . '.';
+        if ($detourDist !== null && $detourDist > 0) {
+            $notificationMsg .= sprintf(" (Partial-path overlap: +%.1f km detour)", $detourDist);
+        }
+
         ridesync_create_notification(
             $conn,
             (int) $ride['user_id'],
             null,
             'New join request',
-            ($_SESSION['user_name'] ?? 'A rider') . ' requested to join your ride from ' . $ride['origin'] . ' to ' . $ride['destination'] . '.'
+            $notificationMsg
         );
         ridesync_match_success("Smart request sent. You'll see the status in My Matches.", $default);
     }
@@ -195,63 +228,53 @@ if ($action === 'accept' && $match_id > 0) {
 
     if ($match_data['ride_status'] !== 'open' || (int) $match_data['seats_available'] <= 0) {
         mysqli_rollback($conn);
-        ridesync_match_error("This ride has no available seats.", $default);
+        ridesync_match_error("No available seats left on this ride.", $default);
     }
 
     if (in_array($match_data['live_status'], ['active', 'completed', 'cancelled'], true)) {
         mysqli_rollback($conn);
-        ridesync_match_error("This ride has already started or ended.", $default);
+        ridesync_match_error("This ride is already in progress or finished.", $default);
     }
 
-    $travelTimestamp = strtotime(($match_data['travel_date'] ?? '') . ' ' . ($match_data['travel_time'] ?? ''));
-    if ($travelTimestamp && $travelTimestamp < (time() - 1800)) {
-        mysqli_rollback($conn);
-        ridesync_match_error("This ride time has already passed.", $default);
-    }
+    $ride_id = (int) $match_data['ride_id'];
+    $requesterId = (int) $match_data['matched_user_id'];
+    $updMatch = mysqli_prepare($conn, "UPDATE matches SET status = 'accepted' WHERE id = ?");
+    mysqli_stmt_bind_param($updMatch, "i", $match_id);
+    mysqli_stmt_execute($updMatch);
 
-    $upd = mysqli_prepare($conn, "UPDATE matches SET status = 'accepted' WHERE id = ? AND status = 'pending'");
-    mysqli_stmt_bind_param($upd, "i", $match_id);
-    mysqli_stmt_execute($upd);
+    $newSeats = (int) $match_data['seats_available'] - 1;
+    $newStatus = $newSeats === 0 ? 'full' : 'open';
+    $updRide = mysqli_prepare($conn, "UPDATE rides SET seats_available = ?, status = ? WHERE id = ?");
+    mysqli_stmt_bind_param($updRide, "isi", $newSeats, $newStatus, $ride_id);
+    mysqli_stmt_execute($updRide);
 
-    if (mysqli_stmt_affected_rows($upd) !== 1) {
-        mysqli_rollback($conn);
-        ridesync_match_error("Something went wrong. Try again.", $default);
-    }
-
-    $rideWillClose = (int) $match_data['seats_available'] <= 1;
-    $dec = mysqli_prepare($conn,
-        "UPDATE rides
-         SET status = CASE WHEN seats_available <= 1 THEN 'closed' ELSE status END,
-             seats_available = GREATEST(CAST(seats_available AS SIGNED) - 1, 0)
-         WHERE id = ? AND status = 'open' AND seats_available > 0"
-    );
-    mysqli_stmt_bind_param($dec, "i", $match_data['ride_id']);
-    mysqli_stmt_execute($dec);
-
-    if (mysqli_stmt_affected_rows($dec) !== 1) {
-        mysqli_rollback($conn);
-        ridesync_match_error("This ride has no available seats.", $default);
-    }
-
-    if ($rideWillClose) {
-        ridesync_reject_pending_matches(
+    $rejectedOthersCount = 0;
+    if ($newSeats === 0) {
+        $rejectedOthersCount = ridesync_reject_pending_matches(
             $conn,
-            (int) $match_data['ride_id'],
+            $ride_id,
             $match_id,
-            'Ride is full',
-            'That ride is now full, so your pending request was closed.'
+            'Ride fully booked',
+            'All seats on this ride have been filled.'
         );
     }
 
-    $nextLiveStatus = $match_data['live_status'] === 'driver_assigned' ? 'driver_assigned' : 'matched';
-    $nextLiveNote = $nextLiveStatus === 'driver_assigned'
-        ? 'Passenger matched and driver remains assigned.'
-        : 'Passenger matched and seat reserved.';
-    ridesync_update_live_status($conn, (int) $match_data['ride_id'], $nextLiveStatus, $nextLiveNote);
-    ridesync_create_notification($conn, (int) $match_data['matched_user_id'], null, 'Ride request accepted', 'Your ride request was accepted.');
-
     mysqli_commit($conn);
-    ridesync_match_success("Request accepted!", $default);
+
+    ridesync_create_notification(
+        $conn,
+        $requesterId,
+        null,
+        'Join request accepted!',
+        'Your request to join the ride has been accepted. Have a great trip!'
+    );
+
+    $msg = "Match request accepted. Seats remaining: {$newSeats}.";
+    if ($rejectedOthersCount > 0) {
+        $msg .= " Remaining pending requests were automatically declined because all seats are filled.";
+    }
+
+    ridesync_match_success($msg, $default);
 }
 
 // ---- REJECT A MATCH REQUEST ----
@@ -259,7 +282,7 @@ if ($action === 'reject' && $match_id > 0) {
     $default = "/ridesync/pages/my_rides.php";
 
     $verify = mysqli_prepare($conn,
-        "SELECT m.id, m.status, m.matched_user_id
+        "SELECT m.id, m.matched_user_id, r.user_id AS poster_id, r.origin, r.destination
          FROM matches m
          JOIN rides r ON m.ride_id = r.id
          WHERE m.id = ? AND r.user_id = ?"
@@ -272,21 +295,23 @@ if ($action === 'reject' && $match_id > 0) {
         ridesync_match_error("Match request not found.", $default);
     }
 
-    if ($match_data['status'] !== 'pending') {
-        ridesync_match_error("Only pending requests can be rejected.", $default);
-    }
-
     $upd = mysqli_prepare($conn, "UPDATE matches SET status = 'rejected' WHERE id = ? AND status = 'pending'");
     mysqli_stmt_bind_param($upd, "i", $match_id);
     mysqli_stmt_execute($upd);
 
     if (mysqli_stmt_affected_rows($upd) === 1) {
-        ridesync_create_notification($conn, (int) $match_data['matched_user_id'], null, 'Ride request rejected', 'Your ride request was rejected.');
-        ridesync_match_success("Request rejected.", $default);
+        ridesync_create_notification(
+            $conn,
+            (int) $match_data['matched_user_id'],
+            null,
+            'Join request declined',
+            'Your request to join the ride from ' . $match_data['origin'] . ' to ' . $match_data['destination'] . ' was declined.'
+        );
+        ridesync_match_success("Request declined.", $default);
     }
 
-    ridesync_match_error("Something went wrong. Try again.", $default);
+    ridesync_match_error("Request could not be declined or was already processed.", $default);
 }
 
-ridesync_match_error("Invalid match action.", "/ridesync/pages/dashboard.php");
-?>
+header("Location: /ridesync/pages/dashboard.php");
+exit();
