@@ -39,6 +39,8 @@
         requestAnimationFrame(function () {
             overlay.style.opacity = '1';
             modal.style.transform = 'scale(1)';
+            var phraseInput = modal.querySelector('.modal-phrase-input');
+            if (phraseInput) phraseInput.focus();
         });
 
         var cancelBtn = modal.querySelector('.btn-modal-cancel');
@@ -46,12 +48,21 @@
         var phraseInput = modal.querySelector('.modal-phrase-input');
 
         function closeModal() {
+            document.removeEventListener('keydown', handleEsc);
             overlay.style.opacity = '0';
             modal.style.transform = 'scale(0.95)';
             setTimeout(function () { overlay.remove(); }, 200);
         }
 
+        function handleEsc(e) {
+            if (e.key === 'Escape') closeModal();
+        }
+
+        document.addEventListener('keydown', handleEsc);
         cancelBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeModal();
+        });
 
         confirmBtn.addEventListener('click', function () {
             if (isPhraseRequired && phraseInput) {
@@ -66,11 +77,21 @@
     }
 
     ready(function () {
+        // Intercept form submissions with confirmation message on form or submitter button
         document.addEventListener('submit', function (event) {
             var form = event.target;
-            if (!form || (!form.hasAttribute('data-confirm-message') && !form.hasAttribute('data-confirm-phrase'))) {
-                return;
+            if (!form) return;
+
+            var submitter = event.submitter;
+            var confirmElement = null;
+
+            if (form.hasAttribute('data-confirm-message') || form.hasAttribute('data-confirm-phrase')) {
+                confirmElement = form;
+            } else if (submitter && (submitter.hasAttribute('data-confirm-message') || submitter.hasAttribute('data-confirm-phrase'))) {
+                confirmElement = submitter;
             }
+
+            if (!confirmElement) return;
 
             if (form.dataset.confirmed === 'true') {
                 delete form.dataset.confirmed;
@@ -80,8 +101,8 @@
             event.preventDefault();
             event.stopPropagation();
 
-            var message = form.getAttribute('data-confirm-message') || 'Are you sure you want to perform this action?';
-            var requiredPhrase = form.getAttribute('data-confirm-phrase') || '';
+            var message = confirmElement.getAttribute('data-confirm-message') || 'Are you sure you want to perform this action?';
+            var requiredPhrase = confirmElement.getAttribute('data-confirm-phrase') || '';
             var isPhraseRequired = requiredPhrase !== '';
 
             createGlassModal('Confirmation Required', message, isPhraseRequired, requiredPhrase, function () {
@@ -90,7 +111,34 @@
                     if (confInput) confInput.value = requiredPhrase;
                 }
                 form.dataset.confirmed = 'true';
+                if (submitter && submitter.name) {
+                    var hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = submitter.name;
+                    hiddenInput.value = submitter.value;
+                    form.appendChild(hiddenInput);
+                }
                 form.submit();
+            });
+        }, true);
+
+        // Intercept link clicks with data-confirm-message
+        document.addEventListener('click', function (event) {
+            var targetLink = event.target.closest('a[data-confirm-message], a[data-confirm-phrase]');
+            if (!targetLink) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            var href = targetLink.getAttribute('href');
+            if (!href || href === '#') return;
+
+            var message = targetLink.getAttribute('data-confirm-message') || 'Are you sure you want to proceed?';
+            var requiredPhrase = targetLink.getAttribute('data-confirm-phrase') || '';
+            var isPhraseRequired = requiredPhrase !== '';
+
+            createGlassModal('Confirmation Required', message, isPhraseRequired, requiredPhrase, function () {
+                window.location.href = href;
             });
         }, true);
     });

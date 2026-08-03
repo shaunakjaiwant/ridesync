@@ -44,12 +44,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var regForm = document.querySelector('form[action*="register_action"]');
     if (regForm) {
         regForm.addEventListener('submit', function (e) {
+            var nameInput = regForm.querySelector('[name="name"]');
             var email = regForm.querySelector('[name="email"]');
             var password = regForm.querySelector('[name="password"]');
             var confirmPw = regForm.querySelector('[name="confirm_password"]');
             var errors = [];
 
-            if (name && name.value.trim().length < 2) {
+            if (nameInput && nameInput.value.trim().length < 2) {
                 errors.push('Name must be at least 2 characters.');
             }
 
