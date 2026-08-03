@@ -450,11 +450,36 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
 
     <?php else: ?>
-        <div class="card search-empty-card">
-            <p class="text-muted">
-                <?php echo $searched ? 'No community rides match this route strongly yet.' : 'No upcoming rides available right now. Check back soon!'; ?>
+        <div class="card search-empty-card" style="text-align: center; padding: 2.5rem 1.5rem; background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(56, 189, 248, 0.3); border-radius: 16px;">
+            <div style="width: 48px; height: 48px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(56, 189, 248, 0.1); color: #38bdf8; display: flex; align-items: center; justify-content: center;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; color: #f8fafc;">
+                <?php echo $searched ? 'No community rides match this route right now' : 'No upcoming rides available right now'; ?>
+            </h3>
+            <p class="text-muted" style="max-width: 460px; margin: 0 auto 1.25rem; font-size: 0.9rem; line-height: 1.5;">
+                Don't worry! You can set an instant Route Watch alert and RideSync will notify you as soon as a driver or rider posts a matching trip.
             </p>
-            <p class="text-muted">Use exact pickup and destination pins to unlock route-aware matching and driver fallback.</p>
+            <?php if ($searched && $filter_origin !== '' && $filter_dest !== ''): ?>
+                <form action="/ridesync/actions/demand_action.php" method="POST" style="display: inline-block;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <input type="hidden" name="origin" value="<?php echo htmlspecialchars($filter_origin); ?>">
+                    <input type="hidden" name="destination" value="<?php echo htmlspecialchars($filter_dest); ?>">
+                    <input type="hidden" name="travel_date" value="<?php echo htmlspecialchars($filter_date); ?>">
+                    <input type="hidden" name="travel_time" value="<?php echo htmlspecialchars($filter_time); ?>">
+                    <input type="hidden" name="origin_lat" value="<?php echo htmlspecialchars($origin_lat); ?>">
+                    <input type="hidden" name="origin_lng" value="<?php echo htmlspecialchars($origin_lng); ?>">
+                    <input type="hidden" name="destination_lat" value="<?php echo htmlspecialchars($destination_lat); ?>">
+                    <input type="hidden" name="destination_lng" value="<?php echo htmlspecialchars($destination_lng); ?>">
+                    <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($returnTo); ?>">
+                    <button type="submit" class="btn btn-primary btn-glow" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        Notify Me When a Ride Opens
+                    </button>
+                </form>
+            <?php else: ?>
+                <a href="/ridesync/pages/post_ride.php" class="btn btn-primary btn-glow">Offer a New Ride</a>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>

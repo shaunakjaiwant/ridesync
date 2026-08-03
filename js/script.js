@@ -1736,33 +1736,86 @@ function showFormErrors(form, errors) {
 
 function initNotificationPolling() {
     var alertsLinks = document.querySelectorAll('a[href*="notifications.php"]');
-    if (!alertsLinks || alertsLinks.length === 0) return;
+    var lastNotificationId = 0;
+
+    function showNotificationToast(title, message) {
+        var existingToast = document.querySelector('.ridesync-toast-container');
+        if (!existingToast) {
+            existingToast = document.createElement('div');
+            existingToast.className = 'ridesync-toast-container';
+            existingToast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:12px;max-width:380px;pointer-events:none;';
+            document.body.appendChild(existingToast);
+        }
+
+        var toast = document.createElement('div');
+        toast.className = 'ridesync-glass-toast';
+        toast.style.cssText = 'pointer-events:auto;background:rgba(15,23,42,0.92);backdrop-filter:blur(16px);border:1px solid rgba(56,189,248,0.3);box-shadow:0 10px 30px rgba(0,0,0,0.5);border-radius:12px;padding:16px;color:#f8fafc;font-family:inherit;transform:translateY(20px);opacity:0;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;align-items:flex-start;gap:12px;';
+
+        toast.innerHTML = '<div style="background:rgba(56,189,248,0.15);color:#38bdf8;padding:8px;border-radius:8px;line-height:0;">'
+            + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+            + '</div>'
+            + '<div style="flex:1;">'
+            + '<div style="font-weight:700;font-size:0.95rem;color:#f8fafc;margin-bottom:2px;">' + (title || 'RideSync Alert') + '</div>'
+            + '<div style="font-size:0.85rem;color:#94a3b8;line-height:1.4;">' + (message || '') + '</div>'
+            + '</div>'
+            + '<button type="button" style="background:none;border:none;color:#64748b;cursor:pointer;padding:4px;line-height:0;" onclick="this.parentElement.remove()">'
+            + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+            + '</button>';
+
+        existingToast.appendChild(toast);
+
+        requestAnimationFrame(function () {
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+        });
+
+        setTimeout(function () {
+            toast.style.transform = 'translateY(10px)';
+            toast.style.opacity = '0';
+            setTimeout(function () { toast.remove(); }, 300);
+        }, 6000);
+    }
 
     function poll() {
-        fetch('/ridesync/actions/notification_action.php?poll_unread=1', {
-            headers: { 'Accept': 'application/json' }
+        if (document.hidden) return;
+
+        fetch('/ridesync/api/v1/user_notifications_check.php?since_id=' + encodeURIComponent(lastNotificationId), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(function (res) { return res.ok ? res.json() : null; })
         .then(function (data) {
-            if (!data || typeof data.unread_count === 'undefined') return;
+            if (!data || !data.ok) return;
 
-            alertsLinks.forEach(function (link) {
-                var badge = link.querySelector('.nav-badge');
-                if (data.unread_count > 0) {
-                    if (!badge) {
-                        badge = document.createElement('span');
-                        badge.className = 'nav-badge nav-badge-pulse';
-                        link.appendChild(badge);
+            if (alertsLinks && alertsLinks.length > 0) {
+                alertsLinks.forEach(function (link) {
+                    var badge = link.querySelector('.nav-badge');
+                    if (data.unread_count > 0) {
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'nav-badge nav-badge-pulse';
+                            link.appendChild(badge);
+                        }
+                        badge.textContent = Math.min(99, data.unread_count);
+                        badge.classList.add('nav-badge-pulse');
+                    } else if (badge) {
+                        badge.remove();
                     }
-                    badge.textContent = Math.min(99, data.unread_count);
-                    badge.classList.add('nav-badge-pulse');
-                } else if (badge) {
-                    badge.remove();
+                });
+            }
+
+            if (data.latest_notification) {
+                var latest = data.latest_notification;
+                if (lastNotificationId === 0) {
+                    lastNotificationId = latest.id;
+                } else if (latest.id > lastNotificationId) {
+                    lastNotificationId = latest.id;
+                    showNotificationToast(latest.title, latest.message);
                 }
-            });
+            }
         })
         .catch(function () {});
     }
 
-    setInterval(poll, 25000);
+    poll();
+    setInterval(poll, 15000);
 }

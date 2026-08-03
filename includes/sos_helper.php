@@ -132,7 +132,10 @@ function ridesync_get_active_sos_alerts($conn): array {
     $res = mysqli_query($conn, $sql);
     $alerts = [];
     if ($res) {
+        require_once __DIR__ . '/emergency_contact_helper.php';
         while ($row = mysqli_fetch_assoc($res)) {
+            $contacts = ridesync_get_user_emergency_contacts($conn, $row['triggered_by_type'], (int) $row['triggered_by_id']);
+            $row['emergency_contacts'] = $contacts;
             $alerts[] = $row;
         }
     }

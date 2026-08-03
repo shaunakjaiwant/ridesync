@@ -177,6 +177,64 @@ require_once __DIR__ . '/../includes/driver_header.php';
     </div>
 </div>
 
+<!-- Per-Document Verification Status Card -->
+<section class="driver-panel" style="margin-top: 1.5rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 1.25rem 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <span class="driver-kicker" style="color: #38bdf8; font-size: 0.78rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Compliance & Safety</span>
+            <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0.2rem 0 0; color: #f8fafc;">Document Verification Status</h2>
+        </div>
+        <a href="/ridesync/pages/driver_profile.php" class="btn btn-secondary btn-sm" style="font-size: 0.82rem;">Manage Docs</a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem;">
+        <?php
+        $docLabels = [
+            'license' => 'Driving License',
+            'aadhaar' => 'Aadhaar Card',
+            'pan' => 'PAN Card',
+            'vehicle_rc' => 'Vehicle RC'
+        ];
+
+        foreach ($docLabels as $docKey => $docTitle):
+            $doc = $state['documents'][$docKey] ?? null;
+            $status = $doc['verification_status'] ?? 'not_uploaded';
+            $badgeClass = [
+                'verified' => 'status-accepted',
+                'pending' => 'status-pending',
+                'rejected' => 'status-rejected',
+                'not_uploaded' => 'status-rejected'
+            ][$status] ?? 'status-pending';
+
+            $statusText = [
+                'verified' => '✓ Verified',
+                'pending' => '⏳ Pending Review',
+                'rejected' => '❌ Action Needed',
+                'not_uploaded' => '⚠️ Not Uploaded'
+            ][$status] ?? 'Pending';
+        ?>
+            <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.06); padding: 0.85rem 1rem; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; gap: 0.5rem;">
+                <div>
+                    <strong style="display: block; font-size: 0.9rem; color: #f8fafc; margin-bottom: 0.2rem;"><?php echo htmlspecialchars($docTitle); ?></strong>
+                    <?php if ($doc && !empty($doc['document_number'])): ?>
+                        <small style="color: #64748b; font-size: 0.78rem; font-family: monospace;"><?php echo htmlspecialchars($doc['document_number']); ?></small>
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <span class="status-badge <?php echo htmlspecialchars($badgeClass); ?>" style="font-size: 0.78rem; padding: 0.25rem 0.6rem; display: inline-block;">
+                        <?php echo htmlspecialchars($statusText); ?>
+                    </span>
+                    <?php if ($status === 'rejected' && !empty($doc['rejection_reason'])): ?>
+                        <div style="font-size: 0.75rem; color: #f87171; margin-top: 0.35rem; line-height: 1.3;">
+                            <?php echo htmlspecialchars($doc['rejection_reason']); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+
 <nav class="panel-action-rail driver-command-rail" aria-label="Primary driver actions">
     <a class="panel-action-card is-primary" href="/ridesync/pages/driver_requests.php">
         <div class="action-card-header">

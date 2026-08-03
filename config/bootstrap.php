@@ -299,6 +299,7 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
             header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src " . implode(' ', array_unique($scriptSources)) . '; style-src ' . implode(' ', array_unique($styleSources)) . "; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src " . implode(' ', array_unique($imgSources)) . '; connect-src ' . implode(' ', array_unique($connectSources)) . "; media-src 'self'; worker-src 'self' blob:");
         }
 
+
         if (ridesync_is_https_request()) {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         }
@@ -309,14 +310,19 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
             return;
         }
 
+        // Keep user logged in across browser sessions for 30 days until explicit logout
+        $lifetime = 2592000; // 30 days in seconds
+
         ini_set('session.use_strict_mode', '1');
         ini_set('session.cookie_httponly', '1');
         ini_set('session.cookie_samesite', 'Lax');
+        ini_set('session.gc_maxlifetime', (string) $lifetime);
+        ini_set('session.cookie_lifetime', (string) $lifetime);
         session_cache_limiter('');
 
         $secureCookie = ridesync_cookie_secure_required();
         session_set_cookie_params([
-            'lifetime' => 0,
+            'lifetime' => $lifetime,
             'path' => '/',
             'domain' => '',
             'secure' => $secureCookie,
@@ -413,8 +419,9 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         $startedAt = (int) ($_SESSION['_auth_started_at'] ?? $_SESSION['_created_at'] ?? $now);
         $lastSeenAt = (int) ($_SESSION['_last_seen_at'] ?? $now);
         $lastRotatedAt = (int) ($_SESSION['_last_rotated_at'] ?? $startedAt);
-        $idleSeconds = max(60, ridesync_env_int('RIDESYNC_SESSION_IDLE_SECONDS', 30 * 60));
-        $absoluteSeconds = max($idleSeconds, ridesync_env_int('RIDESYNC_SESSION_ABSOLUTE_SECONDS', 8 * 60 * 60));
+        // Default to 30 days (2,592,000s) so users stay logged in until explicit logout
+        $idleSeconds = max(60, ridesync_env_int('RIDESYNC_SESSION_IDLE_SECONDS', 30 * 86400));
+        $absoluteSeconds = max($idleSeconds, ridesync_env_int('RIDESYNC_SESSION_ABSOLUTE_SECONDS', 30 * 86400));
         $rotateSeconds = max(60, ridesync_env_int('RIDESYNC_SESSION_ROTATE_SECONDS', 15 * 60));
 
         if (($now - $lastSeenAt) > $idleSeconds || ($now - $startedAt) > $absoluteSeconds) {
@@ -449,13 +456,6 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         }
 
         session_destroy();
-    }
-
-    function ridesync_request_prefers_json() {
-        $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
-        $script = strtolower((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
-
-        return str_contains($accept, 'application/json') || str_contains($script, '/api/');
     }
 
     function ridesync_register_error_handlers() {
@@ -510,12 +510,18 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         });
     }
 
+    function ridesync_request_prefers_json() {
+        $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+        $script = strtolower((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+
+        return str_contains($accept, 'application/json') || str_contains($script, '/api/');
+    }
+
     require_once RIDESYNC_ROOT . '/backend/bootstrap.php';
 
     ridesync_configure_runtime();
     ridesync_prepare_storage_directories();
     require_once RIDESYNC_ROOT . '/includes/logger.php';
-    ridesync_register_error_handlers();
     ridesync_send_security_headers();
     ridesync_start_session();
     ridesync_enforce_session_limits();
