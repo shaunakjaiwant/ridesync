@@ -11,102 +11,56 @@ if (isset($_SESSION['driver_id'])) {
     exit();
 }
 
-// Fetch live statistics for landing page display
-$openRidesCount = 0;
-$activeDriversCount = 0;
-$completedTripsCount = 0;
-
-if ($conn instanceof mysqli) {
-    $resRides = @mysqli_query($conn, "SELECT COUNT(*) AS total FROM rides WHERE status = 'open'");
-    if ($resRides && $row = mysqli_fetch_assoc($resRides)) {
-        $openRidesCount = (int) $row['total'];
-    }
-
-    $resDrivers = @mysqli_query($conn, "SELECT COUNT(*) AS total FROM driver_accounts WHERE status = 'active'");
-    if ($resDrivers && $row = mysqli_fetch_assoc($resDrivers)) {
-        $activeDriversCount = (int) $row['total'];
-    }
-
-    $resCompleted = @mysqli_query($conn, "SELECT COUNT(*) AS total FROM rides WHERE status = 'completed'");
-    if ($resCompleted && $row = mysqli_fetch_assoc($resCompleted)) {
-        $completedTripsCount = (int) $row['total'];
-    }
-}
-
 require_once 'includes/public_header.php';
 ?>
 
-<section class="public-landing public-vibe-landing" style="padding-bottom: 4rem;">
-    <!-- Main Hero Section -->
-    <section class="public-hero public-vibe-hero" aria-labelledby="publicHeroTitle" style="position: relative; overflow: hidden; border-radius: 24px; background: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.15), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(255, 255, 255, 0.1); padding: 3rem 2rem;">
-        
+<section class="public-landing public-vibe-landing">
+    <section class="public-hero public-vibe-hero" aria-labelledby="publicHeroTitle">
         <div class="public-hero-scene" aria-hidden="true">
-            <img src="/ridesync/logo.png" alt="" class="public-scene-logo" style="opacity: 0.85;" />
+            <img src="/ridesync/logo.png" alt="" class="public-scene-logo" />
             <div class="public-scene-map">
                 <span class="public-map-node is-origin"></span>
                 <span class="public-map-node is-campus"></span>
                 <span class="public-map-node is-destination"></span>
                 <span class="public-map-route"></span>
             </div>
-            <div class="public-scene-card public-scene-card-primary" style="backdrop-filter: blur(12px); background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(56, 189, 248, 0.3);">
-                <span style="color: #38bdf8; font-weight: 700;">Rider Request</span>
-                <strong>SDMIT &rarr; Ujire</strong>
-                <small style="color: #10b981;">✓ 2 Seats Matched</small>
+            <div class="public-scene-card public-scene-card-primary">
+                <span>Rider request</span>
+                <strong>SDMIT to Ujire</strong>
+                <small>2 seats matched</small>
             </div>
-            <div class="public-scene-card public-scene-card-secondary" style="backdrop-filter: blur(12px); background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(16, 185, 129, 0.3);">
-                <span style="color: #10b981; font-weight: 700;">Verified Driver</span>
-                <strong>Ready Nearby</strong>
-                <small>Campus Safety Approved</small>
+            <div class="public-scene-card public-scene-card-secondary">
+                <span>Driver fallback</span>
+                <strong>Available nearby</strong>
+                <small>Verified account</small>
             </div>
-            <div class="public-scene-status" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;">
-                <span style="background: #10b981;"></span>
-                <strong>Live Dispatch Active</strong>
+            <div class="public-scene-status">
+                <span></span>
+                <strong>Live route sync</strong>
             </div>
         </div>
 
         <div class="public-hero-inner">
             <div class="public-hero-copy">
-                <span class="public-kicker" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.35rem 0.85rem; border-radius: 999px; font-size: 0.82rem; font-weight: 700; border: 1px solid rgba(56, 189, 248, 0.3); display: inline-block; margin-bottom: 1rem;">
-                    🚀 Next-Gen Campus Mobility
-                </span>
-                <h1 id="publicHeroTitle" style="font-size: 2.75rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; color: #f8fafc; margin-bottom: 1.25rem;">
-                    Smarter Campus Rides. <br><span style="background: linear-gradient(135deg, #38bdf8 0%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Zero Hassle.</span>
-                </h1>
-                <p style="font-size: 1.1rem; color: #94a3b8; line-height: 1.6; max-width: 540px; margin-bottom: 2rem;">
-                    Connect with fellow students, find instant route matches, or request verified campus drivers—all in one intelligent real-time platform.
-                </p>
-
-                <!-- Interactive Instant Search Widget -->
-                <form action="/ridesync/pages/search_rides.php" method="GET" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.15); padding: 1.25rem; border-radius: 16px; margin-bottom: 2rem; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.75rem; align-items: center;">
-                        <div>
-                            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.3rem;">Pickup</label>
-                            <input type="text" name="origin" placeholder="e.g. SDMIT Campus" required style="width: 100%; padding: 0.65rem 0.85rem; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; font-size: 0.9rem;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.3rem;">Destination</label>
-                            <input type="text" name="destination" placeholder="e.g. Ujire Town" required style="width: 100%; padding: 0.65rem 0.85rem; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; font-size: 0.9rem;">
-                        </div>
-                        <div style="padding-top: 1.2rem;">
-                            <button type="submit" class="btn btn-primary" style="padding: 0.7rem 1.25rem; background: linear-gradient(135deg, #2563eb 0%, #059669 100%); border: none; border-radius: 8px; font-weight: 700; color: #fff; cursor: pointer; white-space: nowrap;">
-                                Search Rides &rarr;
-                            </button>
-                        </div>
-                    </div>
-                </form>
-
-                <div class="public-hero-actions" style="display: flex; gap: 1rem; align-items: center;">
-                    <a href="/ridesync/pages/login.php?role=rider" class="btn btn-primary" style="padding: 0.85rem 1.75rem; font-size: 1rem; font-weight: 700;">Rider Login</a>
-                    <a href="/ridesync/pages/driver_login.php" class="btn btn-secondary" style="padding: 0.85rem 1.75rem; font-size: 1rem; font-weight: 700; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15);">Driver Portal</a>
+                <span class="public-kicker">Campus mobility, cleaned up</span>
+                <h1 id="publicHeroTitle">RideSync turns scattered rides into one coordinated flow.</h1>
+                <p>Post trips, find route matches, request verified drivers, and keep every ride moving from one focused workspace.</p>
+                <div class="public-hero-actions" style="display: flex; flex-wrap: wrap; gap: 0.85rem; align-items: center;">
+                    <a href="/ridesync/pages/login.php?role=rider" class="btn btn-primary">Find a ride</a>
+                    <a href="/ridesync/pages/driver_login.php" class="btn btn-secondary">Drive with RideSync</a>
+                    <button type="button" id="btnHowItWorks" class="btn btn-secondary" style="background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                        See How It Works
+                    </button>
                 </div>
             </div>
 
-            <div class="public-hero-panel" aria-label="RideSync live route preview" style="background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; padding: 1.75rem;">
+            <div class="public-hero-panel" aria-label="RideSync live route preview">
                 <div class="public-preview-brand">
                     <img src="/ridesync/logo-mark.png" alt="" class="logo-img" />
                     <div>
-                        <strong style="color: #f8fafc;">Live Campus Radar</strong>
-                        <span style="color: #38bdf8;">Real-Time Dispatch Engine</span>
+                        <strong>Campus route board</strong>
+                        <span>Match, request, ride</span>
                     </div>
                 </div>
                 <div class="public-route-line" aria-hidden="true">
@@ -116,113 +70,248 @@ require_once 'includes/public_header.php';
                 </div>
                 <div class="public-route-meta">
                     <span>SDMIT</span>
-                    <strong style="color: #10b981;">Active</strong>
+                    <strong>Live</strong>
                     <span>Ujire</span>
                 </div>
-                <dl class="public-hero-metrics" style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                <dl class="public-hero-metrics">
                     <div>
-                        <dt style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Instant Match Rate</dt>
-                        <dd style="color: #38bdf8; font-size: 1.25rem; font-weight: 800; margin-top: 0.2rem;">98.4%</dd>
+                        <dt>Route fit</dt>
+                        <dd>High</dd>
                     </div>
                     <div>
-                        <dt style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Average Pickup ETA</dt>
-                        <dd style="color: #10b981; font-size: 1.25rem; font-weight: 800; margin-top: 0.2rem;">4 Mins</dd>
+                        <dt>Fallback</dt>
+                        <dd>Ready</dd>
                     </div>
                 </dl>
             </div>
         </div>
     </section>
 
-    <!-- Live System Stats Counter Bar -->
-    <section style="margin-top: 2.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
-        <div style="background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.2); padding: 1.5rem; border-radius: 16px; text-align: center;">
-            <div style="font-size: 2.25rem; font-weight: 800; color: #38bdf8; line-height: 1;">
-                <?php echo max(12, $openRidesCount); ?>+
-            </div>
-            <div style="font-size: 0.88rem; color: #94a3b8; margin-top: 0.5rem; font-weight: 600;">Active Open Rides</div>
-        </div>
-        <div style="background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1.5rem; border-radius: 16px; text-align: center;">
-            <div style="font-size: 2.25rem; font-weight: 800; color: #10b981; line-height: 1;">
-                <?php echo max(8, $activeDriversCount); ?>+
-            </div>
-            <div style="font-size: 0.88rem; color: #94a3b8; margin-top: 0.5rem; font-weight: 600;">Verified Drivers</div>
-        </div>
-        <div style="background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(168, 85, 247, 0.2); padding: 1.5rem; border-radius: 16px; text-align: center;">
-            <div style="font-size: 2.25rem; font-weight: 800; color: #c084fc; line-height: 1;">
-                <?php echo max(150, $completedTripsCount); ?>+
-            </div>
-            <div style="font-size: 0.88rem; color: #94a3b8; margin-top: 0.5rem; font-weight: 600;">Completed Campus Trips</div>
-        </div>
-    </section>
-
-    <!-- Campus Quick-Search Route Pills -->
-    <section style="margin-top: 2.5rem; text-align: center;">
-        <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; display: block; margin-bottom: 1rem;">
-            🔥 Popular Campus Routes
-        </span>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem;">
-            <?php
-            $popularRoutes = [
-                ['origin' => 'SDMIT', 'destination' => 'Ujire'],
-                ['origin' => 'Ujire', 'destination' => 'Belthangady'],
-                ['origin' => 'SDMIT', 'destination' => 'Dharmasthala'],
-                ['origin' => 'Belthangady', 'destination' => 'Mudigere'],
-                ['origin' => 'SDMIT', 'destination' => 'Bus Stand'],
-            ];
-            foreach ($popularRoutes as $route):
-            ?>
-                <a href="/ridesync/pages/search_rides.php?origin=<?php echo urlencode($route['origin']); ?>&destination=<?php echo urlencode($route['destination']); ?>" 
-                   style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 999px; color: #cbd5e1; font-size: 0.88rem; text-decoration: none; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.4rem;">
-                    <span>📍 <?php echo htmlspecialchars($route['origin']); ?></span>
-                    <span style="color: #38bdf8;">&rarr;</span>
-                    <span><?php echo htmlspecialchars($route['destination']); ?></span>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </section>
-
-    <!-- Feature Highlights Grid -->
-    <section class="public-highlights public-vibe-highlights" aria-label="RideSync highlights" style="margin-top: 3.5rem;">
-        <article style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 1.75rem; border-radius: 16px;">
-            <span style="color: #38bdf8; font-weight: 800; font-size: 1.25rem;">01</span>
-            <strong style="color: #f8fafc; font-size: 1.15rem; display: block; margin: 0.5rem 0;">Smart Route Matching</strong>
-            <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">Search by pickup, destination, time, seats, and route fit score before sending a join request.</p>
+    <section class="public-highlights public-vibe-highlights" aria-label="RideSync highlights">
+        <article>
+            <span>01</span>
+            <strong>Route matching</strong>
+            <p>Search by pickup, destination, time, seats, and route fit before sending a request.</p>
         </article>
-        <article style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 1.75rem; border-radius: 16px;">
-            <span style="color: #10b981; font-weight: 800; font-size: 1.25rem;">02</span>
-            <strong style="color: #f8fafc; font-size: 1.15rem; display: block; margin: 0.5rem 0;">Verified Driver Dispatch</strong>
-            <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">When shared rides aren't available, RideSync automatically routes your request to verified drivers.</p>
+        <article>
+            <span>02</span>
+            <strong>Verified driver fallback</strong>
+            <p>When shared rides are weak, RideSync can route the request toward available drivers.</p>
         </article>
-        <article style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 1.75rem; border-radius: 16px;">
-            <span style="color: #c084fc; font-weight: 800; font-size: 1.25rem;">03</span>
-            <strong style="color: #f8fafc; font-size: 1.15rem; display: block; margin: 0.5rem 0;">Emergency SOS & Safety</strong>
-            <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">Real-time location tracking, admin safety oversight, and instant emergency contact alerts keep every ride safe.</p>
+        <article>
+            <span>03</span>
+            <strong>Operational visibility</strong>
+            <p>Notifications, live status, reports, and admin oversight keep the system accountable.</p>
         </article>
     </section>
 
-    <!-- Role Choice Section -->
-    <section class="public-choice public-vibe-choice" aria-labelledby="publicChoiceTitle" style="margin-top: 4rem;">
-        <div class="page-header" style="text-align: center; margin-bottom: 2rem;">
-            <span class="public-kicker" style="color: #38bdf8; font-weight: 700; text-transform: uppercase; font-size: 0.82rem;">Choose Workspace</span>
-            <h2 id="publicChoiceTitle" style="font-size: 2rem; font-weight: 800; color: #f8fafc; margin-top: 0.3rem;">Start with the side of RideSync you need.</h2>
+    <section class="public-choice public-vibe-choice" aria-labelledby="publicChoiceTitle">
+        <div class="page-header">
+            <span class="public-kicker">Choose workspace</span>
+            <h2 id="publicChoiceTitle">Start with the side of RideSync you need.</h2>
+            <p>Rider and driver flows stay separate so each dashboard stays fast, focused, and useful.</p>
         </div>
 
-        <div class="role-card-grid public-role-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-            <a href="/ridesync/pages/login.php?role=rider" class="role-card rider-card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(56, 189, 248, 0.3); padding: 2rem; border-radius: 20px; text-decoration: none;">
-                <span class="role-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem;">Rider</span>
-                <h2 style="font-size: 1.4rem; color: #f8fafc; margin: 1rem 0 0.5rem;">Find or Post a Ride</h2>
-                <p style="color: #94a3b8; font-size: 0.92rem; line-height: 1.5; margin-bottom: 1.5rem;">Discover shared routes, send join requests, track real-time notifications, and manage personal emergency contacts.</p>
-                <strong style="color: #38bdf8; font-size: 0.95rem;">Open Rider Workspace &rarr;</strong>
+        <div class="role-card-grid public-role-grid">
+            <a href="/ridesync/pages/login.php?role=rider" class="role-card rider-card">
+                <span class="role-icon">Rider</span>
+                <h2>Find or post a ride</h2>
+                <p>Discover shared routes, send join requests, track notifications, and manage upcoming trips.</p>
+                <strong>Open rider workspace &rarr;</strong>
             </a>
 
-            <a href="/ridesync/pages/driver_login.php" class="role-card driver-card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2rem; border-radius: 20px; text-decoration: none;">
-                <span class="role-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem;">Driver</span>
-                <h2 style="font-size: 1.4rem; color: #f8fafc; margin: 1rem 0 0.5rem;">Accept Campus Requests</h2>
-                <p style="color: #94a3b8; font-size: 0.92rem; line-height: 1.5; margin-bottom: 1.5rem;">Go online, receive instant rider requests, claim open community rides, and track daily earnings analytics.</p>
-                <strong style="color: #10b981; font-size: 0.95rem;">Open Driver Workspace &rarr;</strong>
+            <a href="/ridesync/pages/driver_login.php" class="role-card driver-card">
+                <span class="role-icon">Driver</span>
+                <h2>Accept campus requests</h2>
+                <p>Go online, receive direct requests, claim posted rides, and keep earnings organized.</p>
+                <strong>Open driver workspace &rarr;</strong>
             </a>
         </div>
+    </section>
+
+    <section class="public-flow" aria-labelledby="publicFlowTitle">
+        <div>
+            <span class="public-kicker">How it moves</span>
+            <h2 id="publicFlowTitle">A cleaner loop for everyday campus travel.</h2>
+        </div>
+        <ol>
+            <li>
+                <strong>Plan</strong>
+                <span>Set pickup, destination, date, time, seats, and route details.</span>
+            </li>
+            <li>
+                <strong>Coordinate</strong>
+                <span>RideSync compares matches, requests, driver availability, and notifications.</span>
+            </li>
+            <li>
+                <strong>Complete</strong>
+                <span>Track ride status, manage reports, and keep trip history organized.</span>
+            </li>
+        </ol>
     </section>
 </section>
+
+<!-- Interactive 30-Second "How RideSync Works" Glassmorphic Tour Modal -->
+<div id="tourModalOverlay" class="ridesync-tour-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:10000; background:rgba(15,23,42,0.88); backdrop-filter:blur(12px); align-items:center; justify-content:center; padding:20px; opacity:0; transition:opacity 0.25s ease;">
+    <div class="ridesync-tour-modal" style="background:rgba(30,41,59,0.96); border:1px solid rgba(255,255,255,0.12); box-shadow:0 25px 50px rgba(0,0,0,0.6); border-radius:20px; max-width:540px; width:100%; padding:28px; color:#f8fafc; font-family:inherit; position:relative; transform:scale(0.95); transition:transform 0.25s ease;">
+        
+        <button type="button" id="btnCloseTourModal" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.08); border:none; color:#94a3b8; border-radius:50%; width:32px; height:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1.1rem; line-height:1;">&times;</button>
+
+        <div style="margin-bottom:20px;">
+            <span style="color:#38bdf8; font-size:0.78rem; text-transform:uppercase; font-weight:700; letter-spacing:0.05em; display:block;">Quick Tour &middot; 30 Seconds</span>
+            <h3 style="font-size:1.35rem; font-weight:800; color:#f8fafc; margin:4px 0 0 0;">How RideSync Works</h3>
+        </div>
+
+        <!-- Slides Container -->
+        <div id="tourSlidesContainer" style="min-height:210px;">
+            <!-- Slide 1 -->
+            <div class="tour-slide" data-slide="1" style="display:block;">
+                <div style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.2); border-radius:12px; padding:16px; margin-bottom:16px; display:flex; align-items:center; gap:14px;">
+                    <div style="font-size:2rem; line-height:1;">🗺️</div>
+                    <div>
+                        <strong style="color:#38bdf8; font-size:1rem; display:block;">Step 1: Find or Post a Campus Route</strong>
+                        <span style="color:#cbd5e1; font-size:0.88rem;">Enter your pickup, destination, travel time, and available seats.</span>
+                    </div>
+                </div>
+                <p style="color:#94a3b8; font-size:0.9rem; line-height:1.5;">
+                    Whether heading to SDMIT, Ujire, or Belthangady, RideSync continuously scans active campus trips to match you with compatible student routes.
+                </p>
+            </div>
+
+            <!-- Slide 2 -->
+            <div class="tour-slide" data-slide="2" style="display:none;">
+                <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:16px; margin-bottom:16px; display:flex; align-items:center; gap:14px;">
+                    <div style="font-size:2rem; line-height:1;">⚡</div>
+                    <div>
+                        <strong style="color:#10b981; font-size:1rem; display:block;">Step 2: Instant Driver & Rider Match</strong>
+                        <span style="color:#cbd5e1; font-size:0.88rem;">Smart route fit matching with automatic driver fallback.</span>
+                    </div>
+                </div>
+                <p style="color:#94a3b8; font-size:0.9rem; line-height:1.5;">
+                    Send a 1-click join request to student drivers. If no shared ride matches your route, RideSync automatically dispatches verified campus drivers to pick you up.
+                </p>
+            </div>
+
+            <!-- Slide 3 -->
+            <div class="tour-slide" data-slide="3" style="display:none;">
+                <div style="background:rgba(192,132,252,0.1); border:1px solid rgba(192,132,252,0.2); border-radius:12px; padding:16px; margin-bottom:16px; display:flex; align-items:center; gap:14px;">
+                    <div style="font-size:2rem; line-height:1;">🛡️</div>
+                    <div>
+                        <strong style="color:#c084fc; font-size:1rem; display:block;">Step 3: Live Tracking & Emergency SOS</strong>
+                        <span style="color:#cbd5e1; font-size:0.88rem;">24/7 Safety oversight and instant contact alerts.</span>
+                    </div>
+                </div>
+                <p style="color:#94a3b8; font-size:0.9rem; line-height:1.5;">
+                    Track live trip status in real-time. In any emergency, 1-tap SOS notifies administrators and your personal emergency contacts immediately.
+                </p>
+            </div>
+        </div>
+
+        <!-- Controls & Navigation -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08);">
+            <div style="display:flex; gap:6px;" id="tourDots">
+                <span class="tour-dot" data-dot="1" style="width:24px; height:8px; border-radius:4px; background:#38bdf8; transition:all 0.2s ease;"></span>
+                <span class="tour-dot" data-dot="2" style="width:8px; height:8px; border-radius:4px; background:rgba(255,255,255,0.2); transition:all 0.2s ease;"></span>
+                <span class="tour-dot" data-dot="3" style="width:8px; height:8px; border-radius:4px; background:rgba(255,255,255,0.2); transition:all 0.2s ease;"></span>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button type="button" id="btnTourPrev" style="padding:8px 16px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#cbd5e1; cursor:pointer; font-weight:600; font-size:0.85rem; display:none;">Previous</button>
+                <button type="button" id="btnTourNext" style="padding:8px 18px; background:#2563eb; border:none; border-radius:8px; color:#fff; cursor:pointer; font-weight:600; font-size:0.85rem; box-shadow:0 4px 12px rgba(37,99,235,0.3);">Next &rarr;</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var btnOpen = document.getElementById('btnHowItWorks');
+    var btnClose = document.getElementById('btnCloseTourModal');
+    var overlay = document.getElementById('tourModalOverlay');
+    var modal = overlay ? overlay.querySelector('.ridesync-tour-modal') : null;
+    var btnPrev = document.getElementById('btnTourPrev');
+    var btnNext = document.getElementById('btnTourNext');
+    var currentSlide = 1;
+    var totalSlides = 3;
+
+    if (!btnOpen || !overlay || !modal) return;
+
+    function showSlide(index) {
+        currentSlide = index;
+        var slides = overlay.querySelectorAll('.tour-slide');
+        slides.forEach(function (slide) {
+            slide.style.display = parseInt(slide.dataset.slide, 10) === currentSlide ? 'block' : 'none';
+        });
+
+        var dots = overlay.querySelectorAll('.tour-dot');
+        dots.forEach(function (dot) {
+            var dotIdx = parseInt(dot.dataset.dot, 10);
+            if (dotIdx === currentSlide) {
+                dot.style.width = '24px';
+                dot.style.background = currentSlide === 1 ? '#38bdf8' : (currentSlide === 2 ? '#10b981' : '#c084fc');
+            } else {
+                dot.style.width = '8px';
+                dot.style.background = 'rgba(255,255,255,0.2)';
+            }
+        });
+
+        if (btnPrev) btnPrev.style.display = currentSlide > 1 ? 'inline-block' : 'none';
+        if (btnNext) {
+            if (currentSlide === totalSlides) {
+                btnNext.textContent = 'Get Started →';
+                btnNext.style.background = '#10b981';
+            } else {
+                btnNext.textContent = 'Next →';
+                btnNext.style.background = '#2563eb';
+            }
+        }
+    }
+
+    function openModal() {
+        showSlide(1);
+        overlay.style.display = 'flex';
+        requestAnimationFrame(function () {
+            overlay.style.opacity = '1';
+            modal.style.transform = 'scale(1)';
+        });
+        document.addEventListener('keydown', handleEsc);
+    }
+
+    function closeModal() {
+        document.removeEventListener('keydown', handleEsc);
+        overlay.style.opacity = '0';
+        modal.style.transform = 'scale(0.95)';
+        setTimeout(function () { overlay.style.display = 'none'; }, 250);
+    }
+
+    function handleEsc(e) {
+        if (e.key === 'Escape') closeModal();
+    }
+
+    btnOpen.addEventListener('click', openModal);
+    if (btnClose) btnClose.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeModal();
+    });
+
+    if (btnPrev) {
+        btnPrev.addEventListener('click', function () {
+            if (currentSlide > 1) showSlide(currentSlide - 1);
+        });
+    }
+
+    if (btnNext) {
+        btnNext.addEventListener('click', function () {
+            if (currentSlide < totalSlides) {
+                showSlide(currentSlide + 1);
+            } else {
+                closeModal();
+                window.location.href = '/ridesync/pages/login.php?role=rider';
+            }
+        });
+    }
+});
+</script>
 
 <?php require_once 'includes/footer.php'; ?>
