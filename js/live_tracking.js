@@ -142,8 +142,12 @@
             });
         }
 
-        // Initial fetch + 10s polling interval
+        // Initial fetch + 10s polling interval (paused when tab is in background)
         fetchLatestLocation();
-        pollInterval = setInterval(fetchLatestLocation, 10000);
+        pollInterval = setInterval(function () {
+            if (!document.hidden) {
+                fetchLatestLocation();
+            }
+        }, 10000);
     }
 })();

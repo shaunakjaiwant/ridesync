@@ -59,4 +59,12 @@ function ridesync_db_transaction($conn, callable $callback) {
     }
 }
 
+function ridesync_is_user_suspended($conn, int $userId): bool {
+    if ($userId <= 0) {
+        return false;
+    }
+    $row = ridesync_db_fetch_one($conn, "SELECT status FROM users WHERE id = ? LIMIT 1", "i", [$userId]);
+    return isset($row['status']) && $row['status'] === 'suspended';
+}
+
 ?>

@@ -119,7 +119,11 @@
             });
         }
 
-        // Poll every 5 seconds
-        setInterval(pollSosAlerts, 5000);
+        // Poll every 5 seconds (paused when tab is in background)
+        setInterval(function () {
+            if (!document.hidden) {
+                pollSosAlerts();
+            }
+        }, 5000);
     }
 })();

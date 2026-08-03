@@ -2,12 +2,19 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/asset_helper.php';
 require_once __DIR__ . '/view_helper.php';
+require_once __DIR__ . '/db_helper.php';
 $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
 $styleVersion = ridesync_stylesheet_version();
 $unreadNotifications = 0;
 $needsMapAssets = ridesync_page_needs_map_assets();
 
 if (isset($_SESSION['user_id'])) {
+    if (ridesync_is_user_suspended($conn, (int) $_SESSION['user_id'])) {
+        unset($_SESSION['user_id'], $_SESSION['user_name'], $_SESSION['selected_role']);
+        $_SESSION['login_error'] = "Your rider account has been suspended by RideSync administration. Please contact support.";
+        header("Location: /ridesync/pages/login.php");
+        exit();
+    }
     $unreadNotifications = ridesync_unread_notification_count($conn, 'user_id', (int) $_SESSION['user_id']);
 }
 ?>

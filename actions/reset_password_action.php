@@ -26,21 +26,34 @@ ridesync_enforce_rate_limit('auth:reset_password', 5, 15 * 60, $rateIdentity, [
     'message' => 'Too many password reset attempts. Please wait a few minutes and try again.',
 ]);
 
+$resetState = $_SESSION['otp_reset_state'] ?? null;
+if (
+    !is_array($resetState) ||
+    ($resetState['step'] ?? 0) !== 3 ||
+    strtolower($resetState['email'] ?? '') !== $email ||
+    ($resetState['account_type'] ?? '') !== $accountType
+) {
+    $_SESSION['forgot_password_error'] = "Invalid or expired password reset session. Please request and verify your OTP code again.";
+    header("Location: " . $redirect);
+    exit();
+}
+
 if (strlen($newPassword) < 8) {
     $_SESSION['forgot_password_error'] = "Password must be at least 8 characters long.";
-    $_SESSION['otp_reset_state'] = ['step' => 3, 'email' => $email, 'account_type' => $accountType];
+    $_SESSION['otp_reset_state'] = ['step' => 3, 'email' => $email, 'account_type' => $accountType, 'reset_id' => $resetState['reset_id'] ?? null];
     header("Location: " . $redirect);
     exit();
 }
 
 if ($newPassword !== $confirmPassword) {
     $_SESSION['forgot_password_error'] = "Passwords do not match. Please enter matching passwords.";
-    $_SESSION['otp_reset_state'] = ['step' => 3, 'email' => $email, 'account_type' => $accountType];
+    $_SESSION['otp_reset_state'] = ['step' => 3, 'email' => $email, 'account_type' => $accountType, 'reset_id' => $resetState['reset_id'] ?? null];
     header("Location: " . $redirect);
     exit();
 }
 
-$completeRes = ridesync_complete_password_reset($conn, $accountType, $email, $newPassword);
+$resetId = isset($resetState['reset_id']) ? (int) $resetState['reset_id'] : null;
+$completeRes = ridesync_complete_password_reset($conn, $accountType, $email, $newPassword, $resetId);
 
 if (!$completeRes['ok']) {
     $_SESSION['forgot_password_error'] = $completeRes['error'];

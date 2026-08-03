@@ -128,7 +128,7 @@ function ridesync_verify_password_reset_otp($conn, string $accountType, string $
     return ['ok' => true, 'reset_id' => (int) $row['id']];
 }
 
-function ridesync_complete_password_reset($conn, string $accountType, string $email, string $newPassword): array {
+function ridesync_complete_password_reset($conn, string $accountType, string $email, string $newPassword, ?int $resetId = null): array {
     $accountType = in_array($accountType, ['rider', 'driver'], true) ? $accountType : 'rider';
     $email = strtolower(trim($email));
 
@@ -137,12 +137,22 @@ function ridesync_complete_password_reset($conn, string $accountType, string $em
     }
 
     // Check for verified session in DB
-    $stmt = mysqli_prepare($conn, "SELECT id, user_id FROM password_resets WHERE email = ? AND account_type = ? AND verified_at IS NOT NULL AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+    if ($resetId !== null && $resetId > 0) {
+        $stmt = mysqli_prepare($conn, "SELECT id, user_id FROM password_resets WHERE id = ? AND email = ? AND account_type = ? AND verified_at IS NOT NULL AND expires_at > NOW() LIMIT 1");
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "iss", $resetId, $email, $accountType);
+        }
+    } else {
+        $stmt = mysqli_prepare($conn, "SELECT id, user_id FROM password_resets WHERE email = ? AND account_type = ? AND verified_at IS NOT NULL AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "ss", $email, $accountType);
+        }
+    }
+
     if (!$stmt) {
         return ['ok' => false, 'error' => 'System error completing password reset.'];
     }
 
-    mysqli_stmt_bind_param($stmt, "ss", $email, $accountType);
     mysqli_stmt_execute($stmt);
     $res = mysqli_stmt_get_result($stmt);
     $row = mysqli_fetch_assoc($res);

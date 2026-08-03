@@ -41,9 +41,15 @@ function ridesync_match_existing_request_status($conn, $rideId, $userId) {
     return $match['status'] ?? null;
 }
 
+require_once __DIR__ . '/../includes/db_helper.php';
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
     exit();
+}
+
+if (ridesync_is_user_suspended($conn, (int) $_SESSION['user_id'])) {
+    ridesync_match_error("Your rider account is suspended. You cannot request or manage ride matches.", "/ridesync/pages/dashboard.php");
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

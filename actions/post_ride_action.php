@@ -2,10 +2,17 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/matching_helper.php';
 require_once __DIR__ . '/../includes/intelligence_helper.php';
+require_once __DIR__ . '/../includes/db_helper.php';
 require_once __DIR__ . '/../includes/http_helper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/login.php");
+    exit();
+}
+
+if (ridesync_is_user_suspended($conn, (int) $_SESSION['user_id'])) {
+    $_SESSION['ride_error'] = "Your rider account is suspended. You cannot offer rides.";
+    header("Location: /ridesync/pages/post_ride.php");
     exit();
 }
 
