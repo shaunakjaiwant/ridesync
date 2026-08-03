@@ -26,7 +26,7 @@ require_once 'includes/public_header.php';
             </div>
             <div class="public-scene-card public-scene-card-primary">
                 <span>Rider request</span>
-                <strong>SDMIT to Ujire</strong>
+                <strong>DEPT to DEST</strong>
                 <small>2 seats matched</small>
             </div>
             <div class="public-scene-card public-scene-card-secondary">
@@ -65,9 +65,9 @@ require_once 'includes/public_header.php';
                     <span></span>
                 </div>
                 <div class="public-route-meta">
-                    <span>SDMIT</span>
+                    <span>DEPT</span>
                     <strong>Live</strong>
-                    <span>Ujire</span>
+                    <span>DEST</span>
                 </div>
                 <dl class="public-hero-metrics">
                     <div>
