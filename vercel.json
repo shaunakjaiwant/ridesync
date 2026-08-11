@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "name": "ridesync",
+  "builds": [],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "https://YOUR_RENDER_APP_URL.onrender.com/$1"
+    }
+  ]
+}

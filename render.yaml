@@ -1,0 +1,80 @@
+services:
+  - type: web
+    name: ridesync-app
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore
+    envVars:
+      - key: RIDESYNC_ENV
+        value: production
+      - key: RIDESYNC_DEBUG
+        value: "false"
+      - key: RIDESYNC_TIMEZONE
+        value: Asia/Kolkata
+      - key: RIDESYNC_COOKIE_SECURE
+        value: "true"
+      - key: RIDESYNC_TRUST_PROXY
+        value: "true"
+      - key: RIDESYNC_DB_HOST
+        sync: false
+      - key: RIDESYNC_DB_PORT
+        value: "3306"
+      - key: RIDESYNC_DB_NAME
+        value: ridesync_db
+      - key: RIDESYNC_DB_USER
+        sync: false
+      - key: RIDESYNC_DB_PASSWORD
+        sync: false
+      - key: RIDESYNC_DOCUMENT_ENCRYPTION_KEY
+        generateValue: true
+      - key: RIDESYNC_REPAIR_LOG_KEY
+        generateValue: true
+      - key: RIDESYNC_METRICS_TOKEN
+        generateValue: true
+      - key: RIDESYNC_VERIFICATION_SERVICE_TOKEN
+        generateValue: true
+      - key: RIDESYNC_WS_SHARED_TOKEN
+        generateValue: true
+      - key: RIDESYNC_KYC_PROVIDER
+        value: mock_compliance_provider
+      - key: RIDESYNC_VERIFICATION_ASYNC
+        value: "false"
+      - key: RIDESYNC_VERIFICATION_INLINE_FALLBACK
+        value: "true"
+
+  - type: web
+    name: ridesync-ws
+    runtime: docker
+    dockerfilePath: ./realtime/websocket-gateway/Dockerfile
+    plan: free
+    region: singapore
+    envVars:
+      - key: RIDESYNC_WS_PORT
+        value: "8081"
+      - key: RIDESYNC_WS_POLL_MS
+        value: "1500"
+      - key: RIDESYNC_WS_SHARED_TOKEN
+        fromService:
+          type: web
+          name: ridesync-app
+          envVarKey: RIDESYNC_WS_SHARED_TOKEN
+      - key: RIDESYNC_DB_HOST
+        fromService:
+          type: web
+          name: ridesync-app
+          envVarKey: RIDESYNC_DB_HOST
+      - key: RIDESYNC_DB_PORT
+        value: "3306"
+      - key: RIDESYNC_DB_NAME
+        value: ridesync_db
+      - key: RIDESYNC_DB_USER
+        fromService:
+          type: web
+          name: ridesync-app
+          envVarKey: RIDESYNC_DB_USER
+      - key: RIDESYNC_DB_PASSWORD
+        fromService:
+          type: web
+          name: ridesync-app
+          envVarKey: RIDESYNC_DB_PASSWORD
