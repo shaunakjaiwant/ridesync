@@ -44,7 +44,7 @@ function ridesync_require_method($method, $redirect = null) {
 
 function ridesync_current_origin() {
     $scheme = ridesync_is_https_request() ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $host = ridesync_request_host();
 
     return $host === '' ? null : $scheme . '://' . strtolower($host);
 }

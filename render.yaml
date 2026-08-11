@@ -17,6 +17,8 @@ services:
         value: "true"
       - key: RIDESYNC_TRUST_PROXY
         value: "true"
+      - key: RIDESYNC_ALLOWED_ORIGINS
+        value: "https://ridesync-five.vercel.app,https://ridesync-app-81i7.onrender.com"
       - key: RIDESYNC_DB_HOST
         value: ridesync-db-ridesync-db.k.aivencloud.com
       - key: RIDESYNC_DB_PORT

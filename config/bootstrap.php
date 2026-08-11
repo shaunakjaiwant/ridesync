@@ -224,6 +224,16 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
     }
 
     function ridesync_request_host() {
+        if (ridesync_env('RIDESYNC_TRUST_PROXY', false)) {
+            $forwarded = trim((string) ($_SERVER['HTTP_X_FORWARDED_HOST'] ?? ''));
+            if ($forwarded !== '') {
+                $host = strtolower(trim(explode(',', $forwarded)[0]));
+                if (substr_count($host, ':') === 1) {
+                    $host = explode(':', $host, 2)[0];
+                }
+                return $host;
+            }
+        }
         $host = (string) ($_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? ''));
         $host = strtolower(trim($host));
         if (str_starts_with($host, '[') && preg_match('/^\[([^\]]+)\](?::[0-9]+)?$/', $host, $matches)) {
