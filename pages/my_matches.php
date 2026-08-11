@@ -51,9 +51,18 @@ try {
 ?>
 
 <div class="page-header">
-    <h1>My Matches</h1>
-    <p>Rides you've requested to join.</p>
+    <h1>My Trips</h1>
+    <p>Manage rides you've offered and requests to join other campus trips.</p>
 </div>
+
+<nav class="segmented-tab-nav" aria-label="Rider trip categories">
+    <a href="/ridesync/pages/my_rides.php" class="tab-btn">
+        Offered Rides
+    </a>
+    <a href="/ridesync/pages/my_matches.php" class="tab-btn is-active">
+        Joined / Requested Rides (<?php echo $matches ? $matches->num_rows : 0; ?>)
+    </a>
+</nav>
 
 <?php ridesync_flash('match_success', 'alert-success'); ?>
 <?php ridesync_flash('match_error', 'alert-error'); ?>
@@ -79,7 +88,6 @@ try {
                     <p>Posted by <strong><?php echo htmlspecialchars($m['poster_name']); ?></strong> (<?php echo htmlspecialchars($m['poster_college']); ?>)</p>
 
                     <?php if ($m['match_status'] === 'accepted'): ?>
-                        <!-- Show poster's email so they can coordinate -->
                         <p class="contact-info">Contact: <a href="mailto:<?php echo htmlspecialchars($m['poster_email']); ?>"><?php echo htmlspecialchars($m['poster_email']); ?></a></p>
                     <?php endif; ?>
 
@@ -103,47 +111,6 @@ try {
                 <?php else: ?>
                     <div class="match-card-footer">
                         <a href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $m['ride_id']; ?>" class="btn btn-small btn-secondary">View Details</a>
-                    </div>
-                <?php endif; ?>
-            </div>
-        <?php endwhile; ?>
-    </div>
-<?php endif; ?>
-
-<?php if ($driverRequests && $driverRequests->num_rows > 0): ?>
-    <div class="page-header" style="margin-top:32px;">
-        <h1>Driver Requests</h1>
-        <p>Smart driver fallback requests you've sent.</p>
-    </div>
-
-    <div class="matches-grid">
-        <?php while ($request = $driverRequests->fetch_assoc()): ?>
-            <div class="match-card">
-                <div class="match-card-top">
-                    <h3><?php echo htmlspecialchars($request['pickup']); ?> &rarr; <?php echo htmlspecialchars($request['drop_location']); ?></h3>
-                    <span class="status-badge status-<?php echo htmlspecialchars($request['request_status']); ?>">
-                        <?php echo ucfirst(htmlspecialchars($request['request_status'])); ?>
-                    </span>
-                </div>
-                <div class="match-card-details">
-                    <p>Driver <strong><?php echo htmlspecialchars($request['driver_name']); ?></strong></p>
-                    <p>Estimated fare <?php echo formatCost($request['estimated_fare']); ?></p>
-                    <?php if (!empty($request['route_distance_km']) && !empty($request['fare_rate_per_km'])): ?>
-                        <p class="requested-date">
-                            <?php echo number_format((float) $request['route_distance_km'], 1); ?> km &times; <?php echo formatFareRate($request['fare_rate_per_km']); ?>/km
-                        </p>
-                    <?php endif; ?>
-                    <p class="requested-date">Requested <?php echo date('M j, g:i A', strtotime($request['requested_at'])); ?></p>
-                </div>
-                <?php if ($request['request_status'] === 'pending'): ?>
-                    <div class="match-card-footer">
-                        <form method="POST" action="/ridesync/actions/driver_request_action.php" data-confirm-message="Cancel this driver request?">
-                            <input type="hidden" name="action_type" value="cancel_pending">
-                            <input type="hidden" name="request_id" value="<?php echo (int) $request['id']; ?>">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                            <input type="hidden" name="return_to" value="/ridesync/pages/my_matches.php">
-                            <button type="submit" class="btn btn-small btn-warning">Cancel Driver Request</button>
-                        </form>
                     </div>
                 <?php endif; ?>
             </div>

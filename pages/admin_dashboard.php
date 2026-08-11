@@ -1183,6 +1183,22 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
 </script>
 
 <div class="admin-command-center" data-admin-command-center>
+    <nav class="segmented-tab-nav admin-top-tab-bar" aria-label="Admin panel sections" style="margin-bottom: 1.5rem;">
+        <?php foreach ($adminNavItems as $item): ?>
+            <?php
+                $navKey = $item['key'];
+                $label = $item['label'];
+                $capability = $item['capability'] ?? null;
+                if ($capability !== null && !ridesync_admin_can($currentAdmin, $capability)) {
+                    continue;
+                }
+            ?>
+            <a class="tab-btn <?php echo $section === $navKey ? 'is-active' : ''; ?>" href="/ridesync/pages/admin_dashboard.php?section=<?php echo urlencode($navKey); ?>">
+                <?php echo htmlspecialchars($label); ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+
     <?php
     $activeSosAlerts = ridesync_get_active_sos_alerts($conn);
     ?>

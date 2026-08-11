@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initAdminPanelFilters();
     initSmartSearchSuggestions();
     initNotificationPolling();
+    initTabs();
 
     // --- Registration Form ---
     var regForm = document.querySelector('form[action*="register_action"]');
@@ -1819,4 +1820,34 @@ function initNotificationPolling() {
 
     poll();
     setInterval(poll, 15000);
+}
+
+function initTabs() {
+    document.querySelectorAll('[data-tabs]').forEach(function (container) {
+        var buttons = container.querySelectorAll('[data-tab-target]');
+        buttons.forEach(function (button) {
+            button.addEventListener('click', function (e) {
+                var targetId = button.getAttribute('data-tab-target');
+                if (!targetId) return;
+                
+                buttons.forEach(function (btn) {
+                    btn.classList.remove('is-active', 'active');
+                    btn.setAttribute('aria-selected', 'false');
+                });
+                button.classList.add('is-active', 'active');
+                button.setAttribute('aria-selected', 'true');
+
+                var wrapper = button.closest('[data-tab-wrapper]') || container.parentElement || document;
+                wrapper.querySelectorAll('[data-tab-content]').forEach(function (panel) {
+                    if (panel.id === targetId || panel.getAttribute('data-tab-content') === targetId) {
+                        panel.style.display = '';
+                        panel.classList.add('is-active', 'active');
+                    } else {
+                        panel.style.display = 'none';
+                        panel.classList.remove('is-active', 'active');
+                    }
+                });
+            });
+        });
+    });
 }

@@ -52,6 +52,17 @@ require_once __DIR__ . '/../includes/driver_header.php';
 <?php ridesync_flash('driver_success', 'alert-success'); ?>
 <?php ridesync_flash('driver_error', 'alert-error'); ?>
 
+<div data-tab-wrapper>
+<nav class="segmented-tab-nav" data-tabs aria-label="Driver request categories">
+    <button type="button" class="tab-btn is-active" data-tab-target="tab-direct-requests">
+        Direct Requests (<?php echo (int) $directRequestCount + (int) $activeRequestCount; ?>)
+    </button>
+    <button type="button" class="tab-btn" data-tab-target="tab-community-rides">
+        Community Rides (<?php echo (int) $communityRideTotal; ?>)
+    </button>
+</nav>
+
+<div id="tab-direct-requests" data-tab-content="tab-direct-requests" class="is-active">
 <section class="driver-panel">
     <div class="driver-panel-header">
         <div>
@@ -137,7 +148,9 @@ require_once __DIR__ . '/../includes/driver_header.php';
         </div>
     <?php endif; ?>
 </section>
+</div>
 
+<div id="tab-community-rides" data-tab-content="tab-community-rides" style="display: none;">
 <section class="driver-panel driver-community-panel" id="community-rides">
     <div class="driver-panel-header">
         <div>
@@ -218,5 +231,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
         </div>
     <?php endif; ?>
 </section>
+</div>
+</div>
 
 <?php require_once __DIR__ . '/../includes/driver_footer.php'; ?>

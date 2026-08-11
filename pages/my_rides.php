@@ -186,9 +186,18 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1>My Rides</h1>
-    <p>Rides you've posted and their join requests.</p>
+    <h1>My Trips</h1>
+    <p>Manage rides you've offered and requests to join other campus trips.</p>
 </div>
+
+<nav class="segmented-tab-nav" aria-label="Rider trip categories">
+    <a href="/ridesync/pages/my_rides.php" class="tab-btn is-active">
+        Offered Rides (<?php echo count($rides); ?>)
+    </a>
+    <a href="/ridesync/pages/my_matches.php" class="tab-btn">
+        Joined / Requested Rides
+    </a>
+</nav>
 
 <?php ridesync_flash('success', 'alert-success'); ?>
 <?php ridesync_flash('error', 'alert-error'); ?>
