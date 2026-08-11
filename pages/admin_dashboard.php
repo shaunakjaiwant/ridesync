@@ -1117,6 +1117,7 @@ foreach ($routeDemandRows as $demand) {
     }
 }
 
+$activeSosAlerts = ridesync_get_active_sos_alerts($conn);
 $mapSosPayload = [];
 foreach ($activeSosAlerts as $sos) {
     if ($sos['latitude'] !== null && $sos['longitude'] !== null) {
@@ -1199,9 +1200,6 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
         <?php endforeach; ?>
     </nav>
 
-    <?php
-    $activeSosAlerts = ridesync_get_active_sos_alerts($conn);
-    ?>
     <?php if (count($activeSosAlerts) > 0): ?>
         <section class="admin-sos-emergency-panel" style="background: #7f1d1d; color: #ffffff; border: 3px solid #ef4444; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 10px 25px rgba(220, 38, 38, 0.35);">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
