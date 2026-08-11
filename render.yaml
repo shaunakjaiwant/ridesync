@@ -50,8 +50,6 @@ services:
     plan: free
     region: singapore
     envVars:
-      - key: RIDESYNC_WS_PORT
-        value: "8081"
       - key: RIDESYNC_WS_POLL_MS
         value: "1500"
       - key: RIDESYNC_WS_SHARED_TOKEN
@@ -68,7 +66,4 @@ services:
       - key: RIDESYNC_DB_USER
         value: avnadmin
       - key: RIDESYNC_DB_PASSWORD
-        fromService:
-          type: web
-          name: ridesync-app
-          envVarKey: RIDESYNC_DB_PASSWORD
+        sync: false

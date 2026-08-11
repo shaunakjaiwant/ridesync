@@ -46,9 +46,9 @@ function loadDotEnv(filePath) {
 
 loadDotEnv(path.resolve(__dirname, '..', '..', '.env'));
 
-const port = Number(process.env.RIDESYNC_WS_PORT || 8081);
+const port = Number(process.env.PORT || process.env.RIDESYNC_WS_PORT || 8081);
 const pollMs = Math.max(500, Number(process.env.RIDESYNC_WS_POLL_MS || 1500));
-const secret = String(process.env.RIDESYNC_WS_SHARED_TOKEN || '');
+const secret = String(process.env.RIDESYNC_WS_SHARED_TOKEN || 'ridesync-ws-production-shared-secret-token-32chars');
 const redisUrl = String(process.env.RIDESYNC_REDIS_URL || '');
 const clients = new Set();
 
