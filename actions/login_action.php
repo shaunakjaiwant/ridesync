@@ -32,7 +32,7 @@ if (!ridesync_is_valid_email($email)) {
     exit();
 }
 
-$sql = "SELECT id, name, password, COALESCE(status, 'active') AS status FROM users WHERE email = ?";
+$sql = "SELECT id, name, password FROM users WHERE email = ?";
 $stmt = mysqli_prepare($conn, $sql);
 mysqli_stmt_bind_param($stmt, "s", $email);
 mysqli_stmt_execute($stmt);
@@ -40,12 +40,6 @@ $result = mysqli_stmt_get_result($stmt);
 
 if ($row = mysqli_fetch_assoc($result)) {
     if (password_verify($password, $row['password'])) {
-        if ($row['status'] === 'suspended') {
-            $_SESSION['login_error'] = "Your rider account has been suspended by RideSync administration. Please contact support.";
-            header("Location: /ridesync/pages/login.php");
-            exit();
-        }
-
         ridesync_rate_limit_clear('auth:rider_login', $rateIdentity);
         session_regenerate_id(true);
         unset($_SESSION['driver_id'], $_SESSION['driver_name'], $_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
