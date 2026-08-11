@@ -1,11 +1,14 @@
 {
   "version": 2,
   "name": "ridesync",
-  "builds": [],
   "routes": [
     {
+      "src": "/ridesync/(.*)",
+      "dest": "https://ridesync-app-81i7.onrender.com/ridesync/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "https://YOUR_RENDER_APP_URL.onrender.com/$1"
+      "dest": "https://ridesync-app-81i7.onrender.com/ridesync/$1"
     }
   ]
 }
