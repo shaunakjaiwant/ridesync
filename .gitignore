@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 !.env.production.example
+ca.pem
+
 
 
 # PHP / Node dependencies
