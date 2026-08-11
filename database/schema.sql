@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   college VARCHAR(150) NOT NULL,
   gender ENUM('Male', 'Female', 'Other') NOT NULL,
   profile_photo VARCHAR(255) NULL,
+  status ENUM('active', 'suspended') NOT NULL DEFAULT 'active',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_email (email)
