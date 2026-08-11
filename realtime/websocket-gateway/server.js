@@ -62,12 +62,15 @@ function hasStrongSecret(value) {
 }
 
 function dbConfig() {
+  const dbHost = process.env.RIDESYNC_DB_HOST || '127.0.0.1';
+  const isLocal = ['127.0.0.1', 'localhost', '::1'].includes(dbHost);
   return {
-    host: process.env.RIDESYNC_DB_HOST || '127.0.0.1',
+    host: dbHost,
     port: Number(process.env.RIDESYNC_DB_PORT || 3306),
     user: process.env.RIDESYNC_DB_USER || 'ridesync_app',
     password: process.env.RIDESYNC_DB_PASSWORD || '',
     database: process.env.RIDESYNC_DB_NAME || 'ridesync_db',
+    ssl: isLocal ? false : { rejectUnauthorized: false },
     waitForConnections: true,
     connectionLimit: Number(process.env.RIDESYNC_WS_DB_POOL || 5),
     namedPlaceholders: true,

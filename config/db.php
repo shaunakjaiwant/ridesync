@@ -11,9 +11,18 @@ $port     = (int) ($mysqlConfig['port'] ?? 3306);
 $conn = mysqli_init();
 mysqli_options($conn, MYSQLI_OPT_CONNECT_TIMEOUT, (int) ($mysqlConfig['connect_timeout'] ?? 5));
 
+$useSsl = ridesync_env('RIDESYNC_DB_SSL', true);
+$isLocalhost = in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+$flags = ($useSsl && !$isLocalhost) ? MYSQLI_CLIENT_SSL : 0;
+
+if ($flags & MYSQLI_CLIENT_SSL) {
+    mysqli_options($conn, MYSQLI_OPT_SSL_VERIFY_SERVER_CERT, false);
+    mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
+}
+
 $connectExceptionMessage = null;
 try {
-    $connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port);
+    $connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port, NULL, $flags);
 } catch (mysqli_sql_exception $exception) {
     $connected = false;
     $connectExceptionMessage = $exception->getMessage();
