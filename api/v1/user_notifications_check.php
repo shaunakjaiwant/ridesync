@@ -16,6 +16,8 @@ if (!$userId && !$driverId) {
     exit();
 }
 
+session_write_close();
+
 $column = $userId ? 'user_id' : 'driver_id';
 $targetId = $userId ?: $driverId;
 $sinceId = isset($_GET['since_id']) ? (int) $_GET['since_id'] : 0;

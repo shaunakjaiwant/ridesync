@@ -55,6 +55,11 @@ function ridesync_validate_session_principal($conn) {
         return;
     }
 
+    $now = time();
+    if (isset($_SESSION['_principal_valid_until']) && (int) $_SESSION['_principal_valid_until'] > $now) {
+        return;
+    }
+
     $checks = [
         'user_id' => [
             'table' => 'users',
@@ -114,6 +119,8 @@ function ridesync_validate_session_principal($conn) {
             return;
         }
     }
+
+    $_SESSION['_principal_valid_until'] = $now + 60;
 }
 
 ridesync_validate_session_principal($conn);
