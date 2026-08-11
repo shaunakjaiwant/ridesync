@@ -3,6 +3,7 @@ services:
     name: ridesync-app
     runtime: docker
     dockerfilePath: ./Dockerfile
+    dockerContext: .
     plan: free
     region: singapore
     envVars:
@@ -47,6 +48,7 @@ services:
     name: ridesync-ws
     runtime: docker
     dockerfilePath: ./realtime/websocket-gateway/Dockerfile
+    dockerContext: ./realtime/websocket-gateway
     plan: free
     region: singapore
     envVars:
