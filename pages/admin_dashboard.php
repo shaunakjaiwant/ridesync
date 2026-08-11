@@ -171,7 +171,7 @@ $adminProfiles = [
 $adminId = (int) $admin['id'];
 $adminProfileRecord = ridesync_admin_prepared_rows(
     $conn,
-    "SELECT id, name, email, role, status, created_at, updated_at FROM admin_users WHERE id = ? LIMIT 1",
+    "SELECT id, name, email, role, status, created_at FROM admin_users WHERE id = ? LIMIT 1",
     'i',
     [$adminId]
 );

@@ -228,16 +228,15 @@ CREATE TABLE IF NOT EXISTS sos_alerts (
 
 CREATE TABLE IF NOT EXISTS user_emergency_contacts (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  account_type ENUM('rider', 'driver') NOT NULL DEFAULT 'rider',
   user_id INT UNSIGNED NOT NULL,
-  contact_name VARCHAR(100) NOT NULL,
-  contact_phone VARCHAR(20) NOT NULL,
-  relation VARCHAR(50) NULL,
+  name VARCHAR(100) NOT NULL,
+  relationship VARCHAR(50) NOT NULL DEFAULT 'Family',
+  phone_number VARCHAR(20) NOT NULL,
+  is_primary TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  KEY idx_user_emergency_contacts_user (user_id),
-  CONSTRAINT fk_user_emergency_contacts_user
-    FOREIGN KEY (user_id) REFERENCES users(id)
-    ON DELETE CASCADE
+  KEY idx_user_emergency_contacts_user (account_type, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS realtime_events (
