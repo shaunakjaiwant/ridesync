@@ -20,7 +20,7 @@ services:
       - key: RIDESYNC_ALLOWED_ORIGINS
         value: "https://ridesync-five.vercel.app,https://ridesync-app-81i7.onrender.com"
       - key: RIDESYNC_DB_HOST
-        value: ridesync-db-ridesync-db.k.aivencloud.com
+        sync: false
       - key: RIDESYNC_DB_PORT
         value: "26498"
       - key: RIDESYNC_DB_NAME
@@ -62,7 +62,7 @@ services:
           name: ridesync-app
           envVarKey: RIDESYNC_WS_SHARED_TOKEN
       - key: RIDESYNC_DB_HOST
-        value: ridesync-db-ridesync-db.k.aivencloud.com
+        sync: false
       - key: RIDESYNC_DB_PORT
         value: "26498"
       - key: RIDESYNC_DB_NAME
