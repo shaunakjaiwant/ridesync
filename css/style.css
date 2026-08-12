@@ -7459,4 +7459,119 @@ body.admin-app .admin-table-tools select {
     background: var(--primary, #2563eb);
     color: #ffffff;
     box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
-}
+}
+
+/* ==========================================================================
+   ENHANCED MOBILE UI TOUCH & RESPONSIVE DESIGN SYSTEM
+   ========================================================================== */
+
+@media (max-width: 767px) {
+    /* --- 1. Touch Target Optimization & Prevent iOS Viewport Zoom --- */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="datetime-local"],
+    input[type="number"],
+    input[type="search"],
+    select,
+    textarea {
+        font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
+        min-height: 46px !important;
+        border-radius: 10px !important;
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+    }
+
+    button,
+    .btn,
+    .btn-primary,
+    .btn-secondary,
+    .btn-pill,
+    .tab-btn {
+        min-height: 44px !important;
+        touch-action: manipulation;
+    }
+
+    /* --- 2. Public Landing & Typography Scaling --- */
+    .public-vibe-hero h1 {
+        font-size: clamp(1.65rem, 6.5vw, 2.1rem) !important;
+        line-height: 1.15 !important;
+        letter-spacing: -0.02em !important;
+    }
+
+    .public-vibe-hero p {
+        font-size: 0.94rem !important;
+        line-height: 1.45 !important;
+    }
+
+    .public-hero-actions {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+    }
+
+    .public-hero-actions .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    /* --- 3. Auth Screens (Rider, Driver, Admin Login & Register) --- */
+    .auth-shell {
+        grid-template-columns: 1fr !important;
+        padding: 12px 10px !important;
+        gap: 16px !important;
+    }
+
+    .auth-context-card {
+        padding: 18px 16px !important;
+        border-radius: 14px !important;
+    }
+
+    .auth-context-card h1 {
+        font-size: 1.35rem !important;
+    }
+
+    .auth-panel {
+        padding: 20px 16px !important;
+        border-radius: 14px !important;
+    }
+
+    /* --- 4. Responsive Tables & Touch Scrolling --- */
+    .table-responsive,
+    .table-wrapper {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        border-radius: 12px !important;
+    }
+
+    .table-responsive::-webkit-scrollbar,
+    .table-wrapper::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .table-responsive table,
+    .table-wrapper table {
+        min-width: 600px !important;
+    }
+
+    /* --- 5. Mobile Navigation & Segmented Tabs --- */
+    .segmented-tab-nav {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-start !important;
+        padding: 4px !important;
+    }
+
+    .segmented-tab-nav .tab-btn {
+        flex: 1 0 auto !important;
+        text-align: center !important;
+        justify-content: center !important;
+        padding: 8px 14px !important;
+        font-size: 0.82rem !important;
+    }
+}
+
