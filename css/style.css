@@ -7756,8 +7756,8 @@ body.admin-app .admin-table-tools select {
         align-items: center !important;
         text-align: center !important;
         padding: 12px 8px !important;
-        background: rgba(30, 41, 59, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
         border-radius: 14px !important;
         text-decoration: none !important;
         transition: transform 0.16s ease, border-color 0.16s ease !important;
@@ -7770,7 +7770,7 @@ body.admin-app .admin-table-tools select {
 
     .panel-action-card strong {
         font-size: 0.82rem !important;
-        color: #f8fafc !important;
+        color: #0f172a !important;
         margin-top: 4px !important;
     }
 
@@ -7793,10 +7793,9 @@ body.admin-app .admin-table-tools select {
         padding: 12px 14px !important;
         min-height: 100px !important;
         border-radius: 14px !important;
-        background: rgba(30, 41, 59, 0.65) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
-        backdrop-filter: blur(8px) !important;
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
         transition: transform 0.16s ease !important;
     }
 
@@ -7829,7 +7828,7 @@ body.admin-app .admin-table-tools select {
     .stat-label {
         font-size: 0.78rem !important;
         font-weight: 600 !important;
-        color: #94a3b8 !important;
+        color: #64748b !important;
         text-transform: uppercase !important;
         letter-spacing: 0.02em !important;
     }
@@ -7838,7 +7837,7 @@ body.admin-app .admin-table-tools select {
         font-size: 1.45rem !important;
         font-weight: 800 !important;
         line-height: 1.1 !important;
-        color: #f8fafc !important;
+        color: #0f172a !important;
         margin-top: 4px !important;
     }
 
@@ -7860,17 +7859,16 @@ body.admin-app .admin-table-tools select {
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
-        background: rgba(30, 41, 59, 0.5) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
         border-radius: 16px !important;
         padding: 16px !important;
-        backdrop-filter: blur(8px) !important;
     }
 
     .dashboard-section h2 {
         font-size: 1.1rem !important;
         font-weight: 700 !important;
-        color: #f8fafc !important;
+        color: #0f172a !important;
         margin-bottom: 12px !important;
     }
 
@@ -7880,13 +7878,13 @@ body.admin-app .admin-table-tools select {
         text-align: center !important;
         font-size: 0.85rem !important;
         color: #94a3b8 !important;
-        background: rgba(15, 23, 42, 0.4) !important;
-        border: 1px dashed rgba(255, 255, 255, 0.12) !important;
+        background: #f8fafc !important;
+        border: 1px dashed #cbd5e1 !important;
         border-radius: 12px !important;
     }
 
     .empty-state a {
-        color: #38bdf8 !important;
+        color: #2563eb !important;
         font-weight: 600 !important;
         text-decoration: none !important;
     }
@@ -7906,8 +7904,8 @@ body.admin-app .admin-table-tools select {
         flex-direction: column !important;
         gap: 6px !important;
         padding: 12px 14px !important;
-        background: rgba(15, 23, 42, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
         border-radius: 12px !important;
         text-decoration: none !important;
         color: inherit !important;
@@ -7927,7 +7925,7 @@ body.admin-app .admin-table-tools select {
     }
 
     .mini-ride-route strong {
-        color: #f8fafc !important;
+        color: #0f172a !important;
     }
 
     .mini-ride-meta {
@@ -7935,7 +7933,7 @@ body.admin-app .admin-table-tools select {
         align-items: center !important;
         justify-content: space-between !important;
         font-size: 0.78rem !important;
-        color: #94a3b8 !important;
+        color: #64748b !important;
     }
 
     /* Dashboard Intelligence & Green Score */
@@ -7959,8 +7957,8 @@ body.admin-app .admin-table-tools select {
         align-items: center !important;
         justify-content: space-between !important;
         padding: 12px 14px !important;
-        background: rgba(15, 23, 42, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
         border-radius: 12px !important;
     }
 
@@ -7979,11 +7977,11 @@ body.admin-app .admin-table-tools select {
         display: block !important;
         font-size: 1.35rem !important;
         font-weight: 800 !important;
-        color: #34d399 !important;
+        color: #047857 !important;
     }
 
     .green-score-card span {
         font-size: 0.78rem !important;
-        color: #a7f3d0 !important;
+        color: #065f46 !important;
     }
 }
