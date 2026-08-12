@@ -16,8 +16,14 @@ $isLocalhost = in_array($host, ['localhost', '127.0.0.1', '::1'], true);
 $flags = ($useSsl && !$isLocalhost) ? MYSQLI_CLIENT_SSL : 0;
 
 if ($flags & MYSQLI_CLIENT_SSL) {
-    mysqli_options($conn, MYSQLI_OPT_SSL_VERIFY_SERVER_CERT, false);
-    mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
+    $caPath = ridesync_env('RIDESYNC_DB_SSL_CA', __DIR__ . '/../ca.pem');
+    if (file_exists($caPath) && is_readable($caPath)) {
+        mysqli_options($conn, MYSQLI_OPT_SSL_VERIFY_SERVER_CERT, false);
+        mysqli_ssl_set($conn, NULL, NULL, $caPath, NULL, NULL);
+    } else {
+        mysqli_options($conn, MYSQLI_OPT_SSL_VERIFY_SERVER_CERT, false);
+        mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
+    }
 }
 
 $connectExceptionMessage = null;
