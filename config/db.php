@@ -22,7 +22,7 @@ if ($flags & MYSQLI_CLIENT_SSL) {
 
 $connectExceptionMessage = null;
 try {
-    $connected = @mysqli_real_connect($conn, 'p:' . $host, $username, $password, $database, $port, NULL, $flags);
+    $connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port, NULL, $flags);
 } catch (mysqli_sql_exception $exception) {
     $connected = false;
     $connectExceptionMessage = $exception->getMessage();
@@ -43,9 +43,42 @@ if (!$connected) {
 
     if (PHP_SAPI !== 'cli' && !headers_sent()) {
         http_response_code(500);
+        header('Content-Type: text/html; charset=utf-8');
     }
 
-    exit('Database connection failed. Please try again later.');
+    if (PHP_SAPI === 'cli') {
+        exit("Database connection failed: {$error}\n");
+    }
+
+    $styleVersion = function_exists('ridesync_stylesheet_version') ? ridesync_stylesheet_version() : '1.0';
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>System Maintenance - RideSync</title>
+        <link rel="icon" type="image/png" href="/ridesync/logo-mark.png">
+        <link rel="stylesheet" href="/ridesync/css/theme.css?v=<?php echo $styleVersion; ?>">
+        <link rel="stylesheet" href="/ridesync/css/style.css?v=<?php echo $styleVersion; ?>">
+    </head>
+    <body class="public-app app-shell" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0b0f17; color: #f8fafc; padding: 20px;">
+        <main style="max-width: 520px; width: 100%; background: #161b26; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;">
+            <img src="/ridesync/logo-mark.png" alt="RideSync Logo" style="width: 56px; height: 56px; margin-bottom: 16px;">
+            <h1 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; color: #ffffff;">Database Service Unavailable</h1>
+            <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px;">
+                RideSync is currently unable to connect to the database service. Please check your cloud database host and credentials in your deployment configuration.
+            </p>
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 12px 16px; text-align: left; font-family: monospace; font-size: 0.82rem; color: #fca5a5; overflow-x: auto; margin-bottom: 24px;">
+                <strong>Host:</strong> <?php echo htmlspecialchars($host); ?><br>
+                <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>
+            </div>
+            <a href="javascript:location.reload()" class="btn btn-primary" style="display: inline-block; padding: 10px 24px; border-radius: 8px; background: #2563eb; color: #ffffff; text-decoration: none; font-weight: 600;">Retry Connection</a>
+        </main>
+    </body>
+    </html>
+    <?php
+    exit();
 }
 
 mysqli_set_charset($conn, "utf8mb4");

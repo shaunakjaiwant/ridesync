@@ -1,13 +1,14 @@
 <?php
+define('RIDESYNC_ALLOW_DB_FAILURE', true);
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/admin_helper.php';
 
-if (isset($_SESSION['admin_id'])) {
+if ($conn && isset($_SESSION['admin_id'])) {
     header("Location: /ridesync/pages/admin_dashboard.php");
     exit();
 }
 
-$schemaReady = ridesync_admin_schema_ready($conn);
+$schemaReady = $conn ? ridesync_admin_schema_ready($conn) : false;
 $needsSetup = $schemaReady && ridesync_admin_count($conn) === 0;
 
 require_once __DIR__ . '/../includes/public_header.php';

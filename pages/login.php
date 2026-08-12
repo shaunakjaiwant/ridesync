@@ -1,6 +1,7 @@
 <?php
+define('RIDESYNC_ALLOW_DB_FAILURE', true);
 require_once __DIR__ . '/../config/db.php';
-if (isset($_SESSION['user_id'])) {
+if ($conn && isset($_SESSION['user_id'])) {
     header("Location: /ridesync/pages/dashboard.php");
     exit();
 }
