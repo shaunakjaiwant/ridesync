@@ -7216,26 +7216,46 @@ body.admin-app .admin-table-tools select {
     /* --- 1. Mobile Header & Glass Navigation Bar --- */
     .navbar,
     .driver-navbar,
+    .public-navbar,
     .rider-navbar-glass,
     .driver-cockpit-navbar {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 10px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 12px !important;
         padding: 10px 14px !important;
-        min-height: auto !important;
+        min-height: 56px !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1000 !important;
+        background: rgba(15, 23, 42, 0.92) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
     .nav-left,
-    .driver-brand {
+    .driver-brand,
+    .public-logo {
         display: flex !important;
         align-items: center !important;
-        justify-content: space-between !important;
-        width: 100% !important;
+        gap: 10px !important;
+        width: auto !important;
     }
 
     .brand-copy span {
-        font-size: 0.7rem !important;
+        display: none !important; /* Keep mobile brand title compact */
+    }
+
+    .brand-copy strong {
+        font-size: 1.1rem !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    .nav-links,
+    .driver-nav-links {
+        display: none !important; /* Nav links hosted in fixed bottom nav dock */
     }
 
     .nav-right,
@@ -7243,40 +7263,17 @@ body.admin-app .admin-table-tools select {
         display: flex !important;
         align-items: center !important;
         gap: 8px !important;
-        margin-top: -38px !important;
+        margin-top: 0 !important;
         margin-left: auto !important;
         z-index: 5 !important;
     }
 
     .nav-right .btn-pill,
     .driver-nav-actions .btn-pill {
-        padding: 5px 10px !important;
-        font-size: 0.78rem !important;
-        min-height: 32px !important;
-    }
-
-    .nav-links,
-    .driver-nav-links {
-        display: flex !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-        padding: 4px !important;
-        gap: 4px !important;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-    .nav-links::-webkit-scrollbar,
-    .driver-nav-links::-webkit-scrollbar {
-        display: none;
-    }
-
-    .nav-links a,
-    .driver-nav-links a {
         padding: 6px 12px !important;
         font-size: 0.8rem !important;
-        min-height: 32px !important;
+        min-height: 38px !important;
+        border-radius: 20px !important;
     }
 
     /* --- 2. Mobile Hero Decks & Banner Cards --- */
