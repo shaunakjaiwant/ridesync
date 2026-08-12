@@ -300,15 +300,11 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
                 'blob:',
                 'https://*.tile.openstreetmap.org',
             ], ridesync_csp_extra_sources('RIDESYNC_CSP_IMG_SRC'));
-            $reqHost = ridesync_request_host();
-            $hostWs = ($reqHost !== '') ? ['ws://' . $reqHost . ':8081', 'wss://' . $reqHost] : [];
             $connectSources = array_merge([
                 "'self'",
                 'https://nominatim.openstreetmap.org',
                 'https://router.project-osrm.org',
-                'ws://127.0.0.1:8081',
-                'ws://localhost:8081',
-            ], $hostWs, ridesync_csp_extra_sources('RIDESYNC_CSP_CONNECT_SRC'));
+            ], ridesync_csp_extra_sources('RIDESYNC_CSP_CONNECT_SRC'));
 
             header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src " . implode(' ', array_unique($scriptSources)) . '; style-src ' . implode(' ', array_unique($styleSources)) . "; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src " . implode(' ', array_unique($imgSources)) . '; connect-src ' . implode(' ', array_unique($connectSources)) . "; media-src 'self'; worker-src 'self' blob:");
         }

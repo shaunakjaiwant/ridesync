@@ -1020,7 +1020,9 @@
         min-height: 38px;
     }
 
-    img, svg, canvas {
+    img,
+    svg,
+    canvas {
         max-width: 100%;
     }
 
@@ -6167,7 +6169,7 @@ body.admin-app .admin-hero-panel {
     padding: 32px 36px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 20px;
-    background: 
+    background:
         radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.35) 0%, transparent 45%),
         radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.25) 0%, transparent 45%),
         linear-gradient(135deg, #090d16 0%, #0f172a 60%, #1e1b4b 100%);
@@ -6255,10 +6257,22 @@ body.admin-app .admin-op-card small {
     box-shadow: 0 0 10px #10b981;
     animation: pulse-live 2s infinite;
 }
+
 @keyframes pulse-live {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
 }
 
 body.admin-app .admin-command-rail {
@@ -6699,9 +6713,17 @@ body.admin-app .admin-table-tools select {
 }
 
 @keyframes pulse-badge {
-    0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
-    70% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+    }
 }
 
 /* Rider Hero Deck */
@@ -6727,7 +6749,7 @@ body.admin-app .admin-table-tools select {
     right: -10%;
     width: 300px;
     height: 300px;
-    background: radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, rgba(0,0,0,0) 70%);
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
     pointer-events: none;
 }
 
@@ -6820,10 +6842,21 @@ body.admin-app .admin-table-tools select {
     background: #cbd5e1;
 }
 
-.rider-app .stat-accent-blue::before { background: linear-gradient(90deg, #3b82f6, #2563eb); }
-.rider-app .stat-accent-cyan::before { background: linear-gradient(90deg, #06b6d4, #0891b2); }
-.rider-app .stat-accent-amber::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
-.rider-app .stat-accent-emerald::before { background: linear-gradient(90deg, #10b981, #059669); }
+.rider-app .stat-accent-blue::before {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.rider-app .stat-accent-cyan::before {
+    background: linear-gradient(90deg, #06b6d4, #0891b2);
+}
+
+.rider-app .stat-accent-amber::before {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.rider-app .stat-accent-emerald::before {
+    background: linear-gradient(90deg, #10b981, #059669);
+}
 
 .rider-app .stat-box:hover {
     transform: translateY(-4px);
@@ -6847,10 +6880,25 @@ body.admin-app .admin-table-tools select {
     color: #334155;
 }
 
-.stat-accent-blue .stat-icon-wrapper { background: #eff6ff; color: #2563eb; }
-.stat-accent-cyan .stat-icon-wrapper { background: #ecfeff; color: #0891b2; }
-.stat-accent-amber .stat-icon-wrapper { background: #fffbe6; color: #d97706; }
-.stat-accent-emerald .stat-icon-wrapper { background: #ecfdf5; color: #059669; }
+.stat-accent-blue .stat-icon-wrapper {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.stat-accent-cyan .stat-icon-wrapper {
+    background: #ecfeff;
+    color: #0891b2;
+}
+
+.stat-accent-amber .stat-icon-wrapper {
+    background: #fffbe6;
+    color: #d97706;
+}
+
+.stat-accent-emerald .stat-icon-wrapper {
+    background: #ecfdf5;
+    color: #059669;
+}
 
 .rider-app .stat-number {
     font-size: 1.85rem !important;
@@ -6896,9 +6944,20 @@ body.admin-app .admin-table-tools select {
     color: #2563eb;
 }
 
-.action-icon-badge.accent-blue { background: #eff6ff; color: #2563eb; }
-.action-icon-badge.accent-emerald { background: #ecfdf5; color: #059669; }
-.action-icon-badge.accent-purple { background: #f5f3ff; color: #7c3aed; }
+.action-icon-badge.accent-blue {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.action-icon-badge.accent-emerald {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.action-icon-badge.accent-purple {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
 
 /* Driver Cockpit Theme Header (Matches Rider Light Glass Theme) */
 .driver-cockpit-navbar {
@@ -6981,9 +7040,17 @@ body.admin-app .admin-table-tools select {
 }
 
 @keyframes radar-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
-    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    }
+
+    70% {
+        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
 }
 
 .driver-header-status-badge {
@@ -7102,10 +7169,21 @@ body.admin-app .admin-table-tools select {
     height: 4px;
 }
 
-.driver-app .metric-accent-emerald::before { background: linear-gradient(90deg, #10b981, #059669); }
-.driver-app .metric-accent-blue::before { background: linear-gradient(90deg, #3b82f6, #2563eb); }
-.driver-app .metric-accent-amber::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
-.driver-app .metric-accent-purple::before { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+.driver-app .metric-accent-emerald::before {
+    background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.driver-app .metric-accent-blue::before {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.driver-app .metric-accent-amber::before {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.driver-app .metric-accent-purple::before {
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+}
 
 .driver-app .driver-metric:hover {
     transform: translateY(-4px);
@@ -7132,10 +7210,25 @@ body.admin-app .admin-table-tools select {
     color: #334155;
 }
 
-.metric-accent-emerald .metric-icon { background: #ecfdf5; color: #059669; }
-.metric-accent-blue .metric-icon { background: #eff6ff; color: #2563eb; }
-.metric-accent-amber .metric-icon { background: #fffbe6; color: #d97706; }
-.metric-accent-purple .metric-icon { background: #f5f3ff; color: #7c3aed; }
+.metric-accent-emerald .metric-icon {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.metric-accent-blue .metric-icon {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.metric-accent-amber .metric-icon {
+    background: #fffbe6;
+    color: #d97706;
+}
+
+.metric-accent-purple .metric-icon {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
 
 /* Onboarding banner styling */
 .quick-start-onboarding-banner {
@@ -7204,58 +7297,47 @@ body.admin-app .admin-table-tools select {
     gap: 4px;
 }
 
-.kicker-blue { color: #2563eb; }
-.kicker-green { color: #059669; }
-.kicker-amber { color: #d97706; }
+.kicker-blue {
+    color: #2563eb;
+}
+
+.kicker-green {
+    color: #059669;
+}
+
+.kicker-amber {
+    color: #d97706;
+}
 
 /* ==========================================================================
    MOBILE UI OPTIMIZATION & RESPONSIVE ORGANIZER (RIDER & DRIVER LAYOUTS)
    ========================================================================== */
 
 @media (max-width: 767px) {
+
     /* --- 1. Mobile Header & Glass Navigation Bar --- */
     .navbar,
     .driver-navbar,
-    .public-navbar,
     .rider-navbar-glass,
     .driver-cockpit-navbar {
         display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 12px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
         padding: 10px 14px !important;
-        min-height: 56px !important;
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 1000 !important;
-        background: rgba(15, 23, 42, 0.92) !important;
-        backdrop-filter: blur(16px) !important;
-        -webkit-backdrop-filter: blur(16px) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        min-height: auto !important;
     }
 
     .nav-left,
-    .driver-brand,
-    .public-logo {
+    .driver-brand {
         display: flex !important;
         align-items: center !important;
-        gap: 10px !important;
-        width: auto !important;
+        justify-content: space-between !important;
+        width: 100% !important;
     }
 
     .brand-copy span {
-        display: none !important; /* Keep mobile brand title compact */
-    }
-
-    .brand-copy strong {
-        font-size: 1.1rem !important;
-        letter-spacing: -0.01em !important;
-    }
-
-    .nav-links,
-    .driver-nav-links {
-        display: none !important; /* Nav links hosted in fixed bottom nav dock */
+        font-size: 0.7rem !important;
     }
 
     .nav-right,
@@ -7263,17 +7345,40 @@ body.admin-app .admin-table-tools select {
         display: flex !important;
         align-items: center !important;
         gap: 8px !important;
-        margin-top: 0 !important;
+        margin-top: -38px !important;
         margin-left: auto !important;
         z-index: 5 !important;
     }
 
     .nav-right .btn-pill,
     .driver-nav-actions .btn-pill {
+        padding: 5px 10px !important;
+        font-size: 0.78rem !important;
+        min-height: 32px !important;
+    }
+
+    .nav-links,
+    .driver-nav-links {
+        display: flex !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        padding: 4px !important;
+        gap: 4px !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .nav-links::-webkit-scrollbar,
+    .driver-nav-links::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-links a,
+    .driver-nav-links a {
         padding: 6px 12px !important;
         font-size: 0.8rem !important;
-        min-height: 38px !important;
-        border-radius: 20px !important;
+        min-height: 32px !important;
     }
 
     /* --- 2. Mobile Hero Decks & Banner Cards --- */
@@ -7390,6 +7495,7 @@ body.admin-app .admin-table-tools select {
 }
 
 @media (max-width: 440px) {
+
     .rider-app .quick-actions,
     .driver-app .driver-command-rail {
         grid-template-columns: 1fr !important;
@@ -7463,6 +7569,7 @@ body.admin-app .admin-table-tools select {
    ========================================================================== */
 
 @media (max-width: 767px) {
+
     /* --- 1. Touch Target Optimization & Prevent iOS Viewport Zoom --- */
     input[type="text"],
     input[type="email"],
@@ -7472,7 +7579,8 @@ body.admin-app .admin-table-tools select {
     input[type="search"],
     select,
     textarea {
-        font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
+        font-size: 16px !important;
+        /* Prevents auto-zoom on iOS Safari */
         min-height: 46px !important;
         border-radius: 10px !important;
         padding-left: 14px !important;
@@ -7535,7 +7643,7 @@ body.admin-app .admin-table-tools select {
         border-radius: 14px !important;
     }
 
-    /* --- 4. Responsive Tables & Touch Scrolling --- */
+    /* --- 4. Responsive Tables & Touch Card Transformations --- */
     .table-responsive,
     .table-wrapper {
         width: 100% !important;
@@ -7548,6 +7656,95 @@ body.admin-app .admin-table-tools select {
     .table-responsive::-webkit-scrollbar,
     .table-wrapper::-webkit-scrollbar {
         display: none !important;
+    }
+
+    /* Table to Card Stack Transformation for Mobile */
+    .mobile-card-table,
+    .rides-table,
+    .driver-table,
+    .admin-table,
+    .user-roster-table {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .mobile-card-table thead,
+    .rides-table thead,
+    .driver-table thead,
+    .admin-table thead,
+    .user-roster-table thead {
+        display: none !important;
+    }
+
+    .mobile-card-table tbody,
+    .rides-table tbody,
+    .driver-table tbody,
+    .admin-table tbody,
+    .user-roster-table tbody {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+
+    .mobile-card-table tr,
+    .rides-table tr,
+    .driver-table tr,
+    .admin-table tr,
+    .user-roster-table tr {
+        display: flex !important;
+        flex-direction: column !important;
+        background: rgba(30, 41, 59, 0.7) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 14px !important;
+        padding: 14px 16px !important;
+        gap: 8px !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .mobile-card-table td,
+    .rides-table td,
+    .driver-table td,
+    .admin-table td,
+    .user-roster-table td {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 6px 0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        font-size: 0.88rem !important;
+    }
+
+    .mobile-card-table td:last-child,
+    .rides-table td:last-child,
+    .driver-table td:last-child,
+    .admin-table td:last-child,
+    .user-roster-table td:last-child {
+        border-bottom: none !important;
+        margin-top: 4px !important;
+    }
+
+    .mobile-card-table td[data-label]::before,
+    .rides-table td[data-label]::before,
+    .driver-table td[data-label]::before,
+    .admin-table td[data-label]::before,
+    .user-roster-table td[data-label]::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #94a3b8;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* --- 5. Mobile Map Picker & Touch Scroll Lock --- */
+    .map-picker-card #map,
+    .leaflet-container {
+        height: 260px !important;
+        min-height: 260px !important;
+        touch-action: pan-x pan-y !important;
+        border-radius: 12px !important;
+        z-index: 1 !important;
     }
 
     .table-responsive table,
@@ -7571,82 +7768,3 @@ body.admin-app .admin-table-tools select {
         font-size: 0.82rem !important;
     }
 }
-
-/* Mobile Bottom Fixed Navigation Shell */
-.mobile-bottom-nav {
-    display: none;
-}
-
-@media (max-width: 767px) {
-    body {
-        padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
-    }
-
-    .main-content,
-    .driver-main,
-    .admin-main {
-        padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
-    }
-
-    .mobile-bottom-nav {
-        display: flex !important;
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        height: calc(62px + env(safe-area-inset-bottom, 0px)) !important;
-        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-        background: rgba(15, 23, 42, 0.94) !important;
-        backdrop-filter: blur(16px) !important;
-        -webkit-backdrop-filter: blur(16px) !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-        z-index: 9999 !important;
-        align-items: center !important;
-        justify-content: space-around !important;
-    }
-
-    .mobile-nav-item {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        flex: 1 !important;
-        height: 100% !important;
-        color: #94a3b8 !important;
-        font-size: 0.72rem !important;
-        font-weight: 600 !important;
-        text-decoration: none !important;
-        position: relative !important;
-        transition: color 0.16s ease !important;
-    }
-
-    .mobile-nav-item.is-active {
-        color: #38bdf8 !important;
-    }
-
-    .mobile-nav-item.is-active::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 24px;
-        height: 3px;
-        background: #38bdf8;
-        border-radius: 0 0 4px 4px;
-    }
-
-    .mobile-nav-action .mobile-action-pill {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #2563eb, #0284c7);
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-        margin-top: -12px;
-    }
-}
-

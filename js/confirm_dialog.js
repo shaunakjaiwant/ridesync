@@ -27,9 +27,9 @@
                 + '<input type="text" class="modal-phrase-input" style="width:100%;padding:10px;background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.9rem;"></div>';
         }
 
-        contentHtml += '<div style="display:flex;justify-content:flex-end;gap:12px;margin-top:16px;flex-wrap:wrap;">'
-            + '<button type="button" class="btn-modal-cancel" style="min-height:44px;padding:10px 18px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#cbd5e1;cursor:pointer;font-weight:600;font-size:0.9rem;flex:1;min-width:100px;">Cancel</button>'
-            + '<button type="button" class="btn-modal-confirm" style="min-height:44px;padding:10px 20px;background:#2563eb;border:none;border-radius:10px;color:#fff;cursor:pointer;font-weight:600;font-size:0.9rem;box-shadow:0 4px 12px rgba(37,99,235,0.3);flex:1;min-width:110px;">Confirm</button>'
+        contentHtml += '<div style="display:flex;justify-content:flex-end;gap:12px;">'
+            + '<button type="button" class="btn-modal-cancel" style="padding:9px 16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#cbd5e1;cursor:pointer;font-weight:600;">Cancel</button>'
+            + '<button type="button" class="btn-modal-confirm" style="padding:9px 18px;background:#2563eb;border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600;box-shadow:0 4px 12px rgba(37,99,235,0.3);">Confirm</button>'
             + '</div>';
 
         modal.innerHTML = contentHtml;
