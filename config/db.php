@@ -22,7 +22,7 @@ if ($flags & MYSQLI_CLIENT_SSL) {
 
 $connectExceptionMessage = null;
 try {
-    $connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port, NULL, $flags);
+    $connected = @mysqli_real_connect($conn, 'p:' . $host, $username, $password, $database, $port, NULL, $flags);
 } catch (mysqli_sql_exception $exception) {
     $connected = false;
     $connectExceptionMessage = $exception->getMessage();

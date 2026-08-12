@@ -32,7 +32,7 @@ def main():
     print("Successfully connected to Aiven MySQL!")
     cursor = conn.cursor()
 
-    schema_path = root / "database" / "schema.sql"
+    schema_path = root / "database" / "ridesync_db.sql"
     print(f"Reading schema from {schema_path}...")
     raw_schema = schema_path.read_text(encoding="utf-8")
 
