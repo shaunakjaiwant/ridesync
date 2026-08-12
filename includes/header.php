@@ -100,9 +100,15 @@ if (isset($_SESSION['user_id'])) {
 
     <div class="nav-right">
         <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="/ridesync/pages/notifications.php?actor_type=user" class="btn btn-icon-only nav-bell-btn" title="Alerts" aria-label="Alerts">
+                <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <?php if ($unreadNotifications > 0): ?>
+                    <span class="nav-badge nav-badge-pulse"><?php echo min(99, $unreadNotifications); ?></span>
+                <?php endif; ?>
+            </a>
             <a href="/ridesync/pages/profile.php" class="btn btn-user btn-pill">
                 <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Profile
+                <span>Profile</span>
             </a>
             <form action="/ridesync/actions/logout_action.php" method="POST" class="nav-inline-form">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">

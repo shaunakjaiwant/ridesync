@@ -7767,4 +7767,161 @@ body.admin-app .admin-table-tools select {
         padding: 8px 14px !important;
         font-size: 0.82rem !important;
     }
+
+    /* --- 6. Dashboard Components & Intelligence Layers on Mobile --- */
+    .dashboard-stats {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+        margin-bottom: 20px !important;
+    }
+
+    .stat-box {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        padding: 14px 16px !important;
+        min-height: 104px !important;
+        border-radius: 14px !important;
+        background: rgba(30, 41, 59, 0.7) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .stat-header {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+
+    .stat-label {
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+        color: #94a3b8 !important;
+    }
+
+    .stat-number {
+        font-size: 1.5rem !important;
+        font-weight: 800 !important;
+        line-height: 1.1 !important;
+        margin-top: 4px !important;
+    }
+
+    .dashboard-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+        width: 100% !important;
+        margin-bottom: 24px !important;
+    }
+
+    .dashboard-section {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        background: rgba(30, 41, 59, 0.5) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 16px !important;
+        padding: 16px !important;
+    }
+
+    .dashboard-section h2 {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 12px !important;
+    }
+
+    .mini-ride-list {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        list-style: none !important;
+        padding: 0 !important;
+        margin: 0 0 12px 0 !important;
+    }
+
+    .mini-ride-item {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        padding: 12px 14px !important;
+        background: rgba(15, 23, 42, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        text-decoration: none !important;
+        color: inherit !important;
+        transition: transform 0.16s ease, border-color 0.16s ease !important;
+    }
+
+    .mini-ride-item:active {
+        transform: scale(0.99) !important;
+        border-color: #38bdf8 !important;
+    }
+
+    .mini-ride-route {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        font-size: 0.92rem !important;
+    }
+
+    .mini-ride-route strong {
+        color: #f8fafc !important;
+    }
+
+    .mini-ride-meta {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        font-size: 0.8rem !important;
+        color: #94a3b8 !important;
+    }
+
+    .dashboard-intelligence {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+        width: 100% !important;
+        margin-bottom: 32px !important;
+    }
+
+    .route-heat-list {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        margin-top: 10px !important;
+    }
+
+    .route-heat-item {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 12px 14px !important;
+        background: rgba(15, 23, 42, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 12px !important;
+    }
+
+    .green-score-card {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+        padding: 16px !important;
+        background: linear-gradient(135deg, rgba(5, 150, 105, 0.15), rgba(16, 185, 129, 0.08)) !important;
+        border: 1px solid rgba(16, 185, 129, 0.25) !important;
+        border-radius: 14px !important;
+        margin-top: 10px !important;
+    }
+
+    .green-score-card strong {
+        display: block !important;
+        font-size: 1.35rem !important;
+        font-weight: 800 !important;
+        color: #34d399 !important;
+    }
+
+    .green-score-card span {
+        font-size: 0.78rem !important;
+        color: #a7f3d0 !important;
+    }
 }
