@@ -7707,10 +7707,82 @@ body.admin-app .admin-table-tools select {
     }
 
     /* --- 6. Dashboard Components & Intelligence Layers on Mobile --- */
+    .rider-hero-deck {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 14px !important;
+        padding: 18px 16px !important;
+        border-radius: 16px !important;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.85)) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+        backdrop-filter: blur(12px) !important;
+        margin-bottom: 20px !important;
+    }
+
+    .rider-hero-deck h1 {
+        font-size: 1.35rem !important;
+        font-weight: 800 !important;
+        line-height: 1.25 !important;
+        color: #f8fafc !important;
+    }
+
+    .rider-hero-deck p {
+        font-size: 0.88rem !important;
+        color: #94a3b8 !important;
+        line-height: 1.4 !important;
+    }
+
+    .rider-hero-action-slot .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        min-height: 44px !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4) !important;
+    }
+
+    /* Quick Action Rail Stack on Mobile */
+    .panel-action-rail.quick-actions {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 20px !important;
+    }
+
+    .panel-action-card {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        padding: 12px 8px !important;
+        background: rgba(30, 41, 59, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 14px !important;
+        text-decoration: none !important;
+        transition: transform 0.16s ease, border-color 0.16s ease !important;
+    }
+
+    .panel-action-card:active {
+        transform: scale(0.97) !important;
+        border-color: #38bdf8 !important;
+    }
+
+    .panel-action-card strong {
+        font-size: 0.82rem !important;
+        color: #f8fafc !important;
+        margin-top: 4px !important;
+    }
+
+    .panel-action-card small {
+        display: none !important; /* Hide secondary subtext on tight 3-card mobile row */
+    }
+
+    /* 4 Stat Cards Deck on Mobile */
     .dashboard-stats {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 12px !important;
+        gap: 10px !important;
         margin-bottom: 20px !important;
     }
 
@@ -7718,33 +7790,64 @@ body.admin-app .admin-table-tools select {
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
-        padding: 14px 16px !important;
-        min-height: 104px !important;
+        padding: 12px 14px !important;
+        min-height: 100px !important;
         border-radius: 14px !important;
-        background: rgba(30, 41, 59, 0.7) !important;
+        background: rgba(30, 41, 59, 0.65) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+        backdrop-filter: blur(8px) !important;
+        transition: transform 0.16s ease !important;
+    }
+
+    .stat-box:active {
+        transform: scale(0.98) !important;
+    }
+
+    .stat-accent-blue {
+        border-left: 3px solid #2563eb !important;
+    }
+
+    .stat-accent-cyan {
+        border-left: 3px solid #06b6d4 !important;
+    }
+
+    .stat-accent-amber {
+        border-left: 3px solid #f59e0b !important;
+    }
+
+    .stat-accent-emerald {
+        border-left: 3px solid #10b981 !important;
     }
 
     .stat-header {
         display: flex !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
 
     .stat-label {
-        font-size: 0.8rem !important;
+        font-size: 0.78rem !important;
         font-weight: 600 !important;
         color: #94a3b8 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.02em !important;
     }
 
     .stat-number {
-        font-size: 1.5rem !important;
+        font-size: 1.45rem !important;
         font-weight: 800 !important;
         line-height: 1.1 !important;
+        color: #f8fafc !important;
         margin-top: 4px !important;
     }
 
+    .stat-box small {
+        font-size: 0.72rem !important;
+        color: #64748b !important;
+    }
+
+    /* Dashboard Two-Column Grid -> Stacked Single Column */
     .dashboard-grid {
         display: flex !important;
         flex-direction: column !important;
@@ -7761,14 +7864,34 @@ body.admin-app .admin-table-tools select {
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 16px !important;
         padding: 16px !important;
+        backdrop-filter: blur(8px) !important;
     }
 
     .dashboard-section h2 {
-        font-size: 1.15rem !important;
+        font-size: 1.1rem !important;
         font-weight: 700 !important;
+        color: #f8fafc !important;
         margin-bottom: 12px !important;
     }
 
+    /* Empty States Styling */
+    .empty-state {
+        padding: 16px !important;
+        text-align: center !important;
+        font-size: 0.85rem !important;
+        color: #94a3b8 !important;
+        background: rgba(15, 23, 42, 0.4) !important;
+        border: 1px dashed rgba(255, 255, 255, 0.12) !important;
+        border-radius: 12px !important;
+    }
+
+    .empty-state a {
+        color: #38bdf8 !important;
+        font-weight: 600 !important;
+        text-decoration: none !important;
+    }
+
+    /* Mini Ride Lists (Your Recent Rides & Your Recent Requests) */
     .mini-ride-list {
         display: flex !important;
         flex-direction: column !important;
@@ -7792,7 +7915,7 @@ body.admin-app .admin-table-tools select {
     }
 
     .mini-ride-item:active {
-        transform: scale(0.99) !important;
+        transform: scale(0.985) !important;
         border-color: #38bdf8 !important;
     }
 
@@ -7800,7 +7923,7 @@ body.admin-app .admin-table-tools select {
         display: flex !important;
         align-items: center !important;
         gap: 8px !important;
-        font-size: 0.92rem !important;
+        font-size: 0.9rem !important;
     }
 
     .mini-ride-route strong {
@@ -7811,10 +7934,11 @@ body.admin-app .admin-table-tools select {
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
-        font-size: 0.8rem !important;
+        font-size: 0.78rem !important;
         color: #94a3b8 !important;
     }
 
+    /* Dashboard Intelligence & Green Score */
     .dashboard-intelligence {
         display: flex !important;
         flex-direction: column !important;
