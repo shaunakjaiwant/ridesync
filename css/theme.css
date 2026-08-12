@@ -46,6 +46,17 @@
     --radius-md: 10px;
     --radius-lg: 14px;
     --focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.16);
+
+    /* Spacing scale & mobile touch tokens */
+    --space-3xs: 4px;
+    --space-2xs: 8px;
+    --space-xs: 12px;
+    --space-sm: 16px;
+    --space-md: 24px;
+    --space-lg: 32px;
+    --space-xl: 48px;
+    --touch-min: 44px;
+    --bottom-nav-height: 64px;
 }
 
 *,

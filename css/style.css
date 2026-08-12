@@ -7574,4 +7574,82 @@ body.admin-app .admin-table-tools select {
         font-size: 0.82rem !important;
     }
 }
+
+/* Mobile Bottom Fixed Navigation Shell */
+.mobile-bottom-nav {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    body {
+        padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .main-content,
+    .driver-main,
+    .admin-main {
+        padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .mobile-bottom-nav {
+        display: flex !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: calc(62px + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        background: rgba(15, 23, 42, 0.94) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        z-index: 9999 !important;
+        align-items: center !important;
+        justify-content: space-around !important;
+    }
+
+    .mobile-nav-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: 1 !important;
+        height: 100% !important;
+        color: #94a3b8 !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        text-decoration: none !important;
+        position: relative !important;
+        transition: color 0.16s ease !important;
+    }
+
+    .mobile-nav-item.is-active {
+        color: #38bdf8 !important;
+    }
+
+    .mobile-nav-item.is-active::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 24px;
+        height: 3px;
+        background: #38bdf8;
+        border-radius: 0 0 4px 4px;
+    }
+
+    .mobile-nav-action .mobile-action-pill {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2563eb, #0284c7);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        margin-top: -12px;
+    }
+}
 
