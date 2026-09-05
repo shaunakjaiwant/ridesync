@@ -1260,14 +1260,30 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
 
         <nav class="panel-action-rail admin-command-rail" aria-label="Critical admin shortcuts">
             <a class="panel-action-card is-primary" href="/ridesync/pages/admin_dashboard.php?section=services">
-                <span>Observability</span>
-                <strong>Operations</strong>
-                <small>AI health, queues, latency, and alerts.</small>
+                <div class="action-card-left">
+                    <span class="action-icon-badge accent-blue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    </span>
+                    <div class="action-card-body">
+                        <span class="action-kicker">OBSERVABILITY</span>
+                        <strong>Operations</strong>
+                        <small>AI health, queues, latency, and alerts.</small>
+                    </div>
+                </div>
+                <span class="action-card-arrow">&rarr;</span>
             </a>
             <a class="panel-action-card" href="/ridesync/pages/admin_dashboard.php?section=drivers">
-                <span>Verification</span>
-                <strong>Drivers</strong>
-                <small>KYC, AI checks, and approvals.</small>
+                <div class="action-card-left">
+                    <span class="action-icon-badge accent-purple">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                    </span>
+                    <div class="action-card-body">
+                        <span class="action-kicker">VERIFICATION</span>
+                        <strong>Drivers</strong>
+                        <small>KYC, AI checks, and approvals.</small>
+                    </div>
+                </div>
+                <span class="action-card-arrow">&rarr;</span>
             </a>
         </nav>
     <?php endif; ?>

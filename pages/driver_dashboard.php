@@ -177,16 +177,16 @@ require_once __DIR__ . '/../includes/driver_header.php';
 </div>
 
 <!-- Per-Document Verification Status Card -->
-<section class="driver-panel" style="margin-top: 1.5rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 1.25rem 1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+<section class="driver-panel driver-compliance-panel">
+    <div class="driver-compliance-header">
         <div>
-            <span class="driver-kicker" style="color: #38bdf8; font-size: 0.78rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Compliance & Safety</span>
-            <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0.2rem 0 0; color: #f8fafc;">Document Verification Status</h2>
+            <span class="driver-kicker">Compliance &amp; Safety</span>
+            <h2>Document Verification Status</h2>
         </div>
-        <a href="/ridesync/pages/driver_profile.php" class="btn btn-secondary btn-sm" style="font-size: 0.82rem;">Manage Docs</a>
+        <a href="/ridesync/pages/driver_profile.php" class="btn btn-secondary btn-sm">Manage Docs</a>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem;">
+    <div class="driver-doc-status-grid">
         <?php
         $docLabels = [
             'license' => 'Driving License',
@@ -212,19 +212,19 @@ require_once __DIR__ . '/../includes/driver_header.php';
                 'not_uploaded' => '⚠️ Not Uploaded'
             ][$status] ?? 'Pending';
         ?>
-            <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.06); padding: 0.85rem 1rem; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-between; gap: 0.5rem;">
+            <div class="driver-doc-status-card">
                 <div>
-                    <strong style="display: block; font-size: 0.9rem; color: #f8fafc; margin-bottom: 0.2rem;"><?php echo htmlspecialchars($docTitle); ?></strong>
+                    <strong><?php echo htmlspecialchars($docTitle); ?></strong>
                     <?php if ($doc && !empty($doc['document_number'])): ?>
-                        <small style="color: #64748b; font-size: 0.78rem; font-family: monospace;"><?php echo htmlspecialchars($doc['document_number']); ?></small>
+                        <small><?php echo htmlspecialchars($doc['document_number']); ?></small>
                     <?php endif; ?>
                 </div>
                 <div>
-                    <span class="status-badge <?php echo htmlspecialchars($badgeClass); ?>" style="font-size: 0.78rem; padding: 0.25rem 0.6rem; display: inline-block;">
+                    <span class="status-badge <?php echo htmlspecialchars($badgeClass); ?>">
                         <?php echo htmlspecialchars($statusText); ?>
                     </span>
                     <?php if ($status === 'rejected' && !empty($doc['rejection_reason'])): ?>
-                        <div style="font-size: 0.75rem; color: #f87171; margin-top: 0.35rem; line-height: 1.3;">
+                        <div class="doc-rejection-note">
                             <?php echo htmlspecialchars($doc['rejection_reason']); ?>
                         </div>
                     <?php endif; ?>
@@ -236,34 +236,43 @@ require_once __DIR__ . '/../includes/driver_header.php';
 
 <nav class="panel-action-rail driver-command-rail" aria-label="Primary driver actions">
     <a class="panel-action-card is-primary" href="/ridesync/pages/driver_requests.php">
-        <div class="action-card-header">
+        <div class="action-card-left">
             <span class="action-icon-badge">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             </span>
-            <span>Dispatch</span>
+            <div class="action-card-body">
+                <span class="action-kicker">DISPATCH</span>
+                <strong>Ride Queue</strong>
+                <small>Requests and active trips.</small>
+            </div>
         </div>
-        <strong>Queue</strong>
-        <small>Requests and active trips.</small>
+        <span class="action-card-arrow">&rarr;</span>
     </a>
-    <a class="panel-action-card" href="/ridesync/pages/driver_earnings.php">
-        <div class="action-card-header">
+    <a class="panel-action-card accent-emerald-card" href="/ridesync/pages/driver_earnings.php">
+        <div class="action-card-left">
             <span class="action-icon-badge accent-emerald">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </span>
-            <span>Settlement</span>
+            <div class="action-card-body">
+                <span class="action-kicker">SETTLEMENT</span>
+                <strong>Earnings</strong>
+                <small>Trips and weekly totals.</small>
+            </div>
         </div>
-        <strong>Earnings</strong>
-        <small>Trips and weekly totals.</small>
+        <span class="action-card-arrow">&rarr;</span>
     </a>
-    <a class="panel-action-card" href="/ridesync/pages/driver_profile.php">
-        <div class="action-card-header">
+    <a class="panel-action-card accent-blue-card" href="/ridesync/pages/driver_profile.php">
+        <div class="action-card-left">
             <span class="action-icon-badge accent-blue">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </span>
-            <span>Readiness</span>
+            <div class="action-card-body">
+                <span class="action-kicker">READINESS</span>
+                <strong>Driver Profile</strong>
+                <small>Documents and vehicle details.</small>
+            </div>
         </div>
-        <strong>Profile</strong>
-        <small>Documents and vehicle.</small>
+        <span class="action-card-arrow">&rarr;</span>
     </a>
 </nav>
 
