@@ -2554,55 +2554,75 @@
     }
 
     .admin-sidebar {
-        max-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
-        padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-bottom: 0;
-        border-radius: 24px 24px 0 0;
-        background: rgba(8, 13, 24, 0.97);
-        box-shadow: 0 -18px 42px rgba(15, 23, 42, 0.28);
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
+        position: fixed !important;
+        top: auto !important;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        left: 14px !important;
+        right: 14px !important;
+        width: calc(100% - 28px) !important;
+        max-width: 430px !important;
+        margin: 0 auto !important;
+        z-index: 120 !important;
+        display: block !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 5px 6px !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        border-radius: 999px !important;
+        background: rgba(15, 23, 42, 0.86) !important;
+        box-shadow:
+            0 16px 36px -4px rgba(15, 23, 42, 0.45),
+            0 4px 14px rgba(0, 0, 0, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+        backdrop-filter: blur(24px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+        overflow: visible !important;
     }
 
     .admin-side-nav {
-        gap: 6px;
-        grid-auto-columns: minmax(68px, 1fr);
+        gap: 4px !important;
+        grid-auto-columns: minmax(66px, 1fr) !important;
+        padding: 0 !important;
+        border: 0 !important;
         scroll-snap-type: x proximity;
     }
 
     .admin-side-nav a {
-        min-width: 68px;
-        min-height: 58px;
-        padding: 7px 8px;
-        border: 1px solid transparent;
-        border-radius: 16px;
-        color: #aab4c2;
-        font-size: 0.62rem;
-        font-weight: 950;
+        min-width: 66px !important;
+        min-height: 50px !important;
+        padding: 6px 6px 5px !important;
+        border: 1px solid transparent !important;
+        border-radius: 999px !important;
+        color: rgba(255, 255, 255, 0.55) !important;
+        font-size: 0.62rem !important;
+        font-weight: 700 !important;
         scroll-snap-align: center;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
 
     .admin-side-nav a::before {
-        content: "";
-        display: block;
-        width: 18px;
-        height: 3px;
-        margin: 0 auto 5px;
-        border-radius: 999px;
-        background: transparent;
+        content: "" !important;
+        display: block !important;
+        width: 14px !important;
+        height: 3px !important;
+        margin: 0 auto 4px !important;
+        border-radius: 999px !important;
+        background: transparent !important;
     }
 
     .admin-side-nav a.is-active {
-        border-color: rgba(255, 255, 255, 0.84);
-        background: #ffffff;
-        color: #111827;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
-        transform: translateY(-2px);
+        border-color: rgba(129, 140, 248, 0.35) !important;
+        background: rgba(99, 102, 241, 0.22) !important;
+        color: #ffffff !important;
+        box-shadow:
+            0 4px 14px rgba(99, 102, 241, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+        transform: none !important;
     }
 
     .admin-side-nav a.is-active::before {
-        background: #2563eb;
+        background: #818cf8 !important;
+        box-shadow: 0 0 8px rgba(129, 140, 248, 0.8) !important;
     }
 
     .admin-table-wrap {
@@ -8935,84 +8955,145 @@ body.admin-app .admin-table-tools select {
         transform: scale(0.96);
     }
 
+    /* --- Floating Sleek Minimalist Mobile Navigation Bar --- */
     .mobile-bottom-nav {
-        position: fixed;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        z-index: 90;
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 4px;
-        min-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
-        padding: 7px 8px calc(7px + env(safe-area-inset-bottom, 0px));
-        border-top: 1px solid rgba(148, 163, 184, 0.32);
-        border-radius: 20px 20px 0 0;
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(9, 14, 24, 0.99) 100%);
-        box-shadow: 0 -18px 42px rgba(15, 23, 42, 0.38);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        position: fixed !important;
+        right: 14px !important;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        left: 14px !important;
+        z-index: 999 !important;
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 3px !important;
+        width: calc(100% - 28px) !important;
+        max-width: 430px !important;
+        margin: 0 auto !important;
+        min-height: 62px !important;
+        padding: 5px 6px !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        border-radius: 999px !important;
+        background: rgba(15, 23, 42, 0.86) !important;
+        box-shadow:
+            0 16px 36px -4px rgba(15, 23, 42, 0.45),
+            0 4px 14px rgba(0, 0, 0, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+        backdrop-filter: blur(24px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
     }
 
     .mobile-bottom-nav a {
-        position: relative;
-        display: grid;
-        grid-template-rows: 24px 1fr;
-        place-items: center;
-        gap: 3px;
-        min-width: 0;
-        min-height: 64px;
-        padding: 7px 4px 6px;
-        border: 1px solid transparent;
-        border-radius: 15px;
-        color: #aeb8c6;
-        font-size: 0.63rem;
-        font-weight: 800;
-        line-height: 1;
-        text-align: center;
-        text-decoration: none;
-        white-space: nowrap;
-        transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+        position: relative !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 3px !important;
+        min-width: 0 !important;
+        min-height: 52px !important;
+        padding: 5px 2px 4px !important;
+        border: 1px solid transparent !important;
+        border-radius: 999px !important;
+        color: rgba(255, 255, 255, 0.55) !important;
+        font-size: 0.63rem !important;
+        font-weight: 600 !important;
+        line-height: 1 !important;
+        text-align: center !important;
+        text-decoration: none !important;
+        white-space: nowrap !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    .mobile-bottom-nav a svg.ui-icon {
+        width: 19px !important;
+        height: 19px !important;
+        opacity: 0.72 !important;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease !important;
+    }
+
+    .mobile-bottom-nav a:hover {
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    .mobile-bottom-nav a:hover svg.ui-icon {
+        opacity: 0.9 !important;
     }
 
     .mobile-bottom-nav a:active {
-        transform: scale(0.96);
+        transform: scale(0.92) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
     }
 
+    /* Rider Active Tab: Sleek Luminous Island */
+    .rider-mobile-bottom-nav a.is-active,
     .mobile-bottom-nav a.is-active {
-        border-color: rgba(255, 255, 255, 0.9);
-        background: #ffffff;
-        color: #0f172a;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+        border-color: rgba(56, 189, 248, 0.35) !important;
+        background: rgba(37, 99, 235, 0.22) !important;
+        color: #ffffff !important;
+        box-shadow:
+            0 4px 14px rgba(37, 99, 235, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
     }
 
+    .rider-mobile-bottom-nav a.is-active svg.ui-icon,
+    .mobile-bottom-nav a.is-active svg.ui-icon {
+        opacity: 1 !important;
+        stroke: #38bdf8 !important;
+        transform: translateY(-1px) !important;
+    }
+
+    .rider-mobile-bottom-nav a.is-active::before,
     .mobile-bottom-nav a.is-active::before {
-        content: "";
-        position: absolute;
-        top: 5px;
-        width: 18px;
-        height: 3px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+        content: "" !important;
+        position: absolute !important;
+        top: 4px !important;
+        width: 14px !important;
+        height: 3px !important;
+        border-radius: 999px !important;
+        background: #38bdf8 !important;
+        box-shadow: 0 0 8px rgba(56, 189, 248, 0.8) !important;
+    }
+
+    /* Driver Active Tab: Sleek Emerald Glow */
+    .driver-mobile-bottom-nav a.is-active {
+        border-color: rgba(52, 211, 153, 0.35) !important;
+        background: rgba(16, 185, 129, 0.22) !important;
+        color: #ffffff !important;
+        box-shadow:
+            0 4px 14px rgba(16, 185, 129, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+    }
+
+    .driver-mobile-bottom-nav a.is-active svg.ui-icon {
+        opacity: 1 !important;
+        stroke: #34d399 !important;
+        transform: translateY(-1px) !important;
+    }
+
+    .driver-mobile-bottom-nav a.is-active::before {
+        background: #34d399 !important;
+        box-shadow: 0 0 8px rgba(52, 211, 153, 0.8) !important;
     }
 
     .mobile-nav-icon-wrap {
-        position: relative;
-        display: inline-grid;
-        place-items: center;
+        position: relative !important;
+        display: inline-grid !important;
+        place-items: center !important;
     }
 
     .mobile-bottom-nav .nav-badge {
         position: absolute !important;
-        top: -8px !important;
-        right: -12px !important;
-        min-width: 18px !important;
-        height: 18px !important;
-        padding: 0 5px !important;
-        border-color: rgba(255, 255, 255, 0.35) !important;
+        top: -6px !important;
+        right: -9px !important;
+        min-width: 16px !important;
+        height: 16px !important;
+        padding: 0 4px !important;
+        border: 1.5px solid #0f172a !important;
+        border-radius: 999px !important;
         background: #ef4444 !important;
         color: #ffffff !important;
-        font-size: 0.64rem !important;
+        font-size: 0.6rem !important;
+        font-weight: 700 !important;
+        line-height: 13px !important;
     }
 
     .rider-app .main-content,
