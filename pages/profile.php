@@ -202,28 +202,28 @@ $verificationLabel = [
 </div>
 
 <!-- Emergency Contacts Card -->
-<div class="form-container" style="margin-top: 2rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+<div class="form-container profile-emergency-section" style="margin-top: 2rem;">
+    <div class="profile-emergency-header">
         <div>
-            <h2 style="margin-bottom: 0.25rem;">Emergency Contacts 🛡️</h2>
-            <p style="color: #94a3b8; font-size: 0.88rem; margin: 0;">Add up to 3 contacts who will be notified during emergency SOS triggers.</p>
+            <h2>Emergency Contacts 🛡️</h2>
+            <p class="profile-emergency-desc" style="margin-bottom: 0 !important;">Add up to 3 contacts who will be notified during emergency SOS triggers.</p>
         </div>
-        <span class="status-badge" style="background: rgba(56,189,248,0.15); color: #38bdf8; font-weight: 600;">
+        <span class="emergency-count-badge">
             <?php echo count($emergencyContacts); ?>/3 Saved
         </span>
     </div>
 
     <?php if (!empty($emergencyContacts)): ?>
-        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+        <div class="emergency-contact-list" style="margin-top: 1rem;">
             <?php foreach ($emergencyContacts as $contact): ?>
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.08); padding: 0.9rem 1.1rem; border-radius: 10px;">
+                <div class="emergency-contact-item">
                     <div>
-                        <strong style="color: #f8fafc; font-size: 0.95rem;"><?php echo htmlspecialchars($contact['name']); ?></strong>
-                        <span style="color: #94a3b8; font-size: 0.85rem; margin-left: 0.4rem;">(<?php echo htmlspecialchars($contact['relationship']); ?>)</span>
+                        <strong><?php echo htmlspecialchars($contact['name']); ?></strong>
+                        <span class="relation">(<?php echo htmlspecialchars($contact['relationship']); ?>)</span>
                         <?php if (!empty($contact['is_primary'])): ?>
                             <span class="status-badge status-accepted" style="margin-left: 0.5rem; font-size: 0.75rem;">Primary</span>
                         <?php endif; ?>
-                        <div style="color: #38bdf8; font-size: 0.88rem; margin-top: 0.2rem; font-weight: 500;">
+                        <div class="emergency-phone">
                             <?php echo htmlspecialchars($contact['phone_number']); ?>
                         </div>
                     </div>
@@ -231,7 +231,7 @@ $verificationLabel = [
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <input type="hidden" name="action_type" value="delete">
                         <input type="hidden" name="contact_id" value="<?php echo (int) $contact['id']; ?>">
-                        <button type="submit" class="btn btn-secondary btn-sm" style="color: #f87171; border-color: rgba(248,113,113,0.3);" data-confirm-message="Delete emergency contact <?php echo htmlspecialchars($contact['name']); ?>?">Delete</button>
+                        <button type="submit" class="btn-remove-contact" data-confirm-message="Delete emergency contact <?php echo htmlspecialchars($contact['name']); ?>?">Delete</button>
                     </form>
                 </div>
             <?php endforeach; ?>
@@ -239,7 +239,7 @@ $verificationLabel = [
     <?php endif; ?>
 
     <?php if (count($emergencyContacts) < 3): ?>
-        <form method="POST" action="/ridesync/actions/emergency_contact_action.php" style="background: rgba(15,23,42,0.4); border: 1px dashed rgba(255,255,255,0.12); padding: 1.25rem; border-radius: 10px;">
+        <form method="POST" action="/ridesync/actions/emergency_contact_action.php" class="emergency-add-form" style="margin-top: 1rem;">
             <input type="hidden" name="action_type" value="add">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 

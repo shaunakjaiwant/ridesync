@@ -60,23 +60,23 @@ require_once __DIR__ . '/../includes/driver_header.php';
             </div>
         </div>
 
-        <div style="margin-top: 1.75rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1.25rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
-                <h3 style="font-size: 1rem; font-weight: 700; margin: 0; color: #f8fafc;">Emergency Contacts 🛡️</h3>
-                <span class="status-badge" style="background: rgba(56,189,248,0.15); color: #38bdf8; font-weight: 600; font-size: 0.78rem;">
+        <div class="profile-emergency-section">
+            <div class="profile-emergency-header">
+                <h3>Emergency Contacts 🛡️</h3>
+                <span class="emergency-count-badge">
                     <?php echo count($driverEmergencyContacts); ?>/3 Saved
                 </span>
             </div>
-            <p style="color: #94a3b8; font-size: 0.82rem; margin-bottom: 1rem;">Notified during active SOS triggers.</p>
+            <p class="profile-emergency-desc">Notified during active SOS triggers.</p>
 
             <?php if (!empty($driverEmergencyContacts)): ?>
-                <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.25rem;">
+                <div class="emergency-contact-list">
                     <?php foreach ($driverEmergencyContacts as $contact): ?>
-                        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem 0.9rem; border-radius: 8px;">
+                        <div class="emergency-contact-item">
                             <div>
-                                <strong style="color: #f8fafc; font-size: 0.88rem;"><?php echo htmlspecialchars($contact['name']); ?></strong>
-                                <small style="color: #94a3b8; font-size: 0.8rem; margin-left: 0.3rem;">(<?php echo htmlspecialchars($contact['relationship']); ?>)</small>
-                                <div style="color: #38bdf8; font-size: 0.82rem; margin-top: 0.1rem; font-weight: 500;">
+                                <strong><?php echo htmlspecialchars($contact['name']); ?></strong>
+                                <small>(<?php echo htmlspecialchars($contact['relationship']); ?>)</small>
+                                <div class="emergency-phone">
                                     <?php echo htmlspecialchars($contact['phone_number']); ?>
                                 </div>
                             </div>
@@ -84,7 +84,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                 <input type="hidden" name="action_type" value="delete">
                                 <input type="hidden" name="contact_id" value="<?php echo (int) $contact['id']; ?>">
-                                <button type="submit" class="btn btn-secondary btn-sm" style="color: #f87171; border-color: rgba(248,113,113,0.3); font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-confirm-message="Delete emergency contact <?php echo htmlspecialchars($contact['name']); ?>?">Remove</button>
+                                <button type="submit" class="btn-remove-contact" data-confirm-message="Delete emergency contact <?php echo htmlspecialchars($contact['name']); ?>?">Remove</button>
                             </form>
                         </div>
                     <?php endforeach; ?>
@@ -92,17 +92,17 @@ require_once __DIR__ . '/../includes/driver_header.php';
             <?php endif; ?>
 
             <?php if (count($driverEmergencyContacts) < 3): ?>
-                <form method="POST" action="/ridesync/actions/emergency_contact_action.php" style="background: rgba(15,23,42,0.4); border: 1px dashed rgba(255,255,255,0.12); padding: 1rem; border-radius: 8px;">
+                <form method="POST" action="/ridesync/actions/emergency_contact_action.php" class="emergency-add-form">
                     <input type="hidden" name="action_type" value="add">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
                     <div class="form-group" style="margin-bottom: 0.6rem;">
-                        <label for="d_contact_name" style="font-size: 0.82rem;">Full Name</label>
-                        <input type="text" id="d_contact_name" name="name" placeholder="Contact Name" required style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+                        <label for="d_contact_name">Full Name</label>
+                        <input type="text" id="d_contact_name" name="name" placeholder="Contact Name" required>
                     </div>
                     <div class="form-group" style="margin-bottom: 0.6rem;">
-                        <label for="d_contact_relation" style="font-size: 0.82rem;">Relationship</label>
-                        <select id="d_contact_relation" name="relationship" required style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+                        <label for="d_contact_relation">Relationship</label>
+                        <select id="d_contact_relation" name="relationship" required>
                             <option value="Parent">Parent</option>
                             <option value="Spouse">Spouse</option>
                             <option value="Sibling">Sibling</option>
@@ -110,10 +110,10 @@ require_once __DIR__ . '/../includes/driver_header.php';
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0.8rem;">
-                        <label for="d_contact_phone" style="font-size: 0.82rem;">Phone Number</label>
-                        <input type="tel" id="d_contact_phone" name="phone_number" placeholder="+91 9876543210" required style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+                        <label for="d_contact_phone">Phone Number</label>
+                        <input type="tel" id="d_contact_phone" name="phone_number" placeholder="+91 9876543210" required>
                     </div>
-                    <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">Add Contact</button>
+                    <button type="submit" class="btn btn-secondary btn-sm">Add Contact</button>
                 </form>
             <?php endif; ?>
         </div>

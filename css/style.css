@@ -7377,6 +7377,152 @@ body.admin-app .admin-table-tools select {
 }
 
 /* ==========================================================================
+   EMERGENCY CONTACTS PROFILE MODULE (RIDER & DRIVER PANELS)
+   ========================================================================== */
+
+.profile-emergency-section {
+    margin-top: 1.75rem;
+    border-top: 1px solid rgba(226, 232, 240, 0.9);
+    padding-top: 1.25rem;
+}
+
+.profile-emergency-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    gap: 10px;
+}
+
+.profile-emergency-header h2,
+.profile-emergency-header h3 {
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    color: #0f172a !important;
+    line-height: 1.3 !important;
+}
+
+.emergency-count-badge {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border: 1px solid rgba(37, 99, 235, 0.28) !important;
+    font-weight: 700 !important;
+    font-size: 0.76rem !important;
+    padding: 3px 9px !important;
+    border-radius: 999px !important;
+    white-space: nowrap !important;
+}
+
+.profile-emergency-desc {
+    color: #64748b !important;
+    font-size: 0.84rem !important;
+    margin: 0 0 1rem 0 !important;
+    line-height: 1.45 !important;
+}
+
+.emergency-contact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 1.25rem;
+}
+
+.emergency-contact-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    gap: 12px;
+}
+
+.emergency-contact-item strong {
+    color: #0f172a !important;
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    display: inline-block;
+}
+
+.emergency-contact-item small,
+.emergency-contact-item span.relation {
+    color: #64748b !important;
+    font-size: 0.8rem !important;
+    margin-left: 0.3rem;
+}
+
+.emergency-contact-item .emergency-phone {
+    color: #2563eb !important;
+    font-size: 0.84rem !important;
+    margin-top: 0.15rem;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+
+.emergency-contact-item .btn-remove-contact {
+    color: #dc2626 !important;
+    background: #fef2f2 !important;
+    border: 1px solid rgba(220, 38, 38, 0.25) !important;
+    border-radius: 8px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    padding: 0.3rem 0.65rem !important;
+    min-height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: background 0.16s ease !important;
+}
+
+.emergency-contact-item .btn-remove-contact:hover,
+.emergency-contact-item .btn-remove-contact:active {
+    background: #fee2e2 !important;
+}
+
+.emergency-add-form {
+    background: #f8fafc !important;
+    border: 1.5px dashed rgba(203, 213, 225, 0.95) !important;
+    padding: 1rem !important;
+    border-radius: 10px !important;
+}
+
+.emergency-add-form label {
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+    margin-bottom: 0.3rem !important;
+    display: block !important;
+}
+
+.emergency-add-form input,
+.emergency-add-form select {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    border-radius: 8px !important;
+    padding: 0.45rem 0.65rem !important;
+    font-size: 0.85rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.emergency-add-form input:focus,
+.emergency-add-form select:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+    outline: none !important;
+}
+
+.emergency-add-form .btn {
+    margin-top: 0.5rem !important;
+    font-weight: 600 !important;
+    width: 100% !important;
+}
+
+/* ==========================================================================
    MOBILE UI OPTIMIZATION & RESPONSIVE ORGANIZER (RIDER & DRIVER LAYOUTS)
    ========================================================================== */
 

@@ -450,14 +450,14 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
 
     <?php else: ?>
-        <div class="card search-empty-card" style="text-align: center; padding: 2.5rem 1.5rem; background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(56, 189, 248, 0.3); border-radius: 16px;">
-            <div style="width: 48px; height: 48px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(56, 189, 248, 0.1); color: #38bdf8; display: flex; align-items: center; justify-content: center;">
+        <div class="card search-empty-card" style="text-align: center; padding: 2.5rem 1.5rem; background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%); border: 1.5px dashed #cbd5e1; border-radius: 16px;">
+            <div style="width: 48px; height: 48px; margin: 0 auto 1rem; border-radius: 50%; background: #eff6ff; color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.2); display: flex; align-items: center; justify-content: center;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             </div>
-            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; color: #f8fafc;">
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; color: #0f172a;">
                 <?php echo $searched ? 'No community rides match this route right now' : 'No upcoming rides available right now'; ?>
             </h3>
-            <p class="text-muted" style="max-width: 460px; margin: 0 auto 1.25rem; font-size: 0.9rem; line-height: 1.5;">
+            <p class="text-muted" style="max-width: 460px; margin: 0 auto 1.25rem; font-size: 0.9rem; line-height: 1.5; color: #64748b;">
                 Don't worry! You can set an instant Route Watch alert and RideSync will notify you as soon as a driver or rider posts a matching trip.
             </p>
             <?php if ($searched && $filter_origin !== '' && $filter_dest !== ''): ?>
