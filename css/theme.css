@@ -47,6 +47,16 @@
     --radius-lg: 14px;
     --focus-ring: 0 0 0 4px rgba(37, 99, 235, 0.16);
 
+    /* Production Mobile Design System Tokens */
+    --m-page-padding: 16px;
+    --m-section-gap: 20px;
+    --m-card-gap: 12px;
+    --m-card-radius: 14px;
+    --m-header-height: 64px;
+    --m-bottom-nav-height: 68px;
+    --m-touch-target: 44px;
+    --m-button-height: 48px;
+
     /* Typography Scale Tokens */
     --font-xs: 0.75rem;
     --font-sm: 0.85rem;
@@ -60,7 +70,7 @@
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
-    --font-weight-heavy: 800;
+    --font-weight-heavy: 700;
 
     /* Spacing Scale Tokens */
     --space-3xs: 4px;
@@ -262,7 +272,7 @@ svg {
 .brand-copy strong {
     color: var(--text);
     font-size: 0.95rem;
-    font-weight: 800;
+    font-weight: 600;
     line-height: 1.15;
 }
 
@@ -310,7 +320,7 @@ svg {
     border-radius: var(--radius-xs);
     color: var(--muted-strong);
     font-size: 0.88rem;
-    font-weight: 750;
+    font-weight: 500;
     line-height: 1;
     white-space: nowrap;
     transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
@@ -343,7 +353,7 @@ svg {
     background: #dbeafe;
     color: var(--primary-dark);
     font-size: 0.72rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1;
 }
 
@@ -374,7 +384,7 @@ svg {
     margin: 0;
     color: var(--text);
     font-size: 2rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1.12;
 }
 
@@ -414,7 +424,7 @@ svg {
     display: block;
     color: var(--muted);
     font-size: 0.75rem;
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: 0;
     line-height: 1.2;
     text-transform: uppercase;
@@ -432,7 +442,7 @@ svg {
     border-radius: var(--radius);
     cursor: pointer;
     font-size: 0.9rem;
-    font-weight: 800;
+    font-weight: 600;
     line-height: 1.2;
     text-align: center;
     white-space: nowrap;
@@ -714,7 +724,7 @@ button:disabled {
 .card h2 {
     margin: 0 0 16px;
     font-size: 1.08rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .dashboard-section h2,
@@ -780,7 +790,7 @@ button:disabled {
     margin-bottom: 7px;
     color: var(--muted-strong);
     font-size: 0.88rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .form-group input,
@@ -835,7 +845,7 @@ button:disabled {
     padding: 4px 8px;
     border-radius: 10px;
     color: var(--primary-dark);
-    font-weight: 800;
+    font-weight: 600;
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 3px;
@@ -877,7 +887,7 @@ button:disabled {
     min-height: 18px;
     margin-top: 6px;
     font-size: 0.8rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .email-validation-message.is-valid,
@@ -905,7 +915,7 @@ button:disabled {
 
 .public-logo .brand-copy span {
     color: var(--primary);
-    font-weight: 850;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
@@ -939,7 +949,7 @@ button:disabled {
     margin-bottom: 10px;
     color: #bfdbfe;
     font-size: 0.74rem;
-    font-weight: 900;
+    font-weight: 700;
     letter-spacing: 0;
     line-height: 1.2;
     text-transform: uppercase;
@@ -949,7 +959,7 @@ button:disabled {
     margin: 0;
     color: #ffffff;
     font-size: clamp(2.15rem, 5.4vw, 3.85rem);
-    font-weight: 900;
+    font-weight: 700;
     line-height: 0.98;
 }
 
@@ -1018,14 +1028,14 @@ button:disabled {
 .public-preview-brand strong {
     color: #ffffff;
     font-size: 1rem;
-    font-weight: 900;
+    font-weight: 700;
 }
 
 .public-preview-brand span {
     margin-top: 3px;
     color: #bfdbfe;
     font-size: 0.82rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .public-route-line {
@@ -1057,7 +1067,7 @@ button:disabled {
     gap: 10px;
     color: #dbeafe;
     font-size: 0.86rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .public-route-meta strong {
@@ -1097,7 +1107,7 @@ button:disabled {
 .public-highlights strong {
     color: var(--text);
     font-size: 0.92rem;
-    font-weight: 900;
+    font-weight: 700;
 }
 
 .public-highlights span {
@@ -1125,7 +1135,7 @@ button:disabled {
     margin: 0;
     color: var(--text);
     font-size: 1.65rem;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1.12;
 }
 
@@ -1156,7 +1166,7 @@ button:disabled {
     margin: 18px 0 8px;
     color: var(--text);
     font-size: 1.35rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1.2;
 }
 
@@ -1176,7 +1186,7 @@ button:disabled {
     background: var(--surface-muted);
     color: var(--text);
     font-size: 0.88rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .role-icon,
@@ -1200,7 +1210,7 @@ button:disabled {
     background: var(--surface-soft);
     color: var(--muted-strong);
     font-size: 0.74rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1;
     text-transform: uppercase;
     white-space: nowrap;
@@ -1233,7 +1243,7 @@ button:disabled {
 .admin-connection-card a,
 .admin-card-head a {
     color: var(--primary);
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .back-link {
@@ -1327,7 +1337,7 @@ button:disabled {
     display: block;
     color: var(--text);
     font-size: 1.7rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1.08;
 }
 
@@ -1476,7 +1486,7 @@ button:disabled {
 .mini-ride-route .arrow,
 .route-arrow {
     color: var(--primary);
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .mini-ride-meta,
@@ -1604,7 +1614,7 @@ button:disabled {
     margin: 0 0 14px;
     color: var(--muted);
     font-size: 0.92rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .search-empty-card {
@@ -1636,7 +1646,7 @@ button:disabled {
 .driver-opportunity-card h3 {
     margin: 0 0 8px;
     font-size: 1.05rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1.35;
     overflow-wrap: anywhere;
 }
@@ -1669,7 +1679,7 @@ button:disabled {
     place-items: center;
     padding: 20px;
     color: #334155;
-    font-weight: 800;
+    font-weight: 600;
     text-align: center;
 }
 
@@ -1803,14 +1813,14 @@ button:disabled {
 .smart-search-suggestions span {
     color: var(--primary-dark);
     font-size: 0.72rem;
-    font-weight: 850;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
 .smart-search-suggestions strong {
     color: var(--text);
     font-size: 0.9rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .smart-search-suggestions small,
@@ -1827,7 +1837,7 @@ button:disabled {
     border-radius: 50%;
     color: #ffffff;
     font-size: 0.76rem;
-    font-weight: 900;
+    font-weight: 700;
     box-shadow: var(--shadow-sm);
 }
 
@@ -1923,7 +1933,7 @@ button:disabled {
     margin: 0 auto 18px;
     padding: 12px 14px;
     border-radius: var(--radius);
-    font-weight: 750;
+    font-weight: 500;
 }
 
 .alert-success {
@@ -2040,7 +2050,7 @@ button:disabled {
     background: var(--surface-soft);
     color: var(--muted);
     font-size: 0.78rem;
-    font-weight: 800;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
@@ -2112,7 +2122,7 @@ button:disabled {
     margin-top: -14px;
     color: var(--muted);
     font-size: 0.66rem;
-    font-weight: 850;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
@@ -2172,7 +2182,7 @@ button:disabled {
     border-radius: 50%;
     color: #ffffff;
     font-size: 0.76rem;
-    font-weight: 850;
+    font-weight: 600;
     box-shadow: var(--shadow-sm);
 }
 
@@ -2221,7 +2231,7 @@ button:disabled {
     gap: 5px;
     color: var(--muted-strong);
     font-size: 0.74rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .fare-map-legend i {
@@ -2246,7 +2256,7 @@ button:disabled {
     cursor: pointer;
     padding: 12px 13px;
     color: var(--text);
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .fare-explainer-grid p {
@@ -2295,7 +2305,7 @@ button:disabled {
 
 .contact-info a {
     color: #176b43;
-    font-weight: 800;
+    font-weight: 600;
     text-decoration: underline;
 }
 
@@ -2364,7 +2374,7 @@ button:disabled {
     border-radius: var(--radius);
     cursor: pointer;
     font-size: 1rem;
-    font-weight: 850;
+    font-weight: 600;
     transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
 
@@ -2460,7 +2470,7 @@ button:disabled {
     background: var(--primary-soft);
     color: var(--primary-dark);
     font-size: 2.4rem;
-    font-weight: 850;
+    font-weight: 600;
     box-shadow: var(--shadow-sm);
 }
 
@@ -2476,7 +2486,7 @@ button:disabled {
     gap: 8px;
     color: var(--muted);
     font-size: 0.88rem;
-    font-weight: 750;
+    font-weight: 500;
 }
 
 .notification-panel {
@@ -2517,7 +2527,7 @@ button:disabled {
     margin: 0 0 5px;
     color: var(--text);
     font-size: 1rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 /* Admin command center */
@@ -2570,7 +2580,7 @@ button:disabled {
     border-radius: var(--radius);
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: #ffffff;
-    font-weight: 850;
+    font-weight: 600;
     box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
 }
 
@@ -2584,7 +2594,7 @@ button:disabled {
 .admin-sidebar-top span:not(.admin-orb) {
     color: #a5f3fc;
     font-size: 0.76rem;
-    font-weight: 750;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -2620,7 +2630,7 @@ button:disabled {
     background: linear-gradient(90deg, rgba(99, 102, 241, 0.22) 0%, rgba(99, 102, 241, 0.08) 100%);
     border-left: 3px solid #6366f1;
     color: #ffffff;
-    font-weight: 750;
+    font-weight: 500;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -2678,7 +2688,7 @@ button:disabled {
 .admin-global-search>span {
     color: var(--muted);
     font-size: 0.82rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .admin-global-search input {
@@ -2697,7 +2707,7 @@ button:disabled {
     background: var(--surface-soft);
     color: var(--muted);
     font-size: 0.72rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .admin-topbar-right {
@@ -2728,7 +2738,7 @@ button:disabled {
 .admin-profile-chip span {
     color: var(--muted);
     font-size: 0.74rem;
-    font-weight: 750;
+    font-weight: 500;
 }
 
 .admin-logo-link .logo-img {
@@ -2808,7 +2818,7 @@ button:disabled {
 .admin-hero-panel h1 {
     color: #ffffff;
     font-size: 1.65rem;
-    font-weight: 800;
+    font-weight: 600;
     margin: 4px 0 6px;
     letter-spacing: -0.02em;
 }
@@ -2877,7 +2887,7 @@ button:disabled {
 .admin-op-card span {
     color: var(--muted);
     font-size: 0.78rem;
-    font-weight: 750;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
@@ -2885,7 +2895,7 @@ button:disabled {
 .admin-op-card strong {
     color: var(--text);
     font-size: 1.6rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1.1;
 }
 
@@ -2912,7 +2922,7 @@ button:disabled {
 .admin-connection-card strong {
     color: var(--text);
     font-size: 1.06rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1.18;
 }
 
@@ -2977,7 +2987,7 @@ button:disabled {
     background: rgba(255, 255, 255, 0.08);
     color: #e0f2fe;
     font-size: 0.82rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .admin-profile-grid {
@@ -3051,7 +3061,7 @@ button:disabled {
     border-radius: 50%;
     color: #ffffff;
     font-size: 1.72rem;
-    font-weight: 900;
+    font-weight: 700;
     letter-spacing: 0;
     overflow: hidden;
     box-shadow:
@@ -3116,7 +3126,7 @@ button:disabled {
     background: rgba(255, 255, 255, 0.08);
     color: #e2e8f0;
     font-size: 0.78rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1.25;
 }
 
@@ -3133,7 +3143,7 @@ button:disabled {
     border-radius: 999px;
     color: #bae6fd;
     font-size: 0.72rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .admin-profile-card p {
@@ -3269,7 +3279,7 @@ button:disabled {
     margin-top: 6px;
     color: var(--danger);
     font-size: 0.84rem;
-    font-weight: 750;
+    font-weight: 500;
 }
 
 .admin-table-wrap:focus-visible,
@@ -3302,7 +3312,7 @@ button:disabled {
     background: #f8fafc;
     color: var(--muted);
     font-size: 0.74rem;
-    font-weight: 850;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
@@ -3332,7 +3342,7 @@ button:disabled {
     margin-top: 14px;
     color: var(--muted);
     font-size: 0.84rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .admin-pagination div {
@@ -3423,7 +3433,7 @@ button:disabled {
 .admin-drawer-fields dt {
     color: var(--muted);
     font-size: 0.72rem;
-    font-weight: 850;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
@@ -3509,14 +3519,14 @@ button:disabled {
 .admin-kyc-score small {
     color: var(--muted-strong);
     font-size: 0.72rem;
-    font-weight: 850;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
 .admin-kyc-score strong {
     color: var(--text);
     font-size: 2.6rem;
-    font-weight: 850;
+    font-weight: 600;
     line-height: 1;
 }
 
@@ -3558,7 +3568,7 @@ button:disabled {
     display: block;
     color: var(--muted);
     font-size: 0.73rem;
-    font-weight: 850;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
@@ -3594,7 +3604,7 @@ button:disabled {
 .admin-check-grid span {
     color: var(--muted);
     font-size: 0.82rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .admin-score-row strong {
@@ -3654,7 +3664,7 @@ button:disabled {
 .admin-timeline-item small {
     color: var(--muted);
     font-size: 0.78rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .admin-decision-panel {
@@ -3670,7 +3680,7 @@ button:disabled {
 .admin-decision-panel label {
     color: var(--muted-strong);
     font-size: 0.84rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .admin-decision-panel textarea {
@@ -3707,7 +3717,7 @@ button:disabled {
 .admin-analysis-panel summary {
     cursor: pointer;
     color: var(--text);
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .admin-document-preview {
@@ -4207,7 +4217,7 @@ body,
 .nav-links a,
 .driver-nav-links a,
 .admin-side-nav a {
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .nav-links a:hover,
@@ -4353,7 +4363,7 @@ body,
 .admin-op-card strong,
 .route-heat-score strong {
     color: #101827;
-    font-weight: 900;
+    font-weight: 700;
 }
 
 .dashboard-section h2,
@@ -4441,7 +4451,7 @@ body,
 .form-container h1,
 .form-container h2 {
     color: #101827;
-    font-weight: 900;
+    font-weight: 700;
 }
 
 .form-group input,
@@ -4491,7 +4501,7 @@ body,
     border-radius: 12px;
     background: #ffffff;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-    font-weight: 750;
+    font-weight: 500;
 }
 
 .alert-success {
@@ -4527,7 +4537,7 @@ body,
 .driver-opportunity-status,
 .admin-status-pill {
     border-radius: 999px;
-    font-weight: 900;
+    font-weight: 700;
     letter-spacing: 0;
 }
 
@@ -4539,7 +4549,7 @@ body,
 .admin-smart-table th {
     background: #f8fafc;
     color: #334155;
-    font-weight: 900;
+    font-weight: 700;
 }
 
 .admin-smart-table tbody tr {
@@ -4629,7 +4639,7 @@ body,
     margin: 0;
     color: var(--text);
     font-size: 1.05rem;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1.22;
 }
 
@@ -4669,7 +4679,7 @@ body,
 .smart-route-chip small {
     color: var(--muted);
     font-size: 0.74rem;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1.25;
     text-transform: uppercase;
 }
@@ -4677,7 +4687,7 @@ body,
 .smart-route-chip strong {
     color: var(--text);
     font-size: 0.96rem;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1.32;
     overflow-wrap: anywhere;
 }
@@ -4705,7 +4715,7 @@ body,
     background: rgba(248, 250, 252, 0.92);
     color: var(--text);
     font-size: 0.75rem;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1;
 }
 

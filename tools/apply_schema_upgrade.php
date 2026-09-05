@@ -773,12 +773,21 @@ function schema_run_versioned_migrations($conn, $showStatusOnly = false) {
 
     foreach ($files as $file) {
         $migration = include $file;
-        if (!is_array($migration) || !isset($migration['version'], $migration['up'])) {
+        $ver = null;
+        $desc = basename($file);
+        $upCallable = null;
+
+        if (is_array($migration) && isset($migration['version'], $migration['up'])) {
+            $ver = $migration['version'];
+            $desc = $migration['description'] ?? basename($file);
+            $upCallable = $migration['up'];
+        } elseif (is_object($migration) && method_exists($migration, 'up')) {
+            $ver = property_exists($migration, 'version') ? $migration->version : pathinfo($file, PATHINFO_FILENAME);
+            $desc = property_exists($migration, 'description') ? $migration->description : basename($file);
+            $upCallable = [$migration, 'up'];
+        } else {
             continue;
         }
-
-        $ver = $migration['version'];
-        $desc = $migration['description'] ?? basename($file);
 
         if (isset($appliedVersions[$ver])) {
             schema_note('SKIP', "Migration {$ver}");
@@ -786,7 +795,7 @@ function schema_run_versioned_migrations($conn, $showStatusOnly = false) {
         }
 
         $start = microtime(true);
-        $ok = call_user_func($migration['up'], $conn);
+        $ok = call_user_func($upCallable, $conn);
         $elapsedMs = (int) round((microtime(true) - $start) * 1000);
 
         if ($ok) {

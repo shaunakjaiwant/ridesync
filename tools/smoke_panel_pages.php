@@ -245,14 +245,14 @@ $cases = [
         'role' => 'rider',
         'principal' => $rider,
         'path' => 'pages/my_rides.php',
-        'markers' => ['My Rides', 'Post Your First Ride'],
+        'markers' => ['My Trips', 'Offered Rides'],
     ],
     [
         'name' => 'rider my matches',
         'role' => 'rider',
         'principal' => $rider,
         'path' => 'pages/my_matches.php',
-        'markers' => ['My Matches', 'Search Rides'],
+        'markers' => ['My Trips', 'Joined / Requested Rides'],
     ],
     [
         'name' => 'rider insights',
@@ -274,7 +274,7 @@ $cases = [
         'role' => 'driver',
         'principal' => $driver,
         'path' => 'pages/driver_dashboard.php',
-        'markers' => ['driver-app', 'Driver Home', 'driver-metrics-grid'],
+        'markers' => ['driver-app', 'Driver Cockpit', 'driver-metrics-grid'],
     ],
     [
         'name' => 'driver requests',

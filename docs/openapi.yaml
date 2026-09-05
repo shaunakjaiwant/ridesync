@@ -703,6 +703,38 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/user_notifications_check.php:
+    get:
+      tags: [Realtime, RiderDriver]
+      summary: Poll unread notifications and latest notification check for rider or driver.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: since_id
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Unread notification count and latest notification if any.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  unread_count:
+                    type: integer
+                  latest_notification:
+                    type: object
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
 components:
   securitySchemes:
     sessionCookie:

@@ -100,12 +100,6 @@ if (isset($_SESSION['user_id'])) {
 
     <div class="nav-right">
         <?php if (isset($_SESSION['user_id'])): ?>
-            <a href="/ridesync/pages/notifications.php?actor_type=user" class="btn btn-icon-only nav-bell-btn" title="Alerts" aria-label="Alerts">
-                <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                <?php if ($unreadNotifications > 0): ?>
-                    <span class="nav-badge nav-badge-pulse"><?php echo min(99, $unreadNotifications); ?></span>
-                <?php endif; ?>
-            </a>
             <a href="/ridesync/pages/profile.php" class="btn btn-user btn-pill">
                 <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>Profile</span>
@@ -119,5 +113,35 @@ if (isset($_SESSION['user_id'])) {
         <?php endif; ?>
     </div>
 </nav>
+
+<?php if (isset($_SESSION['user_id'])): ?>
+<nav class="mobile-bottom-nav rider-mobile-bottom-nav" aria-label="Rider mobile navigation">
+    <a class="<?php echo $currentPage === 'dashboard.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/dashboard.php" aria-label="Dashboard">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Home</span>
+    </a>
+    <a class="<?php echo $currentPage === 'search_rides.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/search_rides.php" aria-label="Search rides">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <span>Search</span>
+    </a>
+    <a class="<?php echo $currentPage === 'post_ride.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/post_ride.php" aria-label="Post ride">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        <span>Post</span>
+    </a>
+    <a class="<?php echo $currentPage === 'my_rides.php' || $currentPage === 'my_matches.php' || $currentPage === 'ride_detail.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/my_rides.php" aria-label="My trips">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.05 10.9 2 11.2 2 11.5V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+        <span>Trips</span>
+    </a>
+    <a class="<?php echo $currentPage === 'notifications.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/notifications.php?actor_type=user" aria-label="Rider alerts">
+        <span class="mobile-nav-icon-wrap">
+            <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <?php if ($unreadNotifications > 0): ?>
+                <span class="nav-badge nav-badge-pulse"><?php echo min(99, $unreadNotifications); ?></span>
+            <?php endif; ?>
+        </span>
+        <span>Alerts</span>
+    </a>
+</nav>
+<?php endif; ?>
 
 <main class="main-content">

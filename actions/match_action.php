@@ -249,7 +249,7 @@ if ($action === 'accept' && $match_id > 0) {
     mysqli_stmt_execute($updMatch);
 
     $newSeats = (int) $match_data['seats_available'] - 1;
-    $newStatus = $newSeats === 0 ? 'full' : 'open';
+    $newStatus = $newSeats === 0 ? 'closed' : 'open';
     $updRide = mysqli_prepare($conn, "UPDATE rides SET seats_available = ?, status = ? WHERE id = ?");
     mysqli_stmt_bind_param($updRide, "isi", $newSeats, $newStatus, $ride_id);
     mysqli_stmt_execute($updRide);
@@ -260,7 +260,7 @@ if ($action === 'accept' && $match_id > 0) {
             $conn,
             $ride_id,
             $match_id,
-            'Ride fully booked',
+            'Ride is full',
             'All seats on this ride have been filled.'
         );
     }

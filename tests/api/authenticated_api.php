@@ -65,7 +65,7 @@ if (!$isDbAvailable) {
 // Ensure test rider fixture exists
 $riderRes = mysqli_query($conn, "SELECT id, name FROM users LIMIT 1");
 if (!$riderRes || mysqli_num_rows($riderRes) === 0) {
-    mysqli_query($conn, "INSERT INTO users (name, email, password, phone_number, college_name) VALUES ('Test Rider', 'testrider@ridesync.test', '" . password_hash('password123', PASSWORD_DEFAULT) . "', '9876543210', 'SDMIT')");
+    mysqli_query($conn, "INSERT INTO users (name, email, password, college, gender) VALUES ('Test Rider', 'testrider@ridesync.test', '" . password_hash('password123', PASSWORD_DEFAULT) . "', 'SDMIT', 'Male')");
     $riderId = (int) mysqli_insert_id($conn);
 } else {
     $row = mysqli_fetch_assoc($riderRes);
@@ -138,7 +138,7 @@ if (empty($caseFailures)) {
 // Ensure test admin fixture exists
 $adminRes = mysqli_query($conn, "SELECT id, name, email FROM admin_users WHERE status = 'active' AND role IN ('super_admin', 'admin') LIMIT 1");
 if (!$adminRes || mysqli_num_rows($adminRes) === 0) {
-    mysqli_query($conn, "INSERT INTO admin_users (name, email, password_hash, role, status) VALUES ('Test Admin', 'testadmin@ridesync.test', '" . password_hash('password123', PASSWORD_DEFAULT) . "', 'super_admin', 'active')");
+    mysqli_query($conn, "INSERT INTO admin_users (name, email, password, role, status) VALUES ('Test Admin', 'testadmin@ridesync.test', '" . password_hash('password123', PASSWORD_DEFAULT) . "', 'super_admin', 'active')");
     $adminId = (int) mysqli_insert_id($conn);
 } else {
     $row = mysqli_fetch_assoc($adminRes);

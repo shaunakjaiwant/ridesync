@@ -229,7 +229,7 @@ function ridesyncDebounce(callback, wait) {
 }
 
 function initNavigationPrefetch() {
-    var links = document.querySelectorAll('.nav-links a[href], .driver-nav-links a[href], .admin-side-nav a[href], .admin-section-tabs a[href], .nav-right .btn-user[href], .driver-action-row a[href], .quick-actions a[href]');
+    var links = document.querySelectorAll('.nav-links a[href], .driver-nav-links a[href], .mobile-bottom-nav a[href], .admin-side-nav a[href], .admin-section-tabs a[href], .nav-right .btn-user[href], .driver-action-row a[href], .quick-actions a[href]');
     if (!links.length || !document.head) {
         return;
     }
@@ -627,7 +627,7 @@ function initMobileActiveNavigation() {
         return;
     }
 
-    document.querySelectorAll('.admin-side-nav, .rider-app .nav-links, .driver-app:not(.admin-app) .driver-nav-links').forEach(function (nav) {
+    document.querySelectorAll('.admin-side-nav, .rider-app .nav-links, .driver-app:not(.admin-app) .driver-nav-links, .mobile-bottom-nav').forEach(function (nav) {
         var active = nav.querySelector('a.is-active');
         if (!active || typeof active.scrollIntoView !== 'function') return;
 

@@ -124,34 +124,43 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
 
 <nav class="panel-action-rail quick-actions" aria-label="Primary rider actions">
     <a class="panel-action-card is-primary" href="/ridesync/pages/post_ride.php">
-        <div class="action-card-header">
+        <div class="action-card-left">
             <span class="action-icon-badge">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             </span>
-            <span>Offer</span>
+            <div class="action-card-body">
+                <span class="action-kicker">OFFER</span>
+                <strong>Post Ride</strong>
+                <small>Share a route & split costs.</small>
+            </div>
         </div>
-        <strong>Post Ride</strong>
-        <small>Share a route & split costs.</small>
+        <span class="action-card-arrow">&rarr;</span>
     </a>
-    <a class="panel-action-card" href="/ridesync/pages/search_rides.php">
-        <div class="action-card-header">
+    <a class="panel-action-card accent-blue-card" href="/ridesync/pages/search_rides.php">
+        <div class="action-card-left">
             <span class="action-icon-badge accent-blue">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
-            <span>Find</span>
+            <div class="action-card-body">
+                <span class="action-kicker">FIND</span>
+                <strong>Search Rides</strong>
+                <small>Join an open student trip.</small>
+            </div>
         </div>
-        <strong>Search Rides</strong>
-        <small>Join an open student trip.</small>
+        <span class="action-card-arrow">&rarr;</span>
     </a>
-    <a class="panel-action-card" href="/ridesync/pages/my_rides.php">
-        <div class="action-card-header">
+    <a class="panel-action-card accent-purple-card" href="/ridesync/pages/my_rides.php">
+        <div class="action-card-left">
             <span class="action-icon-badge accent-purple">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </span>
-            <span>Manage</span>
+            <div class="action-card-body">
+                <span class="action-kicker">MANAGE</span>
+                <strong>My Trips</strong>
+                <small>Review matches & requests.</small>
+            </div>
         </div>
-        <strong>My Trips</strong>
-        <small>Review matches & requests.</small>
+        <span class="action-card-arrow">&rarr;</span>
     </a>
 </nav>
 
@@ -235,7 +244,11 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
     <div class="dashboard-section">
         <h2>Your Recent Requests</h2>
         <?php if (mysqli_num_rows($recentMatches) === 0): ?>
-            <p class="empty-state">No requests yet. <a href="/ridesync/pages/search_rides.php">Find a ride!</a></p>
+            <div class="empty-state-dashed">
+                <svg class="ui-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <p>No requests yet.</p>
+                <a href="/ridesync/pages/search_rides.php" class="btn btn-secondary btn-sm">Find a ride!</a>
+            </div>
         <?php else: ?>
             <ul class="mini-ride-list" style="list-style: none; padding: 0;">
                 <?php while ($match = mysqli_fetch_assoc($recentMatches)): ?>

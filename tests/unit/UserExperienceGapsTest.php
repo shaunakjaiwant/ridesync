@@ -11,6 +11,7 @@ class UserExperienceGapsTest extends TestCase
     protected function setUp(): void
     {
         global $conn;
+        $conn = $conn ?? ($GLOBALS['conn'] ?? null);
         if (!$conn instanceof mysqli) {
             $this->markTestSkipped('Database connection unavailable for unit test execution.');
         }

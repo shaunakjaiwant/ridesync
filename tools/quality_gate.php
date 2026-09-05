@@ -1,22 +1,3 @@
-<?php
-require_once __DIR__ . '/../config/bootstrap.php';
-
-$root = realpath(__DIR__ . '/..');
-$failures = [];
-
-function qg_note($status, $message) {
-    echo '[' . $status . '] ' . $message . PHP_EOL;
-}
-
-function qg_run($command, $cwd, &$output = null) {
-    $descriptor = [
-        1 => ['pipe', 'w'],
-        2 => ['pipe', 'w'],
-    ];
-    $process = proc_open($command, $descriptor, $pipes, $cwd);
-    if (!is_resource($process)) {
-        $output = 'Could not start command: ' . $command;
-        return 1;
     }
 
     $stdout = stream_get_contents($pipes[1]);

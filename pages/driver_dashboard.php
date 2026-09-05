@@ -34,7 +34,6 @@ require_once __DIR__ . '/../includes/driver_header.php';
 ?>
 
 <div data-driver-live>
-<div data-driver-live>
 <div class="driver-page-header driver-cockpit-header">
     <div>
         <div class="driver-kicker-badge">

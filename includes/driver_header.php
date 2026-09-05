@@ -64,9 +64,9 @@ if (isset($_SESSION['driver_id'])) {
     </ul>
 
     <div class="driver-nav-actions">
-        <a href="/ridesync/pages/driver_profile.php" class="btn btn-user btn-pill">
+        <a href="/ridesync/pages/driver_profile.php" class="btn btn-user btn-pill" title="Profile" aria-label="Profile">
             <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Profile
+            <span>Profile</span>
         </a>
         <form action="/ridesync/actions/driver_auth_action.php" method="POST" class="nav-inline-form">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -77,5 +77,35 @@ if (isset($_SESSION['driver_id'])) {
         </form>
     </div>
 </nav>
+
+<?php if (isset($_SESSION['driver_id'])): ?>
+<nav class="mobile-bottom-nav driver-mobile-bottom-nav" aria-label="Driver mobile navigation">
+    <a class="<?php echo $currentDriverPage === 'driver_dashboard.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_dashboard.php" aria-label="Driver home">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Home</span>
+    </a>
+    <a class="<?php echo $currentDriverPage === 'driver_requests.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_requests.php" aria-label="Request queue">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+        <span>Queue</span>
+    </a>
+    <a class="<?php echo $currentDriverPage === 'driver_earnings.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_earnings.php" aria-label="Earnings">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Earn</span>
+    </a>
+    <a class="<?php echo $currentDriverPage === 'driver_history.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_history.php" aria-label="Trip history">
+        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
+        <span>History</span>
+    </a>
+    <a class="<?php echo $currentDriverPage === 'notifications.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/notifications.php?actor_type=driver" aria-label="Driver alerts">
+        <span class="mobile-nav-icon-wrap">
+            <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <?php if ($unreadNotifications > 0): ?>
+                <span class="nav-badge nav-badge-pulse"><?php echo min(99, $unreadNotifications); ?></span>
+            <?php endif; ?>
+        </span>
+        <span>Alerts</span>
+    </a>
+</nav>
+<?php endif; ?>
 
 <main class="driver-main">
