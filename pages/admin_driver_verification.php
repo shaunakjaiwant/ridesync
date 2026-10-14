@@ -214,6 +214,22 @@ require_once __DIR__ . '/../includes/admin_header.php';
 <?php ridesync_flash('admin_success', 'alert-success'); ?>
 <?php ridesync_flash('admin_error', 'alert-error'); ?>
 
+<?php
+$kycProviderName = trim((string) ridesync_env('RIDESYNC_KYC_PROVIDER', 'mock_compliance_provider'));
+$isMockKyc = empty(ridesync_env('RIDESYNC_KYC_PROVIDER_URL')) || in_array($kycProviderName, ['mock', 'mock_compliance_provider'], true);
+?>
+<?php if ($isMockKyc): ?>
+    <div class="admin-kyc-mode-banner" style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin: 16px 0; padding:12px 18px; border-radius:12px; background:rgba(99, 102, 241, 0.08); border:1px solid rgba(99, 102, 241, 0.25);">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <span class="badge badge-warning" style="font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Synthetic Demo Sandbox</span>
+            <span style="font-size:0.9rem; color:var(--text, #334155); line-height:1.4;">
+                Operating via <strong>Simulated Compliance Provider</strong> (<code><?php echo htmlspecialchars($kycProviderName); ?></code>). Document OCR extraction and fraud heuristics are live; government database checks are simulated for demonstration integrity.
+            </span>
+        </div>
+        <span class="badge badge-verified" style="white-space:nowrap;">Exhibition Ready</span>
+    </div>
+<?php endif; ?>
+
 <section class="admin-kyc-hero" data-driver-verification="<?php echo (int) $driverId; ?>" data-verification-session="<?php echo (int) ($verificationSession['id'] ?? 0); ?>">
     <div class="admin-kyc-score">
         <span>AI Trust Score</span>

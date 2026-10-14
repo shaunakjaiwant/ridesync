@@ -222,9 +222,9 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
                     <li>
                         <a href="/ridesync/pages/ride_detail.php?id=<?php echo $ride['id']; ?>" class="mini-ride-item">
                             <div class="mini-ride-route">
-                                <strong><?php echo htmlspecialchars($ride['origin']); ?></strong>
+                                <strong><?php echo ridesync_render_short_address($ride['origin'], 26); ?></strong>
                                 <span class="arrow">&rarr;</span>
-                                <strong><?php echo htmlspecialchars($ride['destination']); ?></strong>
+                                <strong><?php echo ridesync_render_short_address($ride['destination'], 26); ?></strong>
                             </div>
                             <div class="mini-ride-meta">
                                 <span><?php echo date('M j', strtotime($ride['travel_date'])); ?> at <?php echo date('g:i A', strtotime($ride['travel_time'])); ?></span>
@@ -255,9 +255,9 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
                     <li>
                         <a href="/ridesync/pages/ride_detail.php?id=<?php echo $match['ride_id']; ?>" class="mini-ride-item">
                             <div class="mini-ride-route">
-                                <strong><?php echo htmlspecialchars($match['origin']); ?></strong>
+                                <strong><?php echo ridesync_render_short_address($match['origin'], 26); ?></strong>
                                 <span class="arrow">&rarr;</span>
-                                <strong><?php echo htmlspecialchars($match['destination']); ?></strong>
+                                <strong><?php echo ridesync_render_short_address($match['destination'], 26); ?></strong>
                             </div>
                             <div class="mini-ride-meta">
                                 <span>By <?php echo htmlspecialchars($match['poster_name']); ?></span>
@@ -293,7 +293,7 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
                 <?php foreach ($popularRoutes as $route): ?>
                     <article class="route-heat-item">
                         <div>
-                            <strong><?php echo htmlspecialchars($route['origin']); ?> &rarr; <?php echo htmlspecialchars($route['destination']); ?></strong>
+                            <strong><?php echo ridesync_render_short_address($route['origin'], 26); ?> <span class="route-arrow">&rarr;</span> <?php echo ridesync_render_short_address($route['destination'], 26); ?></strong>
                             <span><?php echo (int) $route['rides']; ?> rides &middot; <?php echo (int) $route['demand']; ?> waiting</span>
                         </div>
                         <div class="route-heat-score">
@@ -332,7 +332,7 @@ $walletSummary = ridesync_wallet_summary($conn, (int) $userId);
             <div class="route-demand-mini">
                 <h3>Your active demand</h3>
                 <?php foreach ($myDemandSignals as $signal): ?>
-                    <p><?php echo htmlspecialchars($signal['origin']); ?> &rarr; <?php echo htmlspecialchars($signal['destination']); ?></p>
+                    <p><?php echo ridesync_render_short_address($signal['origin'], 26); ?> <span class="route-arrow">&rarr;</span> <?php echo ridesync_render_short_address($signal['destination'], 26); ?></p>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>

@@ -59,7 +59,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php $shortcutExtra = (int) ($shortcut['sample_ride_id'] ?? 0) > 0 ? ['rebook_ride_id' => (int) $shortcut['sample_ride_id']] : []; ?>
                     <a class="smart-route-chip" href="/ridesync/pages/post_ride.php?<?php echo htmlspecialchars(ridesync_route_query($shortcut, $shortcutExtra)); ?>">
                         <span><?php echo htmlspecialchars($shortcut['label']); ?></span>
-                        <strong><?php echo htmlspecialchars($shortcut['origin']); ?> &rarr; <?php echo htmlspecialchars($shortcut['destination']); ?></strong>
+                        <strong>
+                            <?php echo ridesync_render_short_address($shortcut['origin'], 24); ?>
+                            <span class="route-arrow">&rarr;</span>
+                            <?php echo ridesync_render_short_address($shortcut['destination'], 24); ?>
+                        </strong>
                         <small><?php echo htmlspecialchars($shortcut['meta']); ?></small>
                     </a>
                 <?php endforeach; ?>

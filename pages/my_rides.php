@@ -182,6 +182,25 @@ if (count($rideIds) > 0) {
     $m_stmt->close();
 }
 
+// Calculate total joined and requested count for tab
+$requestedCount = 0;
+$cntStmt = $conn->prepare("SELECT COUNT(*) AS total FROM matches WHERE matched_user_id = ?");
+if ($cntStmt) {
+    $cntStmt->bind_param("i", $user_id);
+    $cntStmt->execute();
+    $requestedCount += (int) ($cntStmt->get_result()->fetch_assoc()['total'] ?? 0);
+    $cntStmt->close();
+}
+if (ridesync_table_exists($conn, 'driver_ride_requests')) {
+    $cntStmt2 = $conn->prepare("SELECT COUNT(*) AS total FROM driver_ride_requests WHERE rider_user_id = ?");
+    if ($cntStmt2) {
+        $cntStmt2->bind_param("i", $user_id);
+        $cntStmt2->execute();
+        $requestedCount += (int) ($cntStmt2->get_result()->fetch_assoc()['total'] ?? 0);
+        $cntStmt2->close();
+    }
+}
+
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
@@ -195,7 +214,7 @@ require_once __DIR__ . '/../includes/header.php';
         Offered Rides (<?php echo count($rides); ?>)
     </a>
     <a href="/ridesync/pages/my_matches.php" class="tab-btn">
-        Joined / Requested Rides
+        Joined / Requested Rides (<?php echo $requestedCount; ?>)
     </a>
 </nav>
 
@@ -227,7 +246,11 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="ride-manage-card <?php echo $ride['status'] !== 'open' ? 'ride-closed' : ''; ?>">
             <div class="ride-manage-header">
                 <div>
-                    <h2><?php echo htmlspecialchars($ride['origin']); ?> &rarr; <?php echo htmlspecialchars($ride['destination']); ?></h2>
+                    <h2>
+                        <a href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $ride['id']; ?>" style="color: inherit; text-decoration: none;" title="Open live trip tracking & details">
+                            <?php echo ridesync_render_short_address($ride['origin'], 32); ?> <span class="route-arrow">&rarr;</span> <?php echo ridesync_render_short_address($ride['destination'], 32); ?>
+                        </a>
+                    </h2>
                     <p class="ride-meta">
                         Date <?php echo date('M j, Y', strtotime($ride['travel_date'])); ?>
                         &nbsp;&middot;&nbsp;
@@ -243,6 +266,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </p>
                 </div>
                 <div class="ride-manage-actions">
+                    <a class="btn btn-secondary btn-sm" href="/ridesync/pages/ride_detail.php?id=<?php echo (int) $ride['id']; ?>">View Details</a>
                     <?php if ($canCloseRide): ?>
                         <form method="POST" style="display:inline;" data-confirm-message="Close this ride to new join requests?">
                             <input type="hidden" name="ride_id" value="<?php echo $ride['id']; ?>">

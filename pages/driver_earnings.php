@@ -79,7 +79,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
             <?php while ($trip = mysqli_fetch_assoc($recentTrips)): ?>
                 <div class="driver-list-item">
                     <div>
-                        <strong><?php echo htmlspecialchars($trip['pickup']); ?> <span class="route-arrow">&rarr;</span> <?php echo htmlspecialchars($trip['drop_location']); ?></strong>
+                        <strong><?php echo ridesync_render_short_address($trip['pickup'], 28); ?> <span class="route-arrow">&rarr;</span> <?php echo ridesync_render_short_address($trip['drop_location'], 28); ?></strong>
                         <span><?php echo number_format((float) $trip['distance_km'], 1); ?> km &middot; <?php echo date('M j, g:i A', strtotime($trip['completed_at'])); ?></span>
                     </div>
                     <strong><?php echo ridesync_format_money($trip['fare']); ?></strong>

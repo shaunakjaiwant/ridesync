@@ -85,18 +85,18 @@ $adminNavItems = [
 
     <div class="admin-topbar-right">
         <!-- Live Service Status Telemetry -->
-        <div class="admin-telemetry-strip" style="display: inline-flex; gap: 0.4rem; align-items: center; margin-right: 0.5rem;">
-            <span class="badge badge-accepted" title="Database Connected" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-                DB
+        <div class="admin-telemetry-strip">
+            <span class="telemetry-pill is-online" title="Database: Connected & Healthy">
+                <span class="telemetry-dot"></span>
+                <span class="telemetry-label">DB</span>
             </span>
-            <span class="badge badge-accepted" title="AI Engine Operational" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
-                AI
+            <span class="telemetry-pill is-online" title="AI Verification: Active & Processing">
+                <span class="telemetry-dot"></span>
+                <span class="telemetry-label">AI</span>
             </span>
-            <span class="badge badge-accepted" title="WebSocket Gateway Operational" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-                WS
+            <span class="telemetry-pill is-online" title="WebSocket Gateway: Live & Connected">
+                <span class="telemetry-dot"></span>
+                <span class="telemetry-label">WS</span>
             </span>
         </div>
         <a class="admin-mobile-profile-link mobile-only" href="/ridesync/pages/admin_dashboard.php?section=profiles" aria-label="View admin profiles">
@@ -107,15 +107,18 @@ $adminNavItems = [
             </span>
         </a>
         <div class="admin-profile-chip">
-            <strong><?php echo htmlspecialchars($_SESSION['admin_name'] ?? 'Admin'); ?></strong>
-            <span><?php echo htmlspecialchars($_SESSION['admin_role'] ?? 'operator'); ?></span>
+            <span class="admin-profile-avatar"><?php echo htmlspecialchars(strtoupper(substr($_SESSION['admin_name'] ?? 'A', 0, 1))); ?></span>
+            <div class="admin-profile-meta">
+                <strong><?php echo htmlspecialchars($_SESSION['admin_name'] ?? 'Admin'); ?></strong>
+                <span class="admin-role-badge"><?php echo htmlspecialchars($_SESSION['admin_role'] ?? 'operator'); ?></span>
+            </div>
         </div>
-        <form action="/ridesync/actions/admin_auth_action.php" method="POST">
+        <form action="/ridesync/actions/admin_auth_action.php" method="POST" class="admin-logout-form">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
             <input type="hidden" name="action_type" value="logout">
-            <button type="submit" class="btn btn-logout btn-sm">Logout</button>
+            <button type="submit" class="btn btn-logout btn-sm" title="Sign out of admin session">Logout</button>
         </form>
     </div>
 </header>
 
-<main class="driver-main admin-main">
+<main class="admin-main">

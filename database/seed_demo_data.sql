@@ -1,5 +1,8 @@
 -- RideSync non-destructive demo seed.
--- Demo password for all seeded accounts: password123
+-- Demo credentials:
+-- Rider: demo.rider@ridesync.test / password123
+-- Driver: demo.driver@ridesync.test / password123
+-- Admin: ridesync@admin.com / 12345678
 
 USE ridesync_db;
 
@@ -81,8 +84,9 @@ WHERE u.email = 'demo.rider@ridesync.test'
 ON DUPLICATE KEY UPDATE live_status = VALUES(live_status), note = VALUES(note);
 
 INSERT INTO admin_users (name, email, password, role, status)
-VALUES ('Demo Admin', 'demo.admin@ridesync.test', '$2y$10$NXachYJvyLdOzSTpm0TA3Ox0aB4P6YRhIeJJnnBGtDrwFGV1aKXF6', 'super_admin', 'active')
+VALUES ('RideSync Admin', 'ridesync@admin.com', '$2y$10$eb17g17.3KHfoRr6RgiF2OPfjTFrGidzfoZq2II0mfmGvJG9lMvOC', 'super_admin', 'active')
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
+  password = VALUES(password),
   role = VALUES(role),
   status = VALUES(status);

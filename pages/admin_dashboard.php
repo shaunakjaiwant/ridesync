@@ -1184,7 +1184,7 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
 </script>
 
 <div class="admin-command-center" data-admin-command-center>
-    <nav class="segmented-tab-nav admin-top-tab-bar" aria-label="Admin panel sections" style="margin-bottom: 1.5rem;">
+    <nav class="segmented-tab-nav admin-top-tab-bar" aria-label="Admin panel sections">
         <?php foreach ($adminNavItems as $item): ?>
             <?php
                 $navKey = $item['key'];
@@ -1198,6 +1198,8 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                 <?php echo htmlspecialchars($label); ?>
             </a>
         <?php endforeach; ?>
+        <a class="tab-btn admin-portal-pill mobile-only" href="/ridesync/pages/dashboard.php" title="Switch to Rider view">↗ Rider</a>
+        <a class="tab-btn admin-portal-pill mobile-only" href="/ridesync/pages/driver_login.php" title="Switch to Driver view">↗ Driver</a>
     </nav>
 
     <?php if (count($activeSosAlerts) > 0): ?>
@@ -1740,38 +1742,38 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                                     <strong><?php echo htmlspecialchars($driver['name']); ?></strong>
                                     <span><?php echo htmlspecialchars($driver['email']); ?></span>
                                 </td>
-                                <td>
+                                <td class="admin-nowrap">
                                     <span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($profileStatus)); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($profileStatus)); ?></span>
                                     <small><?php echo htmlspecialchars(ridesync_admin_status_label($driver['account_status'])); ?></small>
                                 </td>
-                                <td>
+                                <td class="admin-nowrap">
                                     <?php if (!empty($driver['ai_session_id'])): ?>
                                         <span class="badge badge-<?php echo htmlspecialchars(ridesync_verification_badge_class($aiStatus)); ?>">
                                             <?php echo htmlspecialchars(ridesync_verification_status_label($aiStatus)); ?>
                                         </span>
-                                        <small><?php echo (int) round((float) $driver['ai_confidence_score']); ?> score, <?php echo htmlspecialchars(ucfirst((string) $driver['ai_risk_level'])); ?> risk</small>
+                                        <small><?php echo (int) round((float) $driver['ai_confidence_score']); ?> score · <?php echo htmlspecialchars(ucfirst((string) $driver['ai_risk_level'])); ?> risk</small>
                                     <?php else: ?>
                                         <span class="badge badge-closed">Not Run</span>
                                         <small>Awaiting analysis</small>
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <strong><?php echo htmlspecialchars($docSummary['label']); ?></strong>
-                                    <span><?php echo (int) $driver['pending_documents']; ?> pending, <?php echo (int) $driver['total_documents']; ?> total</span>
+                                <td class="admin-nowrap">
+                                    <strong><?php echo (int) $docSummary['verified']; ?>/4 checks</strong>
+                                    <span><?php echo (int) $driver['pending_documents']; ?> pending</span>
                                 </td>
-                                <td>
+                                <td class="admin-nowrap">
                                     <span class="admin-status-dot is-<?php echo htmlspecialchars($driver['availability_status']); ?>"></span>
                                     <?php echo htmlspecialchars(ridesync_admin_status_label($driver['availability_status'])); ?>
                                 </td>
-                                <td>
-                                    <strong><?php echo htmlspecialchars($driver['vehicle_number'] ?: 'Not submitted'); ?></strong>
-                                    <span><?php echo htmlspecialchars(($driver['vehicle_type'] ?: 'Vehicle') . ' - ' . ((int) $driver['seating_capacity']) . ' seats'); ?></span>
+                                <td class="admin-nowrap">
+                                    <strong class="admin-nowrap-text" style="letter-spacing: 0.03em; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;"><?php echo htmlspecialchars($driver['vehicle_number'] ?: 'Not submitted'); ?></strong>
+                                    <span><?php echo htmlspecialchars(($driver['vehicle_type'] ?: 'Vehicle') . ' · ' . ((int) $driver['seating_capacity']) . ' seats'); ?></span>
                                 </td>
-                                <td>
+                                <td class="admin-nowrap">
                                     <strong><?php echo (int) $driver['completed_trips']; ?> trips</strong>
-                                    <span><?php echo (int) $driver['pending_requests']; ?> pending, <?php echo (int) $driver['assigned_rides']; ?> assigned</span>
+                                    <span><?php echo (int) $driver['pending_requests']; ?> pend · <?php echo (int) $driver['assigned_rides']; ?> asgd</span>
                                 </td>
-                                <td>
+                                <td class="admin-nowrap">
                                     <div class="admin-row-actions">
                                         <button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
                                             'kicker' => 'Driver',
@@ -1891,37 +1893,39 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                             <tr data-search="<?php echo htmlspecialchars($userSearch); ?>" data-status="<?php echo htmlspecialchars($user['verification_status']); ?>">
                                 <td><strong><?php echo htmlspecialchars($user['name']); ?></strong><span><?php echo htmlspecialchars($user['email']); ?></span></td>
                                 <td><?php echo htmlspecialchars($user['college']); ?></td>
-                                <td><span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($user['verification_status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($user['verification_status'])); ?></span></td>
-                                <td><strong><?php echo (int) $user['rides_posted']; ?></strong><span><?php echo (int) $user['open_rides']; ?> open, <?php echo (int) $user['pending_incoming_requests']; ?> waiting</span></td>
-                                <td>
+                                <td class="admin-nowrap"><span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($user['verification_status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($user['verification_status'])); ?></span></td>
+                                <td class="admin-nowrap"><strong><?php echo (int) $user['rides_posted']; ?></strong><span><?php echo (int) $user['open_rides']; ?> open, <?php echo (int) $user['pending_incoming_requests']; ?> waiting</span></td>
+                                <td class="admin-nowrap">
                                     <strong><?php echo htmlspecialchars($linkedDriverLabel); ?></strong>
                                     <span><?php echo htmlspecialchars(!empty($user['linked_driver_id']) ? ridesync_admin_status_label($user['linked_driver_availability']) : 'Rider only'); ?></span>
                                 </td>
-                                <td><?php echo (int) $user['reports_against']; ?><span><?php echo (int) $user['reports_filed']; ?> filed</span></td>
-                                <td>Rs <?php echo number_format((float) $user['pending_due'], 0); ?></td>
-                                <td>
-                                    <button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
-                                        'kicker' => 'User',
-                                        'title' => $user['name'],
-                                        'fields' => [
-                                            'Email' => $user['email'],
-                                            'College' => $user['college'],
-                                            'Gender' => $user['gender'],
-                                            'Verification' => ridesync_admin_status_label($user['verification_status']),
-                                            'Rides Posted' => $user['rides_posted'],
-                                            'Open Rides' => $user['open_rides'],
-                                            'Incoming Requests Waiting' => $user['pending_incoming_requests'],
-                                            'Join Requests' => $user['join_requests'],
-                                            'Accepted Join Requests' => $user['accepted_join_requests'],
-                                            'Driver Link' => $linkedDriverLabel,
-                                            'Reports Against' => $user['reports_against'],
-                                            'Reports Filed' => $user['reports_filed'],
-                                            'Pending Fare Due' => 'Rs ' . number_format((float) $user['pending_due'], 2),
-                                            'Joined' => date('M j, Y', strtotime($user['created_at'])),
-                                        ],
-                                        'links' => $userLinks,
-                                    ]); ?>">Inspect</button>
-                                    <a class="btn btn-secondary btn-sm" href="/ridesync/pages/admin_user_detail.php?user_id=<?php echo (int) $user['id']; ?>">Open</a>
+                                <td class="admin-nowrap"><?php echo (int) $user['reports_against']; ?><span><?php echo (int) $user['reports_filed']; ?> filed</span></td>
+                                <td class="admin-nowrap">Rs <?php echo number_format((float) $user['pending_due'], 0); ?></td>
+                                <td class="admin-nowrap">
+                                    <div class="admin-row-actions">
+                                        <button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
+                                            'kicker' => 'User',
+                                            'title' => $user['name'],
+                                            'fields' => [
+                                                'Email' => $user['email'],
+                                                'College' => $user['college'],
+                                                'Gender' => $user['gender'],
+                                                'Verification' => ridesync_admin_status_label($user['verification_status']),
+                                                'Rides Posted' => $user['rides_posted'],
+                                                'Open Rides' => $user['open_rides'],
+                                                'Incoming Requests Waiting' => $user['pending_incoming_requests'],
+                                                'Join Requests' => $user['join_requests'],
+                                                'Accepted Join Requests' => $user['accepted_join_requests'],
+                                                'Driver Link' => $linkedDriverLabel,
+                                                'Reports Against' => $user['reports_against'],
+                                                'Reports Filed' => $user['reports_filed'],
+                                                'Pending Fare Due' => 'Rs ' . number_format((float) $user['pending_due'], 2),
+                                                'Joined' => date('M j, Y', strtotime($user['created_at'])),
+                                            ],
+                                            'links' => $userLinks,
+                                        ]); ?>">Inspect</button>
+                                        <a class="btn btn-secondary btn-sm" href="/ridesync/pages/admin_user_detail.php?user_id=<?php echo (int) $user['id']; ?>">Open</a>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -2131,13 +2135,16 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                                 }
                             ?>
                             <tr data-search="<?php echo htmlspecialchars($rideSearch); ?>" data-status="<?php echo htmlspecialchars($ride['status'] . ' ' . $ride['live_status']); ?>">
-                                <td><strong>#<?php echo (int) $ride['id']; ?> <?php echo htmlspecialchars($ride['origin']); ?> &rarr; <?php echo htmlspecialchars($ride['destination']); ?></strong><span><?php echo htmlspecialchars(date('M j', strtotime($ride['travel_date'])) . ' - ' . date('g:i A', strtotime($ride['travel_time']))); ?></span></td>
+                                <td>
+                                    <strong class="admin-route-link">#<?php echo (int) $ride['id']; ?> <?php echo ridesync_render_short_address($ride['origin'], 26); ?> &rarr; <?php echo ridesync_render_short_address($ride['destination'], 26); ?></strong>
+                                    <span><?php echo htmlspecialchars(date('M j', strtotime($ride['travel_date'])) . ' - ' . date('g:i A', strtotime($ride['travel_time']))); ?></span>
+                                </td>
                                 <td><strong><?php echo htmlspecialchars($ride['owner_name']); ?></strong><span><?php echo htmlspecialchars($ride['owner_email']); ?></span></td>
-                                <td><span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($ride['live_status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($ride['live_status'])); ?></span></td>
-                                <td><?php echo (int) $ride['seats_available']; ?></td>
-                                <td><?php echo (int) $ride['accepted_requests']; ?>/<?php echo (int) $ride['total_requests']; ?><span><?php echo (int) $ride['pending_requests']; ?> pending</span></td>
-                                <td><?php echo $ride['route_distance_km'] !== null ? number_format((float) $ride['route_distance_km'], 1) . ' km' : 'Not mapped'; ?></td>
-                                <td><div class="admin-row-actions"><button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
+                                <td class="admin-nowrap"><span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($ride['live_status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($ride['live_status'])); ?></span></td>
+                                <td class="admin-nowrap text-center"><?php echo (int) $ride['seats_available']; ?></td>
+                                <td class="admin-nowrap"><?php echo (int) $ride['accepted_requests']; ?>/<?php echo (int) $ride['total_requests']; ?><span><?php echo (int) $ride['pending_requests']; ?> pending</span></td>
+                                <td class="admin-nowrap"><?php echo $ride['route_distance_km'] !== null ? number_format((float) $ride['route_distance_km'], 1) . ' km' : 'Not mapped'; ?></td>
+                                <td class="admin-nowrap"><div class="admin-row-actions"><button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
                                     'kicker' => 'Ride',
                                     'title' => '#' . $ride['id'] . ' ' . $ride['origin'] . ' -> ' . $ride['destination'],
                                     'fields' => [
@@ -2192,13 +2199,16 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                                 $requestSearch = ridesync_admin_search_blob([$request['id'], $request['pickup'], $request['drop_location'], $request['rider_name'], $request['rider_email'], $request['driver_name'], $request['driver_email'], $request['request_status']]);
                             ?>
                             <tr data-search="<?php echo htmlspecialchars($requestSearch); ?>" data-status="<?php echo htmlspecialchars($request['request_status']); ?>">
-                                <td><strong>#<?php echo (int) $request['id']; ?> <?php echo htmlspecialchars($request['pickup']); ?> &rarr; <?php echo htmlspecialchars($request['drop_location']); ?></strong><span><?php echo htmlspecialchars(date('M j, g:i A', strtotime($request['requested_at']))); ?></span></td>
+                                <td>
+                                    <strong class="admin-route-link">#<?php echo (int) $request['id']; ?> <?php echo ridesync_render_short_address($request['pickup'], 24); ?> &rarr; <?php echo ridesync_render_short_address($request['drop_location'], 24); ?></strong>
+                                    <span><?php echo htmlspecialchars(date('M j, g:i A', strtotime($request['requested_at']))); ?></span>
+                                </td>
                                 <td><?php echo htmlspecialchars($request['rider_name'] ?: 'Guest rider'); ?><span><?php echo htmlspecialchars($request['rider_email'] ?: 'No email'); ?></span></td>
                                 <td><?php echo htmlspecialchars($request['driver_name']); ?><span><?php echo htmlspecialchars($request['driver_email']); ?></span></td>
-                                <td><span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($request['request_status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($request['request_status'])); ?></span></td>
-                                <td>Rs <?php echo number_format((float) $request['estimated_fare'], 0); ?></td>
-                                <td><?php echo $request['route_distance_km'] !== null ? number_format((float) $request['route_distance_km'], 1) . ' km' : 'Not mapped'; ?></td>
-                                <td><button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
+                                <td class="admin-nowrap"><span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($request['request_status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($request['request_status'])); ?></span></td>
+                                <td class="admin-nowrap">Rs <?php echo number_format((float) $request['estimated_fare'], 0); ?></td>
+                                <td class="admin-nowrap"><?php echo $request['route_distance_km'] !== null ? number_format((float) $request['route_distance_km'], 1) . ' km' : 'Not mapped'; ?></td>
+                                <td class="admin-nowrap"><button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
                                     'kicker' => 'Direct Request',
                                     'title' => '#' . $request['id'] . ' ' . $request['pickup'] . ' -> ' . $request['drop_location'],
                                     'fields' => [
@@ -2250,13 +2260,16 @@ window.RideSyncAdminMap = <?php echo json_encode($mapPayload, JSON_HEX_TAG | JSO
                                 $communitySearch = ridesync_admin_search_blob([$request['ride_id'], $request['origin'], $request['destination'], $request['requester_name'], $request['requester_email'], $request['owner_name'], $request['status']]);
                             ?>
                             <tr data-search="<?php echo htmlspecialchars($communitySearch); ?>" data-status="<?php echo htmlspecialchars($request['status']); ?>">
-                                <td><strong>#<?php echo (int) $request['ride_id']; ?> <?php echo htmlspecialchars($request['origin']); ?> &rarr; <?php echo htmlspecialchars($request['destination']); ?></strong><span><?php echo htmlspecialchars(date('M j', strtotime($request['travel_date'])) . ' - ' . date('g:i A', strtotime($request['travel_time']))); ?></span></td>
+                                <td>
+                                    <strong class="admin-route-link">#<?php echo (int) $request['ride_id']; ?> <?php echo ridesync_render_short_address($request['origin'], 24); ?> &rarr; <?php echo ridesync_render_short_address($request['destination'], 24); ?></strong>
+                                    <span><?php echo htmlspecialchars(date('M j', strtotime($request['travel_date'])) . ' - ' . date('g:i A', strtotime($request['travel_time']))); ?></span>
+                                </td>
                                 <td><?php echo htmlspecialchars($request['requester_name']); ?><span><?php echo htmlspecialchars($request['requester_email']); ?></span></td>
                                 <td><?php echo htmlspecialchars($request['owner_name']); ?></td>
-                                <td><span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($request['status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($request['status'])); ?></span></td>
-                                <td><?php echo $request['match_score'] !== null ? number_format((float) $request['match_score'], 0) . '%' : 'Manual'; ?></td>
-                                <td><?php echo $request['route_overlap_percent'] !== null ? (int) $request['route_overlap_percent'] . '%' : 'Unknown'; ?></td>
-                                <td><button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
+                                <td class="admin-nowrap"><span class="badge badge-<?php echo htmlspecialchars(ridesync_admin_status_class($request['status'])); ?>"><?php echo htmlspecialchars(ridesync_admin_status_label($request['status'])); ?></span></td>
+                                <td class="admin-nowrap"><?php echo $request['match_score'] !== null ? number_format((float) $request['match_score'], 0) . '%' : 'Manual'; ?></td>
+                                <td class="admin-nowrap"><?php echo $request['route_overlap_percent'] !== null ? (int) $request['route_overlap_percent'] . '%' : 'Unknown'; ?></td>
+                                <td class="admin-nowrap"><button type="button" class="btn btn-secondary btn-sm admin-inspect-btn" data-admin-drawer="<?php echo ridesync_admin_drawer_attr([
                                     'kicker' => 'Join Request',
                                     'title' => '#' . $request['ride_id'] . ' ' . $request['origin'] . ' -> ' . $request['destination'],
                                     'fields' => [

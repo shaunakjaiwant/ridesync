@@ -65,4 +65,98 @@ function ridesync_forget_notification_count_cache(string $actorColumn = '', int 
     unset($_SESSION['_unread_notification_cache'][$actorColumn . ':' . $actorId]);
 }
 
+/**
+ * Intelligently shortens long geocoded addresses or street descriptions
+ * for compact UI cards, chips, and route badges.
+ *
+ * Examples:
+ * "SH37, Kanyadi, Beltangadi taluk, Dakshina Kannada, Karnataka, 574240, India" -> "SH37, Kanyadi"
+ * "Vajpayee circle, Sirsi, Shirasi Taluk, Uttara Kannada, Karnataka, 581401, India" -> "Vajpayee circle, Sirsi"
+ * "SDMIT Campus" -> "SDMIT Campus"
+ */
+function ridesync_short_address(?string $address, int $maxLength = 32): string
+{
+    if ($address === null) {
+        return '';
+    }
+    $address = trim($address);
+    if ($address === '') {
+        return '';
+    }
+
+    // Split by comma
+    $parts = array_map('trim', explode(',', $address));
+    $filtered = [];
+
+    // Ignored address suffixes and noise patterns
+    $ignorePatterns = [
+        '/^\d{4,10}(-\d{4})?$/', // Postal codes
+        '/^(india|usa|united states|uk|united kingdom|canada|australia)$/i', // Countries
+        '/^(karnataka|maharashtra|kerala|tamil nadu|goa|delhi|andhra pradesh|telangana|gujarat|rajasthan)$/i', // Common Indian states
+        '/\b(taluk|taluka|district|dist\.|state|province|pin\s*code|postal\s*code)\b/i', // Administrative noise
+    ];
+
+    foreach ($parts as $part) {
+        if ($part === '') {
+            continue;
+        }
+        $skip = false;
+        foreach ($ignorePatterns as $pattern) {
+            if (preg_match($pattern, $part)) {
+                $skip = true;
+                break;
+            }
+        }
+        if (!$skip) {
+            $filtered[] = $part;
+        }
+    }
+
+    if (empty($filtered)) {
+        $filtered = [$parts[0]];
+    }
+
+    // Try primary spot + locality/city if available and fits
+    if (count($filtered) >= 2) {
+        $primary = $filtered[0];
+        $secondary = $filtered[1];
+
+        // If secondary contains highway separators like "Sirsi - Kumta Highway", simplify to first token if needed
+        if (str_contains($secondary, ' - ')) {
+            $subParts = explode(' - ', $secondary);
+            $secondary = trim($subParts[0]);
+        }
+
+        $candidate = $primary . ', ' . $secondary;
+        if (mb_strlen($candidate) <= $maxLength) {
+            return $candidate;
+        }
+
+        // If candidate is too long, does primary alone fit?
+        if (mb_strlen($primary) <= $maxLength) {
+            return $primary;
+        }
+    }
+
+    $first = $filtered[0];
+    if (mb_strlen($first) > $maxLength) {
+        return mb_substr($first, 0, max(1, $maxLength - 1)) . '…';
+    }
+
+    return $first;
+}
+
+/**
+ * Renders a clean, accessible HTML span for a shortened address
+ * with a full address tooltip on hover.
+ */
+function ridesync_render_short_address(?string $address, int $maxLength = 32, string $extraClass = ''): string
+{
+    $full = trim((string) $address);
+    $short = ridesync_short_address($full, $maxLength);
+    $classAttr = 'class="short-address' . ($extraClass !== '' ? ' ' . htmlspecialchars($extraClass, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '') . '"';
+    $titleAttr = 'title="' . htmlspecialchars($full, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+    return '<span ' . $classAttr . ' ' . $titleAttr . '>' . htmlspecialchars($short, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
+}
+
 ?>

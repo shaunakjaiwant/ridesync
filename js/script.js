@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initSmartSearchSuggestions();
     initNotificationPolling();
     initTabs();
+    initThemeToggle();
 
     // --- Registration Form ---
     var regForm = document.querySelector('form[action*="register_action"]');
@@ -448,7 +449,7 @@ function initLiveRideStatus() {
             })
                 .then(function (response) { return response.json(); })
                 .then(applyState)
-                .catch(function () {});
+                .catch(function () { });
         }
 
         poll();
@@ -476,7 +477,7 @@ function initDriverLiveStatus() {
                 setText('[data-driver-week]', '\u20b9' + data.week_earnings);
                 setText('[data-driver-trips]', data.completed_trips);
             })
-            .catch(function () {});
+            .catch(function () { });
     }
 
     poll();
@@ -550,7 +551,7 @@ function initTripShare() {
             };
 
             if (navigator.share) {
-                navigator.share(shareData).catch(function () {});
+                navigator.share(shareData).catch(function () { });
                 return;
             }
 
@@ -561,7 +562,7 @@ function initTripShare() {
                     setTimeout(function () {
                         button.textContent = original;
                     }, 1800);
-                }).catch(function () {});
+                }).catch(function () { });
             }
         });
     });
@@ -601,10 +602,10 @@ function initRealtimeEvents() {
             if (requestCounter && typeof data.pending_driver_requests !== 'undefined') {
                 requestCounter.textContent = data.pending_driver_requests;
             }
-        } catch (error) {}
+        } catch (error) { }
     });
 
-    source.onerror = function () {};
+    source.onerror = function () { };
     window.addEventListener('pagehide', function () {
         source.close();
     }, { once: true });
@@ -695,21 +696,21 @@ function initAdminDrawer() {
         var button = event.target && event.target.closest ? event.target.closest('.admin-inspect-btn') : null;
         if (!button) return;
         if (!document.body.contains(button)) return;
-            var payload = {};
-            try {
-                payload = JSON.parse(button.dataset.adminDrawer || '{}');
-            } catch (error) {}
+        var payload = {};
+        try {
+            payload = JSON.parse(button.dataset.adminDrawer || '{}');
+        } catch (error) { }
 
-            if (kicker) kicker.textContent = payload.kicker || 'Inspect';
-            if (title) title.textContent = payload.title || 'Details';
-            if (body) {
-                body.innerHTML = '';
-                appendFields(payload.fields || {});
-                appendLinks(payload.links || []);
-            }
+        if (kicker) kicker.textContent = payload.kicker || 'Inspect';
+        if (title) title.textContent = payload.title || 'Details';
+        if (body) {
+            body.innerHTML = '';
+            appendFields(payload.fields || {});
+            appendLinks(payload.links || []);
+        }
 
-            drawer.classList.add('is-open');
-            drawer.setAttribute('aria-hidden', 'false');
+        drawer.classList.add('is-open');
+        drawer.setAttribute('aria-hidden', 'false');
     });
 
     if (closeButton) closeButton.addEventListener('click', closeDrawer);
@@ -850,7 +851,7 @@ function initSmartSearchSuggestions() {
             .slice(0, 12);
         try {
             localStorage.setItem(storageKey(context), JSON.stringify(history));
-        } catch (error) {}
+        } catch (error) { }
     }
 
     function scoreText(text, query) {
@@ -1262,10 +1263,10 @@ function initAdminRealtime() {
             if (!data || !data.ok) return;
             updateMetrics(data.metrics || {});
             prependFeed(data.latest || null);
-        } catch (error) {}
+        } catch (error) { }
     });
 
-    source.onerror = function () {};
+    source.onerror = function () { };
     window.addEventListener('pagehide', function () {
         source.close();
     }, { once: true });
@@ -1534,7 +1535,7 @@ function initAdminServicesMonitor() {
 
         requestJson('/ridesync/api/admin_services.php', currentRequest ? currentRequest.signal : undefined)
             .then(applyPayload)
-            .catch(function () {});
+            .catch(function () { });
     }
 
     function clearRefreshSchedule() {
@@ -1615,7 +1616,7 @@ function initDriverVerificationIntelligence() {
                 if (!data || !data.ok || !data.has_session) return;
                 applySession(data.session);
             })
-            .catch(function () {});
+            .catch(function () { });
     }
 
     if (window.EventSource) {
@@ -1624,9 +1625,9 @@ function initDriverVerificationIntelligence() {
             try {
                 var data = JSON.parse(event.data || '{}');
                 if (data && data.ok) applySession(data.session);
-            } catch (error) {}
+            } catch (error) { }
         });
-        source.onerror = function () {};
+        source.onerror = function () { };
     }
 
     poll();
@@ -1784,38 +1785,38 @@ function initNotificationPolling() {
         fetch('/ridesync/api/v1/user_notifications_check.php?since_id=' + encodeURIComponent(lastNotificationId), {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .then(function (res) { return res.ok ? res.json() : null; })
-        .then(function (data) {
-            if (!data || !data.ok) return;
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+                if (!data || !data.ok) return;
 
-            if (alertsLinks && alertsLinks.length > 0) {
-                alertsLinks.forEach(function (link) {
-                    var badge = link.querySelector('.nav-badge');
-                    if (data.unread_count > 0) {
-                        if (!badge) {
-                            badge = document.createElement('span');
-                            badge.className = 'nav-badge nav-badge-pulse';
-                            link.appendChild(badge);
+                if (alertsLinks && alertsLinks.length > 0) {
+                    alertsLinks.forEach(function (link) {
+                        var badge = link.querySelector('.nav-badge');
+                        if (data.unread_count > 0) {
+                            if (!badge) {
+                                badge = document.createElement('span');
+                                badge.className = 'nav-badge nav-badge-pulse';
+                                link.appendChild(badge);
+                            }
+                            badge.textContent = Math.min(99, data.unread_count);
+                            badge.classList.add('nav-badge-pulse');
+                        } else if (badge) {
+                            badge.remove();
                         }
-                        badge.textContent = Math.min(99, data.unread_count);
-                        badge.classList.add('nav-badge-pulse');
-                    } else if (badge) {
-                        badge.remove();
-                    }
-                });
-            }
-
-            if (data.latest_notification) {
-                var latest = data.latest_notification;
-                if (lastNotificationId === 0) {
-                    lastNotificationId = latest.id;
-                } else if (latest.id > lastNotificationId) {
-                    lastNotificationId = latest.id;
-                    showNotificationToast(latest.title, latest.message);
+                    });
                 }
-            }
-        })
-        .catch(function () {});
+
+                if (data.latest_notification) {
+                    var latest = data.latest_notification;
+                    if (lastNotificationId === 0) {
+                        lastNotificationId = latest.id;
+                    } else if (latest.id > lastNotificationId) {
+                        lastNotificationId = latest.id;
+                        showNotificationToast(latest.title, latest.message);
+                    }
+                }
+            })
+            .catch(function () { });
     }
 
     poll();
@@ -1829,7 +1830,7 @@ function initTabs() {
             button.addEventListener('click', function (e) {
                 var targetId = button.getAttribute('data-tab-target');
                 if (!targetId) return;
-                
+
                 buttons.forEach(function (btn) {
                     btn.classList.remove('is-active', 'active');
                     btn.setAttribute('aria-selected', 'false');
@@ -1851,3 +1852,91 @@ function initTabs() {
         });
     });
 }
+
+// ---------- THEME TOGGLE & MODE SWITCHER ----------
+function initThemeToggle() {
+    function getStoredTheme() {
+        try {
+            var stored = localStorage.getItem('ridesync_theme');
+            if (stored === 'dark' || stored === 'light') {
+                return stored;
+            }
+        } catch (e) { }
+        return document.documentElement.getAttribute('data-theme') || 'light';
+    }
+
+    function applyTheme(theme) {
+        if (theme !== 'dark' && theme !== 'light') {
+            theme = 'light';
+        }
+
+        document.documentElement.setAttribute('data-theme', theme);
+
+        try {
+            localStorage.setItem('ridesync_theme', theme);
+        } catch (e) { }
+
+        document.cookie = 'ridesync_theme=' + theme + '; path=/; max-age=31536000; SameSite=Lax';
+
+        var metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) {
+            metaTheme.setAttribute('content', theme === 'dark' ? '#0b0f19' : '#ffffff');
+        }
+
+        // Update all segmented switch buttons
+        document.querySelectorAll('.theme-mode-btn').forEach(function (btn) {
+            var btnTheme = btn.getAttribute('data-theme-set');
+            var isActive = btnTheme === theme;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+
+        // Update any single toggle buttons
+        document.querySelectorAll('.theme-toggle-btn').forEach(function (toggle) {
+            toggle.setAttribute('data-current-theme', theme);
+            toggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode');
+            toggle.setAttribute('title', theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode');
+        });
+
+        try {
+            window.dispatchEvent(new CustomEvent('ridesync:themechange', { detail: { theme: theme } }));
+        } catch (e) { }
+    }
+
+    // Attach click listeners to segmented mode buttons (Light & Dark)
+    document.querySelectorAll('.theme-mode-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var targetTheme = btn.getAttribute('data-theme-set');
+            if (targetTheme) {
+                applyTheme(targetTheme);
+            }
+        });
+    });
+
+    // Attach click listeners to single theme toggle buttons
+    document.querySelectorAll('.theme-toggle-btn').forEach(function (toggle) {
+        toggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            var current = document.documentElement.getAttribute('data-theme') || 'light';
+            var nextTheme = current === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        });
+    });
+
+    // Listen for storage changes across tabs
+    window.addEventListener('storage', function (e) {
+        if (e.key === 'ridesync_theme' && (e.newValue === 'light' || e.newValue === 'dark')) {
+            applyTheme(e.newValue);
+        }
+    });
+
+    // Initial sync
+    var currentTheme = getStoredTheme();
+    applyTheme(currentTheme);
+}
+
+if (document.readyState !== 'loading') {
+    initThemeToggle();
+}
+

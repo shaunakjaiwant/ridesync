@@ -25,10 +25,12 @@ if (isset($_SESSION['driver_id'])) {
 <nav class="driver-navbar driver-cockpit-navbar">
     <div class="driver-brand">
         <a href="/ridesync/pages/driver_dashboard.php" class="nav-logo" aria-label="RideSync Driver home">
-            <img src="/ridesync/logo-mark.png" alt="RideSync" class="logo-img" />
+            <span class="nav-logo-badge driver-logo-badge">
+                <img src="/ridesync/logo-mark.png" alt="RideSync" class="logo-img" />
+            </span>
             <span class="brand-copy">
                 <strong>RideSync</strong>
-                <span>Driver Cockpit</span>
+                <span class="brand-role-chip driver-role-chip">Driver Cockpit</span>
             </span>
         </a>
     </div>
@@ -50,6 +52,12 @@ if (isset($_SESSION['driver_id'])) {
             <a class="<?php echo $currentDriverPage === 'driver_earnings.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_earnings.php">
                 <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 Earnings
+            </a>
+        </li>
+        <li>
+            <a class="<?php echo $currentDriverPage === 'driver_history.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_history.php">
+                <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
+                History
             </a>
         </li>
         <li>
@@ -81,20 +89,28 @@ if (isset($_SESSION['driver_id'])) {
 <?php if (isset($_SESSION['driver_id'])): ?>
 <nav class="mobile-bottom-nav driver-mobile-bottom-nav" aria-label="Driver mobile navigation">
     <a class="<?php echo $currentDriverPage === 'driver_dashboard.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_dashboard.php" aria-label="Driver home">
-        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-        <span>Home</span>
+        <span class="mobile-nav-icon-wrap">
+            <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        </span>
+        <span class="mobile-nav-label">Home</span>
     </a>
     <a class="<?php echo $currentDriverPage === 'driver_requests.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_requests.php" aria-label="Request queue">
-        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
-        <span>Queue</span>
+        <span class="mobile-nav-icon-wrap">
+            <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+        </span>
+        <span class="mobile-nav-label">Queue</span>
     </a>
-    <a class="<?php echo $currentDriverPage === 'driver_earnings.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_earnings.php" aria-label="Earnings">
-        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span>Earn</span>
+    <a class="<?php echo $currentDriverPage === 'driver_earnings.php' ? 'is-active' : ''; ?> mobile-nav-action-center" href="/ridesync/pages/driver_earnings.php" aria-label="Earnings">
+        <span class="mobile-nav-hero-pill driver-hero-pill">
+            <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </span>
+        <span class="mobile-nav-label">Earn</span>
     </a>
     <a class="<?php echo $currentDriverPage === 'driver_history.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/driver_history.php" aria-label="Trip history">
-        <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
-        <span>History</span>
+        <span class="mobile-nav-icon-wrap">
+            <svg class="ui-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
+        </span>
+        <span class="mobile-nav-label">History</span>
     </a>
     <a class="<?php echo $currentDriverPage === 'notifications.php' ? 'is-active' : ''; ?>" href="/ridesync/pages/notifications.php?actor_type=driver" aria-label="Driver alerts">
         <span class="mobile-nav-icon-wrap">
@@ -103,7 +119,7 @@ if (isset($_SESSION['driver_id'])) {
                 <span class="nav-badge nav-badge-pulse"><?php echo min(99, $unreadNotifications); ?></span>
             <?php endif; ?>
         </span>
-        <span>Alerts</span>
+        <span class="mobile-nav-label">Alerts</span>
     </a>
 </nav>
 <?php endif; ?>

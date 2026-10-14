@@ -79,7 +79,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
             <?php foreach ($requests as $request): ?>
                 <article class="driver-request-card">
                     <span class="driver-kicker">New request</span>
-                    <h2><?php echo htmlspecialchars($request['pickup']); ?> <span class="route-arrow">&rarr;</span> <?php echo htmlspecialchars($request['drop_location']); ?></h2>
+                    <h2><?php echo ridesync_render_short_address($request['pickup'], 30); ?> <span class="route-arrow">&rarr;</span> <?php echo ridesync_render_short_address($request['drop_location'], 30); ?></h2>
                     <?php if (!empty($request['rider_name'])): ?>
                         <p>Rider: <strong><?php echo htmlspecialchars($request['rider_name']); ?></strong> &middot; <?php echo htmlspecialchars($request['rider_college'] ?? ''); ?></p>
                     <?php endif; ?>
@@ -126,7 +126,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
             <?php foreach ($activeRequests as $request): ?>
                 <article class="driver-request-card">
                     <span class="driver-kicker">Accepted trip</span>
-                    <h2><?php echo htmlspecialchars($request['pickup']); ?> <span class="route-arrow">&rarr;</span> <?php echo htmlspecialchars($request['drop_location']); ?></h2>
+                    <h2><?php echo ridesync_render_short_address($request['pickup'], 30); ?> <span class="route-arrow">&rarr;</span> <?php echo ridesync_render_short_address($request['drop_location'], 30); ?></h2>
                     <?php if (!empty($request['rider_name'])): ?>
                         <p>Rider: <strong><?php echo htmlspecialchars($request['rider_name']); ?></strong> &middot; <?php echo htmlspecialchars($request['rider_college'] ?? ''); ?></p>
                     <?php endif; ?>
@@ -188,7 +188,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
                         <span class="driver-opportunity-status <?php echo $isAssignedToDriver ? 'is-assigned' : ''; ?>">
                             <?php echo $isAssignedToDriver ? 'Assigned to you' : 'Open ride'; ?>
                         </span>
-                        <h3><?php echo htmlspecialchars($ride['origin']); ?> <span class="route-arrow">&rarr;</span> <?php echo htmlspecialchars($ride['destination']); ?></h3>
+                        <h3><?php echo ridesync_render_short_address($ride['origin'], 30); ?> <span class="route-arrow">&rarr;</span> <?php echo ridesync_render_short_address($ride['destination'], 30); ?></h3>
                         <p>
                             <?php echo htmlspecialchars(ridesync_driver_community_time_label($ride)); ?>
                             &middot; <?php echo (int) $ride['seats_available']; ?> seat<?php echo (int) $ride['seats_available'] === 1 ? '' : 's'; ?>

@@ -8,13 +8,16 @@ $Desktops = @(
 
 $IcoPath = "C:\xampp\htdocs\ridesync\RideSync.ico"
 
-# Check for Edge or Chrome
+# Check for Brave, Edge, or Chrome
+$BravePath = "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
 $EdgePath64 = "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
 $EdgePath = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 $ChromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 
 $ExePath = ""
-if (Test-Path $EdgePath64) {
+if (Test-Path $BravePath) {
+    $ExePath = $BravePath
+} elseif (Test-Path $EdgePath64) {
     $ExePath = $EdgePath64
 } elseif (Test-Path $EdgePath) {
     $ExePath = $EdgePath

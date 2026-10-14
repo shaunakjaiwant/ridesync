@@ -171,7 +171,11 @@ require_once __DIR__ . '/../includes/header.php';
                 <?php foreach ($routeShortcuts as $shortcut): ?>
                     <a class="smart-route-chip" href="/ridesync/pages/search_rides.php?<?php echo htmlspecialchars(ridesync_route_query($shortcut)); ?>">
                         <span><?php echo htmlspecialchars($shortcut['label']); ?></span>
-                        <strong><?php echo htmlspecialchars($shortcut['origin']); ?> &rarr; <?php echo htmlspecialchars($shortcut['destination']); ?></strong>
+                        <strong>
+                            <?php echo ridesync_render_short_address($shortcut['origin'], 24); ?>
+                            <span class="route-arrow">&rarr;</span>
+                            <?php echo ridesync_render_short_address($shortcut['destination'], 24); ?>
+                        </strong>
                         <small><?php echo htmlspecialchars($shortcut['meta']); ?></small>
                     </a>
                 <?php endforeach; ?>
@@ -370,7 +374,9 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="smart-card-top">
                         <div>
                             <div class="ride-card-route">
-                                <?php echo htmlspecialchars($ride['origin']); ?> &rarr; <?php echo htmlspecialchars($ride['destination']); ?>
+                                <?php echo ridesync_render_short_address($ride['origin'], 30); ?>
+                                <span class="route-arrow">&rarr;</span>
+                                <?php echo ridesync_render_short_address($ride['destination'], 30); ?>
                             </div>
                             <div class="ride-card-details">
                                 <?php echo date('M j, Y', strtotime($ride['travel_date'])); ?>

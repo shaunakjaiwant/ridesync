@@ -18,12 +18,18 @@ $styleVersion = ridesync_stylesheet_version();
 
 <nav class="public-navbar">
     <a href="/ridesync/index.php" class="public-logo nav-logo" aria-label="RideSync home">
-        <img src="/ridesync/logo-mark.png" alt="RideSync" class="logo-img" />
+        <span class="nav-logo-badge">
+            <img src="/ridesync/logo-mark.png" alt="RideSync" class="logo-img" />
+        </span>
         <span class="brand-copy">
             <strong>RideSync</strong>
-            <span>Campus mobility</span>
+            <span class="brand-role-chip public-role-chip">Campus Mobility</span>
         </span>
     </a>
+    <div class="public-nav-actions">
+        <a href="/ridesync/pages/login.php" class="btn-public-signin" aria-label="Sign in to RideSync">Sign in</a>
+    </div>
 </nav>
 
 <main class="main-content">
+

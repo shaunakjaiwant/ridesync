@@ -22,17 +22,20 @@ function ridesync_ensure_websocket_gateway(): bool {
     }
 
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-        pclose(popen("start /B node " . escapeshellarg($serverPath) . " > NUL 2>&1", "r"));
+        $cmd = 'powershell -NoProfile -WindowStyle Hidden -Command "Start-Process node -ArgumentList \'' . addslashes($serverPath) . '\' -WindowStyle Hidden"';
+        pclose(popen($cmd, "r"));
     } else {
         exec("nohup node " . escapeshellarg($serverPath) . " > /dev/null 2>&1 &");
     }
 
-    // Give it 300ms and re-check
-    usleep(300000);
-    $fp = @fsockopen($host, $port, $errno, $errstr, 0.5);
-    if ($fp) {
-        fclose($fp);
-        return true;
+    // Give it up to 3 seconds with retry poll
+    for ($i = 0; $i < 6; $i++) {
+        usleep(500000);
+        $fp = @fsockopen($host, $port, $errno, $errstr, 0.5);
+        if ($fp) {
+            fclose($fp);
+            return true;
+        }
     }
 
     return false;

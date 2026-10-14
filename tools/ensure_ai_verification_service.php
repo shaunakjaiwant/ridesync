@@ -22,17 +22,20 @@ function ridesync_ensure_ai_verification_service(): bool {
     }
 
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-        pclose(popen("cd /d " . escapeshellarg($appDir) . " && start /B python -m uvicorn app.main:app --host " . escapeshellarg($host) . " --port {$port} > NUL 2>&1", "r"));
+        $cmd = 'powershell -NoProfile -WindowStyle Hidden -Command "Start-Process python -ArgumentList \'-m uvicorn app.main:app --host ' . addslashes($host) . ' --port ' . $port . '\' -WorkingDirectory \'' . addslashes($appDir) . '\' -WindowStyle Hidden"';
+        pclose(popen($cmd, "r"));
     } else {
         exec("cd " . escapeshellarg($appDir) . " && nohup python3 -m uvicorn app.main:app --host " . escapeshellarg($host) . " --port {$port} > /dev/null 2>&1 &");
     }
 
-    // Give it 500ms and re-check
-    usleep(500000);
-    $fp = @fsockopen($host, $port, $errno, $errstr, 0.5);
-    if ($fp) {
-        fclose($fp);
-        return true;
+    // Give it up to 3 seconds with retry poll
+    for ($i = 0; $i < 6; $i++) {
+        usleep(500000);
+        $fp = @fsockopen($host, $port, $errno, $errstr, 0.5);
+        if ($fp) {
+            fclose($fp);
+            return true;
+        }
     }
 
     return false;

@@ -176,7 +176,10 @@ $posterTrust = $userTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_u
             <span class="route-dot origin-dot"></span>
             <div>
                 <small>From</small>
-                <strong><?php echo htmlspecialchars($ride['origin']); ?></strong>
+                <strong><?php echo htmlspecialchars(ridesync_short_address($ride['origin'], 36)); ?></strong>
+                <?php if (ridesync_short_address($ride['origin'], 36) !== $ride['origin']): ?>
+                    <small class="route-sub-address"><?php echo htmlspecialchars($ride['origin']); ?></small>
+                <?php endif; ?>
             </div>
         </div>
         <div class="route-line"></div>
@@ -184,7 +187,10 @@ $posterTrust = $userTrustSummaries[(int) $ride['user_id']] ?? ridesync_default_u
             <span class="route-dot dest-dot"></span>
             <div>
                 <small>To</small>
-                <strong><?php echo htmlspecialchars($ride['destination']); ?></strong>
+                <strong><?php echo htmlspecialchars(ridesync_short_address($ride['destination'], 36)); ?></strong>
+                <?php if (ridesync_short_address($ride['destination'], 36) !== $ride['destination']): ?>
+                    <small class="route-sub-address"><?php echo htmlspecialchars($ride['destination']); ?></small>
+                <?php endif; ?>
             </div>
         </div>
     </div>

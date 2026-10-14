@@ -301,7 +301,7 @@ require_once __DIR__ . '/../includes/driver_header.php';
                         <span class="driver-opportunity-status <?php echo $isAssignedToDriver ? 'is-assigned' : ''; ?>">
                             <?php echo $isAssignedToDriver ? 'Assigned to you' : 'Open ride'; ?>
                         </span>
-                        <h3><?php echo htmlspecialchars($ride['origin']); ?> <span class="route-arrow">&rarr;</span> <?php echo htmlspecialchars($ride['destination']); ?></h3>
+                        <h3><?php echo ridesync_render_short_address($ride['origin'], 30); ?> <span class="route-arrow">&rarr;</span> <?php echo ridesync_render_short_address($ride['destination'], 30); ?></h3>
                         <p>
                             <?php echo htmlspecialchars(ridesync_driver_community_time_label($ride)); ?>
                             &middot; <?php echo (int) $ride['seats_available']; ?> seat<?php echo (int) $ride['seats_available'] === 1 ? '' : 's'; ?>

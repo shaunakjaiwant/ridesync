@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/view_helper.php';
 
 function ridesync_fetch_rider_route_suggestions(mysqli $conn, int $userId, int $limit = 6): array
 {
@@ -33,6 +34,8 @@ function ridesync_fetch_rider_route_suggestions(mysqli $conn, int $userId, int $
             'label' => $useCount > 1 ? 'Frequent route' : 'Recent route',
             'origin' => $origin,
             'destination' => $destination,
+            'short_origin' => ridesync_short_address($origin),
+            'short_destination' => ridesync_short_address($destination),
             'meta' => $useCount > 1 ? $useCount . ' rides posted' : 'Use this route again',
             'sample_ride_id' => (int) ($row['sample_ride_id'] ?? 0),
             'kind' => 'history',
@@ -74,6 +77,8 @@ function ridesync_build_rider_route_shortcuts(mysqli $conn, int $userId, int $li
                 'label' => 'College shortcut',
                 'origin' => $college,
                 'destination' => $route['destination'],
+                'short_origin' => ridesync_short_address($college),
+                'short_destination' => ridesync_short_address($route['destination']),
                 'meta' => 'Start from your college',
                 'sample_ride_id' => 0,
                 'kind' => 'college',
@@ -87,6 +92,8 @@ function ridesync_build_rider_route_shortcuts(mysqli $conn, int $userId, int $li
             'label' => 'Reverse route',
             'origin' => $route['destination'],
             'destination' => $route['origin'],
+            'short_origin' => ridesync_short_address($route['destination']),
+            'short_destination' => ridesync_short_address($route['origin']),
             'meta' => 'Return trip shortcut',
             'sample_ride_id' => 0,
             'kind' => 'reverse',
