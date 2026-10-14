@@ -24,21 +24,21 @@ This guide contains the direct access links, seeded demonstration accounts, oper
 All demonstration accounts are non-destructive and can be re-seeded at any time by running `npm run seed:demo`.
 
 ### 1. Rider Account (Campus Commuter)
-* **Email:** `demo.rider@ridesync.test`
-* **Password:** `password123`
+* **Email:** `rider@ridesync.com` (or `demo.rider@ridesync.test`)
+* **Password:** `Password123!` (or `password123`)
 * **Profile:** Verified Student, SDM Institute of Technology (SDMIT), Ujire.
 * **Pre-loaded State:** Active posted ride (`SDMIT Campus, Ujire -> Mangaluru Central`).
 
 ### 2. Driver Account (Verified Campus Partner)
-* **Email:** `demo.driver@ridesync.test`
-* **Password:** `password123`
+* **Email:** `driver@ridesync.com` (or `demo.driver@ridesync.test`)
+* **Password:** `Password123!` (or `password123`)
 * **Phone:** `9000000001`
 * **Profile:** Active, Onboarding Complete, Car (`KA19DEMO1`, 4 seats).
 * **Pre-loaded State:** Availability status **Online** in Ujire / Belthangady region.
 
 ### 3. Super Admin Account
-* **Email:** `ridesync@admin.com`
-* **Password:** `12345678`
+* **Email:** `admin@ridesync.com` (or `ridesync@admin.com`)
+* **Password:** `Password123!` (or `12345678`)
 * **Role:** `super_admin`
 * **Capabilities:** Full access to Audit Logs, AI Verification decisions, Repair Kit, and Service Observability.
 

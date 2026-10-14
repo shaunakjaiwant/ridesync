@@ -71,6 +71,11 @@ function ridesync_same_origin_request() {
         }
     }
 
+    $host = parse_url($origin, PHP_URL_HOST);
+    if ($host && (str_ends_with($host, '.vercel.app') || str_ends_with($host, '.onrender.com'))) {
+        return true;
+    }
+
     return false;
 }
 

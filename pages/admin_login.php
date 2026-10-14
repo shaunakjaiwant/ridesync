@@ -33,6 +33,14 @@ require_once __DIR__ . '/../includes/public_header.php';
         <?php ridesync_flash('admin_success', 'alert-success'); ?>
         <?php ridesync_flash('admin_error', 'alert-error'); ?>
 
+        <?php if ($schemaReady && !$needsSetup): ?>
+            <div class="alert alert-info" style="font-size: 0.82rem; padding: 10px 14px; margin-bottom: 16px; border-radius: 8px; line-height: 1.5;">
+                <strong>Demo Admin Credentials:</strong><br>
+                Email: <code>admin@ridesync.com</code> or <code>ridesync@admin.com</code><br>
+                Password: <code>Password123!</code> or <code>12345678</code>
+            </div>
+        <?php endif; ?>
+
         <?php if (!$schemaReady): ?>
             <div class="alert alert-error">Admin database tables are missing. Import the latest RideSync SQL file first.</div>
         <?php else: ?>
