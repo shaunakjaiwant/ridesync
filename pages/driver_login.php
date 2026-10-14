@@ -28,12 +28,6 @@ require_once __DIR__ . '/../includes/public_header.php';
         <?php ridesync_flash('driver_register_success', 'alert-success'); ?>
         <?php ridesync_flash('driver_auth_error', 'alert-error'); ?>
 
-        <div class="alert alert-info" style="font-size: 0.82rem; padding: 10px 14px; margin-bottom: 16px; border-radius: 8px; line-height: 1.5;">
-            <strong>Demo Driver Credentials:</strong><br>
-            Email: <code>driver@ridesync.com</code> or <code>demo.driver@ridesync.test</code><br>
-            Password: <code>Password123!</code> or <code>password123</code>
-        </div>
-
         <form action="/ridesync/actions/driver_auth_action.php" method="POST">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
             <input type="hidden" name="action_type" value="login">

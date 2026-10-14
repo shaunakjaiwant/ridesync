@@ -35,12 +35,6 @@ require_once __DIR__ . '/../includes/public_header.php';
         <?php ridesync_flash('register_success', 'alert-success'); ?>
         <?php ridesync_flash('login_error', 'alert-error'); ?>
 
-        <div class="alert alert-info" style="font-size: 0.82rem; padding: 10px 14px; margin-bottom: 16px; border-radius: 8px; line-height: 1.5;">
-            <strong>Demo Rider Credentials:</strong><br>
-            Email: <code>rider@ridesync.com</code> or <code>demo.rider@ridesync.test</code><br>
-            Password: <code>Password123!</code> or <code>password123</code>
-        </div>
-
         <form action="/ridesync/actions/login_action.php" method="POST">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
