@@ -1,6 +1,6 @@
-# RideSync Free Cloud Deployment Guide (Render & Vercel)
+# RideSync Free Cloud Deployment Guide (Render & Aiven for MySQL)
 
-This guide provides step-by-step instructions for hosting the **RideSync** application online for **100% free** using **Render**, **Vercel**, and **Aiven for MySQL**.
+This guide provides step-by-step instructions for hosting the **RideSync** application online for **100% free** using **Render** and **Aiven for MySQL**.
 
 ---
 
@@ -67,36 +67,12 @@ Once deployed, Render will provide your public URL (e.g. `https://ridesync-app.o
 
 ---
 
-## Step 3: Connect Vercel (Edge CDN & Custom Domain)
+## Step 3: Verify All 3 Panels & Initial Setup
 
-Vercel provides ultra-fast global CDN edge routing and custom domain support.
-
-1. Log in to [https://vercel.com](https://vercel.com).
-2. Click **Add New...** -> **Project**.
-3. Import your GitHub repository: `shaunakjaiwant/ridesync`.
-4. Open `vercel.json` in your repository and update `YOUR_RENDER_APP_URL.onrender.com` with your actual Render URL:
-   ```json
-   {
-     "version": 2,
-     "name": "ridesync",
-     "routes": [
-       {
-         "src": "/(.*)",
-         "dest": "https://ridesync-app.onrender.com/$1"
-       }
-     ]
-   }
-   ```
-5. Click **Deploy**. Vercel will deploy your edge proxy in seconds!
-
----
-
-## Step 4: Verify All 3 Panels & Initial Setup
-
-1. Open your live Vercel or Render domain:
-   - **Rider Workspace / Landing**: `https://ridesync.vercel.app/`
-   - **Driver Workspace**: `https://ridesync.vercel.app/ridesync/pages/driver_login.php`
-   - **First-Time Admin Setup**: `https://ridesync.vercel.app/ridesync/pages/admin_login.php`
+1. Open your live Render domain:
+   - **Rider Workspace / Landing**: `https://ridesync-app-81i7.onrender.com/`
+   - **Driver Workspace**: `https://ridesync-app-81i7.onrender.com/ridesync/pages/driver_login.php`
+   - **First-Time Admin Setup**: `https://ridesync-app-81i7.onrender.com/ridesync/pages/admin_login.php`
 2. Complete the initial Admin creation screen to set up your primary Admin credentials.
 3. Test Rider sign-up, post ride, driver verification upload, and admin approvals.
 

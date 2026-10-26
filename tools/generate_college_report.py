@@ -287,7 +287,7 @@ def create_report():
         ("Geolocation & Routing", "OSRM & Leaflet / OpenStreetMap", "Geodesic coordinate routing, waypoint detour calculation, route polyline rendering, landmark address shortener"),
         ("Browser Automation Harness", "Node.js CDP (Chrome & Brave Runners)", "Autonomous browser automation, DOM verification, visual screenshot capture, ad-blocker compatibility testing"),
         ("Operational Self-Healing", "RideSync Repair Kit (14 Action Handlers)", "Autonomous index repair, stale lock eviction, worker supervision, cache flushing, and schema healing"),
-        ("Cloud Infrastructure", "Render Docker Blueprints & Vercel Edge", "Vercel edge reverse proxying, Render Web Service containerization, S3 document storage abstraction"),
+        ("Cloud Infrastructure", "Render Docker Blueprints & Cloud MySQL", "Render Web Service containerization, managed cloud MySQL connectivity, and persistent connection pooling"),
         ("Quality Assurance Stack", "PHPUnit 11.5 & K6 Load Testing", "68 unit tests, 243 assertions, 19 negative API checks, 27 OpenAPI paths, sub-50ms performance load profiling")
     ]
     style_table_rows(t_stack, stack_data)

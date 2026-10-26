@@ -7,7 +7,7 @@ This document details the test scenarios for validating RideSync functionality i
 ## 1. End-to-End User Flow Scenarios
 
 ### Scenario A: Rider Registration & Ride Posting
-1. Open `https://ridesync.vercel.app/ridesync/pages/register.php`.
+1. Open `https://ridesync-app-81i7.onrender.com/ridesync/pages/register.php`.
 2. Register a new Rider account (`rider_test@university.edu`).
 3. Log in and navigate to **Post Ride** (`/ridesync/pages/post_ride.php`).
 4. Submit origin, destination, travel date, travel time, and seats.

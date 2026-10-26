@@ -18,8 +18,8 @@ Use this checklist to verify production deployment completeness across all servi
   - [x] CSRF protection enforced across all state-modifying actions.
   - [x] Driver request pessimistic locking (`SELECT ... FOR UPDATE`) preserved.
 
-- [x] **Frontend (Vercel CDN Proxy)**
-  - [x] Reverse proxy configuration created (`vercel.json`).
+- [x] **Frontend Web Application (Render Web Service)**
+  - [x] Root path and `/ridesync/` routing verified (`infrastructure/apache/ridesync.conf`).
   - [x] Absolute and relative URL routing compatibility verified.
   - [x] Leaflet OpenStreetMap tiles over HTTPS verified.
 

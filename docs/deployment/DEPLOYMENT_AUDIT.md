@@ -89,11 +89,10 @@ RideSync is a multi-tier academic campus mobility application configured as foll
 
 1. **Path Prefix Expectations (`/ridesync/`)**:
    - Hardcoded references to `/ridesync/` exist across frontend scripts and backend headers.
-   - **Resolution**: Apache `RedirectMatch 302 ^/$ /ridesync/` and Vercel routing rewrites ensure root visits route cleanly to `/ridesync/`.
+   - **Resolution**: Apache `RedirectMatch 302 ^/$ /ridesync/` ensures root visits route cleanly to `/ridesync/`.
 
-2. **Session / CORS Cross-Origin Restrictions**:
-   - If Vercel frontend domain (`ridesync.vercel.app`) communicates with Render backend (`ridesync-api.onrender.com`), browsers block third-party cookies unless `SameSite=None; Secure` headers are used with CORS `Access-Control-Allow-Credentials: true`.
-   - **Resolution**: Vercel reverse proxying (`vercel.json` rewrites) keeps frontend and API calls on the **same origin**, preserving strict `SameSite=Lax` cookies and preventing CORS issues!
+2. **Session / Single Origin Architecture**:
+   - Hosting on Render keeps frontend and API calls on the **same origin**, preserving strict `SameSite=Lax` cookies and preventing CORS issues!
 
 3. **Ephemeral Storage on Cloud Hosts**:
    - Render containers use ephemeral filesystems. Files saved locally to `uploads/` or `storage/` are reset on container restart.
@@ -104,7 +103,6 @@ RideSync is a multi-tier academic campus mobility application configured as foll
 ## 6. Files That Must Change vs. Files That Should NOT Change
 
 ### Files That Must Change / Be Added
-- [vercel.json](file:///c:/xampp/htdocs/ridesync/vercel.json): Vercel edge reverse proxy routing.
 - [render.yaml](file:///c:/xampp/htdocs/ridesync/render.yaml): Render Blueprint service configuration.
 - [.env.production.example](file:///c:/xampp/htdocs/ridesync/.env.production.example): Complete template of production secrets.
 - [infrastructure/apache/ridesync.conf](file:///c:/xampp/htdocs/ridesync/infrastructure/apache/ridesync.conf): Apache root path redirect to `/ridesync/`.
@@ -122,8 +120,7 @@ RideSync is a multi-tier academic campus mobility application configured as foll
 
 ## 7. Recommended Production Architecture
 
-- **Frontend**: Vercel (Edge CDN reverse proxy) -> routes to Render.
-- **Backend API & Web App**: Render Web Service (Docker - PHP 8.2 Apache).
+- **Web App & Backend API**: Render Web Service (Docker - PHP 8.2 Apache + OPcache).
 - **Database**: Managed MySQL (Aiven for MySQL / TiDB Cloud / Render MySQL).
 - **Realtime Gateway**: Render Web Service (Docker - Node.js WebSocket Gateway).
 - **AI/KYC Service**: Render Web Service (Docker - Python 3.11 FastAPI).

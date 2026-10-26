@@ -10,11 +10,11 @@
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B%20WebSockets-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Python](https://img.shields.io/badge/FastAPI-Python%203.11%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel%20Edge-000000?logo=vercel&logoColor=white)](https://ridesync-five.vercel.app/)
+[![Deployed on Render](https://img.shields.io/badge/Deployed%20on-Render-46E3B7?logo=render&logoColor=white)](https://ridesync-app-81i7.onrender.com/)
 
 **A production-grade, full-stack campus transit and carpooling platform engineered to solve last-mile commute bottlenecks across university ecosystems.**
 
-[🌐 Live Production Demo](https://ridesync-five.vercel.app/) • [📄 Academic Report (PDF)](docs/RideSync_Report.pdf) • [📝 Academic Report (Docx)](docs/RideSync_Comprehensive_College_Project_Report.docx) • [📖 Full Report (Markdown)](docs/ACADEMIC_PROJECT_REPORT.md)
+[🌐 Live Production Demo](https://ridesync-app-81i7.onrender.com/) • [📄 Academic Report (PDF)](docs/RideSync_Report.pdf) • [📝 Academic Report (Docx)](docs/RideSync_Comprehensive_College_Project_Report.docx) • [📖 Full Report (Markdown)](docs/ACADEMIC_PROJECT_REPORT.md)
 
 </div>
 
@@ -101,7 +101,7 @@ graph TD
 - **Realtime Gateway:** Node.js 20+ WebSocket Gateway (`ws`, HMAC-SHA256 handshake tokens, Port 8081)
 - **AI Verification Service:** Python 3.11/3.13 FastAPI + OpenCV (OCR extraction, facial cosine similarity, Port 8011)
 - **Frontend & Design Tokens:** Vanilla JavaScript (ES6+), Glassmorphic CSS Design Token scale (0 framework overhead)
-- **Edge CDN & Hosting:** Vercel Edge Global CDN Reverse Proxy & Render Docker Web Services
+- **Hosting & Infrastructure:** Render Docker Web Services (PHP 8.2 Apache + OPcache) & Managed Cloud MySQL
 - **Browser Automation:** Chrome DevTools Protocol (CDP) runners for Google Chrome & Brave Browser
 
 ---
@@ -129,14 +129,14 @@ $$\text{Trees Equivalent} = \frac{\text{Avoided CO}_2\text{ (kg)}}{22.0}$$
 
 ## 🌐 Live Portals & Access Points
 
-The live production application is deployed globally via Vercel Edge and Render:
+The live production application is deployed on Render Cloud:
 
 | Portal | Public URL | Description |
 | :--- | :--- | :--- |
-| **Rider Portal / Landing** | [https://ridesync-five.vercel.app/](https://ridesync-five.vercel.app/) | Carpool discovery, trip posting, and live GPS tracking |
-| **Driver Portal** | [https://ridesync-five.vercel.app/ridesync/pages/driver_login.php](https://ridesync-five.vercel.app/ridesync/pages/driver_login.php) | Driver onboarding, KYC review, and dispatch request claim |
-| **Admin Operations** | [https://ridesync-five.vercel.app/ridesync/pages/admin_login.php](https://ridesync-five.vercel.app/ridesync/pages/admin_login.php) | Operational dashboard, verification queue, and Repair Kit |
-| **Service Health Probe** | [https://ridesync-five.vercel.app/ridesync/api/v1/health.php](https://ridesync-five.vercel.app/ridesync/api/v1/health.php) | JSON service liveness and database connectivity probe |
+| **Rider Portal / Landing** | [https://ridesync-app-81i7.onrender.com/](https://ridesync-app-81i7.onrender.com/) | Carpool discovery, trip posting, and live GPS tracking |
+| **Driver Portal** | [https://ridesync-app-81i7.onrender.com/ridesync/pages/driver_login.php](https://ridesync-app-81i7.onrender.com/ridesync/pages/driver_login.php) | Driver onboarding, KYC review, and dispatch request claim |
+| **Admin Operations** | [https://ridesync-app-81i7.onrender.com/ridesync/pages/admin_login.php](https://ridesync-app-81i7.onrender.com/ridesync/pages/admin_login.php) | Operational dashboard, verification queue, and Repair Kit |
+| **Service Health Probe** | [https://ridesync-app-81i7.onrender.com/ridesync/health.php](https://ridesync-app-81i7.onrender.com/ridesync/health.php) | JSON service liveness and database connectivity probe |
 
 ---
 
@@ -285,8 +285,7 @@ ridesync/
 ├── tests/                    # PHPUnit tests, API security tests, and K6 load scenarios
 ├── tools/                    # Operational utilities, Repair Kit, CDP browser runners, and report generator
 ├── Dockerfile                # Multi-stage production container build
-├── render.yaml               # Render Cloud Blueprint infrastructure configuration
-└── vercel.json               # Vercel Edge reverse proxy and routing rules
+└── render.yaml               # Render Cloud Blueprint infrastructure configuration
 ```
 
 ---
