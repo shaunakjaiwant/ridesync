@@ -54,34 +54,43 @@ function ridesync_post_ride_fail(string $message): void
 
 function ridesync_post_ride_acquire_lock(mysqli $conn, string $lockKey): bool
 {
-    $stmt = mysqli_prepare($conn, "SELECT GET_LOCK(?, 5) AS lock_acquired");
-    if (!$stmt) {
-        return false;
-    }
+    try {
+        $stmt = mysqli_prepare($conn, "SELECT GET_LOCK(?, 5) AS lock_acquired");
+        if (!$stmt) {
+            return true;
+        }
 
-    mysqli_stmt_bind_param($stmt, "s", $lockKey);
-    if (!mysqli_stmt_execute($stmt)) {
+        mysqli_stmt_bind_param($stmt, "s", $lockKey);
+        if (!mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            return true;
+        }
+
+        $result = mysqli_stmt_get_result($stmt);
+        $row = $result ? mysqli_fetch_assoc($result) : null;
         mysqli_stmt_close($stmt);
-        return false;
+
+        return !isset($row['lock_acquired']) || (int) $row['lock_acquired'] === 1;
+    } catch (Throwable $e) {
+        error_log("[RideSync Lock Warning] " . $e->getMessage());
+        return true;
     }
-
-    $result = mysqli_stmt_get_result($stmt);
-    $row = $result ? mysqli_fetch_assoc($result) : null;
-    mysqli_stmt_close($stmt);
-
-    return isset($row['lock_acquired']) && (int) $row['lock_acquired'] === 1;
 }
 
 function ridesync_post_ride_release_lock(mysqli $conn, string $lockKey): void
 {
-    $stmt = mysqli_prepare($conn, "SELECT RELEASE_LOCK(?)");
-    if (!$stmt) {
-        return;
-    }
+    try {
+        $stmt = mysqli_prepare($conn, "SELECT RELEASE_LOCK(?)");
+        if (!$stmt) {
+            return;
+        }
 
-    mysqli_stmt_bind_param($stmt, "s", $lockKey);
-    mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
+        mysqli_stmt_bind_param($stmt, "s", $lockKey);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+    } catch (Throwable $e) {
+        // ignore lock release error
+    }
 }
 
 $user_id         = (int) $_SESSION['user_id'];
@@ -168,13 +177,14 @@ if ($hasCompleteMapValue) {
     }
 }
 
-$rideLockKey = 'ridesync_post_ride_' . hash('sha256', implode('|', [
+// Keep lock key strictly <= 40 chars for MySQL GET_LOCK compatibility
+$rideLockKey = 'rs_ride_' . substr(hash('sha256', implode('|', [
     $user_id,
     strtolower($origin),
     strtolower($destination),
     $travel_date,
     $travel_time,
-]));
+])), 0, 32);
 
 if (!ridesync_post_ride_acquire_lock($conn, $rideLockKey)) {
     ridesync_post_ride_fail("Another ride post is already being processed. Please wait a moment and try again.");
@@ -195,9 +205,17 @@ try {
            AND status IN ('open', 'closed')
          LIMIT 1"
     );
-    mysqli_stmt_bind_param($stmt, "issss", $user_id, $origin, $destination, $travel_date, $travel_time);
-    mysqli_stmt_execute($stmt);
-    if (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "issss", $user_id, $origin, $destination, $travel_date, $travel_time);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        $duplicate = $res ? mysqli_fetch_assoc($res) : null;
+        mysqli_stmt_close($stmt);
+    } else {
+        $duplicate = null;
+    }
+
+    if ($duplicate) {
         $rideMessage = "You already posted this route at the same date and time.";
     } else {
         if ($hasCompleteMapValue) {
@@ -205,68 +223,111 @@ try {
                     (user_id, origin, destination, origin_lat, origin_lng, destination_lat, destination_lng, route_distance_km, travel_date, travel_time, seats_available)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param(
-                $stmt,
-                "issdddddssi",
-                $user_id,
-                $origin,
-                $destination,
-                $originLat,
-                $originLng,
-                $destinationLat,
-                $destinationLng,
-                $routeDistanceKm,
-                $travel_date,
-                $travel_time,
-                $seats_available
-            );
+            if (!$stmt) {
+                // Fallback to basic fields if coordinate columns aren't matched
+                $sql = "INSERT INTO rides (user_id, origin, destination, travel_date, travel_time, seats_available) VALUES (?, ?, ?, ?, ?, ?)";
+                $stmt = mysqli_prepare($conn, $sql);
+                if (!$stmt) {
+                    throw new RuntimeException("Could not prepare ride creation statement: " . mysqli_error($conn));
+                }
+                mysqli_stmt_bind_param($stmt, "issssi", $user_id, $origin, $destination, $travel_date, $travel_time, $seats_available);
+            } else {
+                mysqli_stmt_bind_param(
+                    $stmt,
+                    "issdddddssi",
+                    $user_id,
+                    $origin,
+                    $destination,
+                    $originLat,
+                    $originLng,
+                    $destinationLat,
+                    $destinationLng,
+                    $routeDistanceKm,
+                    $travel_date,
+                    $travel_time,
+                    $seats_available
+                );
+            }
         } else {
             $sql = "INSERT INTO rides (user_id, origin, destination, travel_date, travel_time, seats_available) VALUES (?, ?, ?, ?, ?, ?)";
             $stmt = mysqli_prepare($conn, $sql);
+            if (!$stmt) {
+                throw new RuntimeException("Could not prepare ride creation statement: " . mysqli_error($conn));
+            }
             mysqli_stmt_bind_param($stmt, "issssi", $user_id, $origin, $destination, $travel_date, $travel_time, $seats_available);
         }
 
         if (mysqli_stmt_execute($stmt)) {
             $rideId = mysqli_insert_id($conn);
-            ridesync_ensure_live_status($conn, $rideId, 'searching');
-
-            if ($hasCompleteMapValue && ridesync_table_exists($conn, 'ride_routes')) {
-                $durationMinutes = $routeDistanceKm !== null ? (int) ceil(((float) $routeDistanceKm / 28) * 60) : null;
-                $routeStmt = mysqli_prepare($conn,
-                    "INSERT INTO ride_routes (ride_id, encoded_polyline, distance_km, duration_minutes)
-                     VALUES (?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE encoded_polyline = VALUES(encoded_polyline), distance_km = VALUES(distance_km), duration_minutes = VALUES(duration_minutes)"
-                );
-                mysqli_stmt_bind_param($routeStmt, "isdi", $rideId, $routePolyline, $routeDistanceKm, $durationMinutes);
-                mysqli_stmt_execute($routeStmt);
-            }
-
-            require_once __DIR__ . '/../includes/route_overlap_helper.php';
-            $newRideData = [
-                'id' => $rideId,
-                'user_id' => $user_id,
-                'origin' => $origin,
-                'destination' => $destination,
-                'origin_lat' => $originLat,
-                'origin_lng' => $originLng,
-                'destination_lat' => $destinationLat,
-                'destination_lng' => $destinationLng,
-                'route_distance_km' => $routeDistanceKm,
-                'encoded_polyline' => $routePolyline,
-                'travel_date' => $travel_date,
-                'travel_time' => $travel_time,
-            ];
-
-            $notifiedDemand = ridesync_notify_matching_demand($conn, $rideId, $newRideData);
-            $notifiedWatches = ridesync_notify_matching_route_watches($conn, $rideId, $newRideData);
+            mysqli_stmt_close($stmt);
 
             $ridePosted = true;
-            $totalNotified = $notifiedDemand + $notifiedWatches;
-            $rideMessage = $totalNotified > 0
-                ? "Ride posted successfully! {$totalNotified} matching route watch & demand signal" . ($totalNotified === 1 ? '' : 's') . " notified."
-                : "Ride posted successfully!";
+            $rideMessage = "Ride posted successfully!";
+
+            // 1. Ensure live status (non-blocking)
+            try {
+                ridesync_ensure_live_status($conn, $rideId, 'searching');
+            } catch (Throwable $e) {
+                error_log("[RideSync Live Status Warning] " . $e->getMessage());
+            }
+
+            // 2. Persist polyline route if supported (non-blocking)
+            if ($hasCompleteMapValue && ridesync_table_exists($conn, 'ride_routes')) {
+                try {
+                    $durationMinutes = $routeDistanceKm !== null ? (int) ceil(((float) $routeDistanceKm / 28) * 60) : null;
+                    $routeStmt = mysqli_prepare($conn,
+                        "INSERT INTO ride_routes (ride_id, encoded_polyline, distance_km, duration_minutes)
+                         VALUES (?, ?, ?, ?)
+                         ON DUPLICATE KEY UPDATE encoded_polyline = VALUES(encoded_polyline), distance_km = VALUES(distance_km), duration_minutes = VALUES(duration_minutes)"
+                    );
+                    if ($routeStmt) {
+                        mysqli_stmt_bind_param($routeStmt, "isdi", $rideId, $routePolyline, $routeDistanceKm, $durationMinutes);
+                        mysqli_stmt_execute($routeStmt);
+                        mysqli_stmt_close($routeStmt);
+                    }
+                } catch (Throwable $e) {
+                    error_log("[RideSync Route Warning] " . $e->getMessage());
+                }
+            }
+
+            // 3. Notify route watches and demand signals (non-blocking)
+            try {
+                require_once __DIR__ . '/../includes/route_overlap_helper.php';
+                $newRideData = [
+                    'id' => $rideId,
+                    'user_id' => $user_id,
+                    'origin' => $origin,
+                    'destination' => $destination,
+                    'origin_lat' => $originLat,
+                    'origin_lng' => $originLng,
+                    'destination_lat' => $destinationLat,
+                    'destination_lng' => $destinationLng,
+                    'route_distance_km' => $routeDistanceKm,
+                    'encoded_polyline' => $routePolyline,
+                    'travel_date' => $travel_date,
+                    'travel_time' => $travel_time,
+                ];
+
+                $notifiedDemand = ridesync_notify_matching_demand($conn, $rideId, $newRideData);
+                $notifiedWatches = ridesync_notify_matching_route_watches($conn, $rideId, $newRideData);
+
+                $totalNotified = (int) $notifiedDemand + (int) $notifiedWatches;
+                if ($totalNotified > 0) {
+                    $rideMessage = "Ride posted successfully! {$totalNotified} matching route watch & demand signal" . ($totalNotified === 1 ? '' : 's') . " notified.";
+                }
+            } catch (Throwable $e) {
+                error_log("[RideSync Notifications Warning] " . $e->getMessage());
+            }
+        } else {
+            $err = mysqli_stmt_error($stmt);
+            mysqli_stmt_close($stmt);
+            throw new RuntimeException("Ride creation execute failed: " . $err);
         }
     }
+} catch (Throwable $e) {
+    error_log("[RideSync Post Ride Action Error] " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    $ridePosted = false;
+    $rideMessage = "Could not post ride: " . $e->getMessage();
 } finally {
     ridesync_post_ride_release_lock($conn, $rideLockKey);
 }
