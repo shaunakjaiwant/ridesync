@@ -1,9 +1,11 @@
 <div align="center">
 
-# 🚗 RideSync
+# 🚗 RideSync — Campus Mobility & Carpooling Transit Platform
 
 ### Intelligent Campus Mobility, Geodesic Route Matching & Driver Dispatch Platform
 
+[![GitHub Stars](https://img.shields.io/github/stars/shaunakjaiwant/ridesync?style=flat&color=yellow&label=Stars)](https://github.com/shaunakjaiwant/ridesync/stargazers)
+[![Latest Release](https://img.shields.io/github/v/release/shaunakjaiwant/ridesync?color=blue&label=Release)](https://github.com/shaunakjaiwant/ridesync/releases)
 [![Quality Gate](https://github.com/shaunakjaiwant/ridesync/actions/workflows/quality.yml/badge.svg)](https://github.com/shaunakjaiwant/ridesync/actions/workflows/quality.yml)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%20Strict-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![MySQL Version](https://img.shields.io/badge/MySQL-8.4%20InnoDB-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
@@ -12,7 +14,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Deployed on Render](https://img.shields.io/badge/Deployed%20on-Render-46E3B7?logo=render&logoColor=white)](https://ridesync-app-81i7.onrender.com/)
 
-**A production-grade, full-stack campus transit and carpooling platform engineered to solve last-mile commute bottlenecks across university ecosystems.**
+**RideSync is a production-grade, full-stack campus transit and carpooling platform engineered to solve last-mile commute bottlenecks across university ecosystems.**
 
 [🌐 Live Production Demo](https://ridesync-app-81i7.onrender.com/) • [📄 Academic Report (PDF)](docs/RideSync_Report.pdf) • [📝 Academic Report (Docx)](docs/RideSync_Comprehensive_College_Project_Report.docx) • [📖 Full Report (Markdown)](docs/ACADEMIC_PROJECT_REPORT.md)
 

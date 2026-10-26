@@ -1,4 +1,22 @@
 {
+    "name": "shaunakjaiwant/ridesync",
+    "description": "RideSync — Full-Stack Campus Transit, Carpooling, and Intelligent Route Matching Platform",
+    "type": "project",
+    "license": "MIT",
+    "homepage": "https://ridesync-app-81i7.onrender.com/",
+    "authors": [
+        {
+            "name": "Shaunak Jaiwant",
+            "role": "Lead Architect & Developer"
+        }
+    ],
+    "keywords": [
+        "ridesync",
+        "carpooling",
+        "rideshare",
+        "campus-mobility",
+        "ride-matching"
+    ],
     "require-dev": {
         "phpunit/phpunit": "^11.5"
     }

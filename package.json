@@ -1,7 +1,20 @@
 {
   "name": "ridesync",
   "version": "1.0.0",
-  "description": "",
+  "description": "RideSync — The premier campus transit, carpooling, and intelligent ride-matching platform. Engineered with real-time WebSockets, geodesic routing, and autonomous self-healing.",
+  "keywords": [
+    "ridesync",
+    "rideshare",
+    "ridesharing",
+    "carpool",
+    "carpooling",
+    "campus-mobility",
+    "smart-campus",
+    "transit-platform",
+    "ride-matching",
+    "route-matching"
+  ],
+  "author": "Shaunak Jaiwant",
   "main": "index.js",
   "scripts": {
     "test": "php tools/quality_gate.php",
