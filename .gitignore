@@ -23,6 +23,10 @@ __pycache__/
 
 # Local database and runtime artifacts
 storage/backups/
+database/backups/*
+!database/backups/.gitkeep
+storage/exports/*
+!storage/exports/.gitkeep
 storage/cache/*
 !storage/cache/.gitkeep
 storage/logs/*

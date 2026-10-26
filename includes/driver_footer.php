@@ -14,6 +14,7 @@ $scriptNonce = htmlspecialchars(ridesync_csp_nonce(), ENT_QUOTES, 'UTF-8');
 <script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/assets/vendor/leaflet/1.9.4/leaflet.js?v=<?php echo ridesync_script_version('assets/vendor/leaflet/1.9.4/leaflet.js'); ?>"></script>
 <?php endif; ?>
 <script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/script.js?v=<?php echo ridesync_script_version('js/script.js'); ?>"></script>
+<script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/instant_nav.js?v=<?php echo ridesync_script_version('js/instant_nav.js'); ?>"></script>
 <?php if ($needsMapPicker): ?>
 <script nonce="<?php echo $scriptNonce; ?>" src="/ridesync/js/map_picker.js?v=<?php echo ridesync_script_version('js/map_picker.js'); ?>"></script>
 <?php endif; ?>

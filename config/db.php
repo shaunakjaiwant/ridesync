@@ -21,11 +21,26 @@ if ($flags & MYSQLI_CLIENT_SSL) {
 }
 
 $connectExceptionMessage = null;
+$usePersistent = ridesync_env('RIDESYNC_DB_PERSISTENT', true);
+$connectHost = ($usePersistent && !$isLocalhost && !str_starts_with((string)$host, 'p:')) ? ('p:' . $host) : $host;
+
 try {
-    $connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port, NULL, $flags);
+    $connected = @mysqli_real_connect($conn, $connectHost, $username, $password, $database, $port, NULL, $flags);
+    if (!$connected && $connectHost !== $host) {
+        $connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port, NULL, $flags);
+    }
 } catch (mysqli_sql_exception $exception) {
-    $connected = false;
-    $connectExceptionMessage = $exception->getMessage();
+    if ($connectHost !== $host) {
+        try {
+            $connected = @mysqli_real_connect($conn, $host, $username, $password, $database, $port, NULL, $flags);
+        } catch (mysqli_sql_exception $fallbackEx) {
+            $connected = false;
+            $connectExceptionMessage = $fallbackEx->getMessage();
+        }
+    } else {
+        $connected = false;
+        $connectExceptionMessage = $exception->getMessage();
+    }
 }
 
 if (!$connected) {
