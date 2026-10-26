@@ -156,30 +156,50 @@ $stmt->close();
 $matchRequestsByRide = [];
 $rideIds = array_map(static fn($ride) => (int) $ride['id'], $rides);
 if (count($rideIds) > 0) {
-    $placeholders = implode(',', array_fill(0, count($rideIds), '?'));
-    $types = str_repeat('i', count($rideIds));
-    $m_stmt = $conn->prepare("
-        SELECT m.ride_id, m.id AS match_id, m.status AS match_status, m.match_score, m.route_overlap_percent,
-               m.pickup_lat, m.pickup_lng, m.dropoff_lat, m.dropoff_lng, m.detour_distance_km, m.detour_time_minutes, m.source,
-               m.created_at AS requested_at,
-               u.name, u.email, u.college, u.gender
-        FROM matches m
-        JOIN users u ON m.matched_user_id = u.id
-        WHERE m.ride_id IN ({$placeholders})
-        ORDER BY m.ride_id ASC, m.created_at DESC
-    ");
-    $bindValues = $rideIds;
-    $bindParams = [$types];
-    foreach ($bindValues as $index => $value) {
-        $bindParams[] = &$bindValues[$index];
+    try {
+        $placeholders = implode(',', array_fill(0, count($rideIds), '?'));
+        $types = str_repeat('i', count($rideIds));
+
+        $hasSnapped = ridesync_column_exists($conn, 'matches', 'pickup_lat');
+        $hasOverlap = ridesync_column_exists($conn, 'matches', 'route_overlap_percent');
+        $hasScore = ridesync_column_exists($conn, 'matches', 'match_score');
+        $hasDetour = ridesync_column_exists($conn, 'matches', 'detour_distance_km');
+
+        $extraCols = [];
+        if ($hasScore) $extraCols[] = "m.match_score";
+        if ($hasOverlap) $extraCols[] = "m.route_overlap_percent";
+        if ($hasSnapped) $extraCols[] = "m.pickup_lat, m.pickup_lng, m.dropoff_lat, m.dropoff_lng";
+        if ($hasDetour) $extraCols[] = "m.detour_distance_km, m.detour_time_minutes";
+        if (ridesync_column_exists($conn, 'matches', 'source')) $extraCols[] = "m.source";
+
+        $extraSql = count($extraCols) > 0 ? (', ' . implode(', ', $extraCols)) : '';
+
+        $sql = "SELECT m.ride_id, m.id AS match_id, m.status AS match_status,
+                       m.created_at AS requested_at{$extraSql},
+                       u.name, u.email, u.college, u.gender
+                FROM matches m
+                JOIN users u ON m.matched_user_id = u.id
+                WHERE m.ride_id IN ({$placeholders})
+                ORDER BY m.ride_id ASC, m.created_at DESC";
+
+        $m_stmt = $conn->prepare($sql);
+        if ($m_stmt) {
+            $bindValues = $rideIds;
+            $bindParams = [$types];
+            foreach ($bindValues as $index => $value) {
+                $bindParams[] = &$bindValues[$index];
+            }
+            call_user_func_array([$m_stmt, 'bind_param'], $bindParams);
+            $m_stmt->execute();
+            $matchRows = $m_stmt->get_result();
+            while ($match = $matchRows->fetch_assoc()) {
+                $matchRequestsByRide[(int) $match['ride_id']][] = $match;
+            }
+            $m_stmt->close();
+        }
+    } catch (Throwable $e) {
+        error_log("[RideSync My Rides Match Query Warning] " . $e->getMessage());
     }
-    call_user_func_array([$m_stmt, 'bind_param'], $bindParams);
-    $m_stmt->execute();
-    $matchRows = $m_stmt->get_result();
-    while ($match = $matchRows->fetch_assoc()) {
-        $matchRequestsByRide[(int) $match['ride_id']][] = $match;
-    }
-    $m_stmt->close();
 }
 
 // Calculate total joined and requested count for tab

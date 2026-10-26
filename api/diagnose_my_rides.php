@@ -11,22 +11,41 @@ $step = 0;
 $log = [];
 
 try {
-    $step = 1;
-    $log[] = "Step 1: Finding user by email: $email";
-    $stmt = mysqli_prepare($conn, "SELECT id FROM users WHERE email = ? LIMIT 1");
-    if (!$stmt) {
-        throw new RuntimeException("Prepare user lookup failed: " . mysqli_error($conn));
-    }
-    mysqli_stmt_bind_param($stmt, "s", $email);
-    mysqli_stmt_execute($stmt);
-    $res = mysqli_stmt_get_result($stmt);
-    $user = mysqli_fetch_assoc($res);
-    mysqli_stmt_close($stmt);
+    $appliedAlters = [];
+    $matchCols = [
+        'pickup_lat' => "ALTER TABLE matches ADD COLUMN pickup_lat DECIMAL(10,8) NULL",
+        'pickup_lng' => "ALTER TABLE matches ADD COLUMN pickup_lng DECIMAL(11,8) NULL",
+        'dropoff_lat' => "ALTER TABLE matches ADD COLUMN dropoff_lat DECIMAL(10,8) NULL",
+        'dropoff_lng' => "ALTER TABLE matches ADD COLUMN dropoff_lng DECIMAL(11,8) NULL",
+        'detour_distance_km' => "ALTER TABLE matches ADD COLUMN detour_distance_km DECIMAL(8,2) NULL",
+        'detour_time_minutes' => "ALTER TABLE matches ADD COLUMN detour_time_minutes INT NULL",
+        'source' => "ALTER TABLE matches ADD COLUMN source ENUM('search', 'route_watch') NOT NULL DEFAULT 'search'",
+    ];
 
-    if (!$user) {
-        echo json_encode(['ok' => false, 'error' => "User not found for email $email", 'log' => $log]);
-        exit;
+    foreach ($matchCols as $col => $sql) {
+        $chk = mysqli_query($conn, "SHOW COLUMNS FROM matches LIKE '{$col}'");
+        if ($chk && mysqli_num_rows($chk) === 0) {
+            if (mysqli_query($conn, $sql)) {
+                $appliedAlters[] = "Added $col to matches";
+            } else {
+                $appliedAlters[] = "Failed $col: " . mysqli_error($conn);
+            }
+        }
     }
+
+    $cols = [];
+    $res = mysqli_query($conn, "DESCRIBE matches");
+    if ($res) {
+        while ($r = mysqli_fetch_assoc($res)) {
+            $cols[] = $r['Field'];
+        }
+    }
+    echo json_encode(['ok' => true, 'applied' => $appliedAlters, 'matches_columns' => $cols]);
+    exit;
+} catch (Throwable $e) {
+    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    exit;
+}
     $userId = (int) $user['id'];
     $log[] = "User found: id = $userId";
 
