@@ -35,7 +35,7 @@
             if (!window.L) {
                 bindTextOnlySuggestions();
                 markMapUnavailable(canvas, 'Map tools are temporarily unavailable. You can still type locations manually.');
-                picker.querySelectorAll('[data-map-mode], [data-use-current-location], [data-map-search-origin], [data-map-search-destination], [data-map-swap], [data-map-clear]').forEach(function (button) {
+                picker.querySelectorAll('[data-map-mode], [data-map-search-origin], [data-map-search-destination], [data-map-swap], [data-map-clear]').forEach(function (button) {
                     button.disabled = true;
                 });
                 setStatus(picker, 'Map could not load. You can still type locations manually.');
@@ -92,7 +92,7 @@
                     var originalText = currentButton.textContent;
                     currentButton.textContent = 'Locating...';
 
-                    navigator.geolocation.getCurrentPosition(function (position) {
+                    function handleLocationSuccess(position) {
                         currentButton.disabled = false;
                         currentButton.textContent = originalText;
                         var latlng = L.latLng(position.coords.latitude, position.coords.longitude);
@@ -100,25 +100,41 @@
                         map.setView(latlng, 15);
                         activeMode = 'destination';
                         setActiveMode(picker, activeMode);
-                        setStatus(picker, 'Departure set to your current location! Click the map to set destination.');
-                    }, function (err) {
+                        setStatus(picker, 'Departure set to your location! Click map to set destination.');
+                    }
+
+                    function handleLocationError(err) {
                         currentButton.disabled = false;
                         currentButton.textContent = originalText;
-                        var errMsg = 'Location permission was denied or failed. Please type your location or click the map.';
+                        var errMsg = 'Unable to access your location.';
                         if (err && err.code === 1) {
-                            errMsg = 'Location permission was denied. Please allow location access in your browser or type your location.';
+                            errMsg = 'Location permission was denied. Please allow location access in your browser settings or type your location.';
                         } else if (err && err.code === 2) {
-                            errMsg = 'Location unavailable. Please check your GPS settings or type your location.';
+                            errMsg = 'Location unavailable. Please check that GPS/network location is enabled on your device.';
                         } else if (err && err.code === 3) {
-                            errMsg = 'Location detection timed out. Please try again or type your location.';
+                            errMsg = 'Location request timed out. Please try again or type your location.';
                         }
                         setStatus(picker, errMsg);
                         alert(errMsg);
-                    }, {
-                        enableHighAccuracy: true,
-                        timeout: 12000,
-                        maximumAge: 30000
-                    });
+                    }
+
+                    // Multi-tier geolocation: Fast high-accuracy (4s) -> fallback to network/low-accuracy (8s)
+                    navigator.geolocation.getCurrentPosition(
+                        handleLocationSuccess,
+                        function (err) {
+                            if (err && (err.code === 2 || err.code === 3)) {
+                                setStatus(picker, 'Resolving via network location...');
+                                navigator.geolocation.getCurrentPosition(
+                                    handleLocationSuccess,
+                                    handleLocationError,
+                                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+                                );
+                            } else {
+                                handleLocationError(err);
+                            }
+                        },
+                        { enableHighAccuracy: true, timeout: 4000, maximumAge: 30000 }
+                    );
                 });
             });
 
@@ -266,6 +282,16 @@
                 }
                 updateRoute();
             }
+
+            window.ridesyncSetMapOrigin = function (lat, lng, address) {
+                if (!map || !window.L) return;
+                var latlng = L.latLng(lat, lng);
+                setPoint('origin', latlng, false);
+                map.setView(latlng, 15);
+                activeMode = 'destination';
+                setActiveMode(picker, activeMode);
+                setStatus(picker, 'Departure set to ' + (address || 'current location') + '! Click map to set destination.');
+            };
 
             function updateHidden(type, latlng) {
                 if (type === 'origin') {
@@ -604,21 +630,38 @@
     }
 
     function reverseGeocode(type, latlng, input) {
-        if (input) {
+        if (input && input.value.trim() === '') {
             input.value = latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
         }
-        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + encodeURIComponent(latlng.lat) + '&lon=' + encodeURIComponent(latlng.lng))
+
+        // Query our server-side proxy first (supports campus landmarks and server-side cache)
+        fetch('/ridesync/api/reverse_geocode.php?lat=' + encodeURIComponent(latlng.lat) + '&lng=' + encodeURIComponent(latlng.lng))
             .then(function (response) { return response.json(); })
             .then(function (result) {
                 if (!input || !result) return;
-                if (result.display_name) {
-                    input.value = result.display_name;
+                if (result.ok && (result.short_name || result.address)) {
+                    input.value = result.short_name || result.address;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             })
             .catch(function () {
-                if (input && input.value.trim() === '') {
-                    input.value = latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
-                }
+                // Client-side fallback to Nominatim
+                fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + encodeURIComponent(latlng.lat) + '&lon=' + encodeURIComponent(latlng.lng))
+                    .then(function (response) { return response.json(); })
+                    .then(function (result) {
+                        if (!input || !result) return;
+                        if (result.display_name) {
+                            input.value = result.display_name;
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    })
+                    .catch(function () {
+                        if (input && input.value.trim() === '') {
+                            input.value = latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
+                        }
+                    });
             });
     }
 
@@ -663,4 +706,9 @@
     function toRadians(value) {
         return value * Math.PI / 180;
     }
+
+    // Expose on window for SPA and instant_nav component rehydration
+    window.initRideMapPickers = initRideMapPickers;
+    window.initMapPicker = initRideMapPickers;
+    window.initRideDetailMaps = initRideDetailMaps;
 })();

@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initLiveRideStatus();
     initDriverLiveStatus();
     initDriverLocationCapture();
+    initUniversalLocationButtons();
     initTripShare();
     initScrollableRegions();
     initResponsiveDataTables();
@@ -537,6 +538,120 @@ function initDriverLocationCapture() {
         });
     });
 }
+
+function initUniversalLocationButtons() {
+    if (window.__ridesyncUniversalLocationBound) return;
+    window.__ridesyncUniversalLocationBound = true;
+
+    document.addEventListener('click', function (e) {
+        var btn = e.target && typeof e.target.closest === 'function'
+            ? e.target.closest('[data-use-current-location], [data-use-current-location-departure], [data-current-location-btn]')
+            : null;
+
+        if (!btn) return;
+        e.preventDefault();
+
+        var originInput = document.getElementById('origin') || document.querySelector('[name="origin"]') || document.querySelector('[name="pickup"]');
+        var form = btn.closest('form') || document;
+        var originLat = form.querySelector('[data-origin-lat], [name="origin_lat"]');
+        var originLng = form.querySelector('[data-origin-lng], [name="origin_lng"]');
+        var statusEl = form.querySelector('[data-map-status]');
+
+        if (!navigator.geolocation) {
+            alert('Location access is not supported by your browser. Please enter your location manually.');
+            return;
+        }
+
+        btn.disabled = true;
+        var originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="loading-spinner" style="width:12px;height:12px;margin-right:4px;"></span> Locating...';
+        if (statusEl) statusEl.textContent = 'Detecting your location...';
+
+        function restoreButton() {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+
+        function onLocationSuccess(position) {
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+
+            if (originLat) originLat.value = lat.toFixed(7);
+            if (originLng) originLng.value = lng.toFixed(7);
+
+            if (statusEl) statusEl.textContent = 'Resolving address...';
+
+            fetch('/ridesync/api/reverse_geocode.php?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng))
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    restoreButton();
+                    var resolvedName = (data && data.ok && (data.short_name || data.address))
+                        ? (data.short_name || data.address)
+                        : (lat.toFixed(5) + ', ' + lng.toFixed(5));
+
+                    if (originInput) {
+                        originInput.value = resolvedName;
+                        originInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        originInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+
+                    if (statusEl) {
+                        statusEl.textContent = 'Departure set to ' + resolvedName + '!';
+                    }
+
+                    if (typeof window.ridesyncSetMapOrigin === 'function') {
+                        window.ridesyncSetMapOrigin(lat, lng, resolvedName);
+                    }
+                })
+                .catch(function () {
+                    restoreButton();
+                    var fallbackCoord = lat.toFixed(5) + ', ' + lng.toFixed(5);
+                    if (originInput) {
+                        originInput.value = fallbackCoord;
+                        originInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        originInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    if (statusEl) statusEl.textContent = 'Departure set to ' + fallbackCoord + '!';
+                    if (typeof window.ridesyncSetMapOrigin === 'function') {
+                        window.ridesyncSetMapOrigin(lat, lng, fallbackCoord);
+                    }
+                });
+        }
+
+        function onLocationError(err) {
+            restoreButton();
+            var errMsg = 'Unable to access your location.';
+            if (err && err.code === 1) {
+                errMsg = 'Location permission was denied. Please allow location access in your browser settings or type your location.';
+            } else if (err && err.code === 2) {
+                errMsg = 'Location unavailable. Please check that GPS/network location is enabled on your device.';
+            } else if (err && err.code === 3) {
+                errMsg = 'Location detection timed out. Please try again or type your location.';
+            }
+            if (statusEl) statusEl.textContent = errMsg;
+            alert(errMsg);
+        }
+
+        // 2-tier fallback: high accuracy (4s) -> low accuracy WiFi/IP (8s)
+        navigator.geolocation.getCurrentPosition(
+            onLocationSuccess,
+            function (err) {
+                if (err && (err.code === 2 || err.code === 3)) {
+                    if (statusEl) statusEl.textContent = 'Retrying via network location...';
+                    navigator.geolocation.getCurrentPosition(
+                        onLocationSuccess,
+                        onLocationError,
+                        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+                    );
+                } else {
+                    onLocationError(err);
+                }
+            },
+            { enableHighAccuracy: true, timeout: 4000, maximumAge: 30000 }
+        );
+    });
+}
+window.initUniversalLocationButtons = initUniversalLocationButtons;
 
 function initTripShare() {
     var buttons = document.querySelectorAll('[data-share-trip]');

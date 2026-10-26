@@ -277,7 +277,7 @@ if (!defined('RIDESYNC_BOOTSTRAPPED')) {
         header('Cross-Origin-Opener-Policy: same-origin');
         header('Cross-Origin-Resource-Policy: same-site');
         header('Referrer-Policy: strict-origin-when-cross-origin');
-        header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=*');
         header('X-Request-Id: ' . ridesync_request_id());
         $isCacheableLocalPage = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
             && !ridesync_request_prefers_json()

@@ -46,7 +46,7 @@ Origin-Agent-Cluster: ?1
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Resource-Policy: same-site
 Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(self)
+Permissions-Policy: camera=(), microphone=(), geolocation=*
 Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-...'; style-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https://nominatim.openstreetmap.org https://router.project-osrm.org;
 Strict-Transport-Security: max-age=31536000; includeSubDomains (Over HTTPS)
 ```

@@ -53,6 +53,15 @@
         }
     }
 
+    function getClosestLink(target) {
+        if (!target) return null;
+        if (typeof target.closest === 'function') return target.closest('a');
+        if (target.parentElement && typeof target.parentElement.closest === 'function') {
+            return target.parentElement.closest('a');
+        }
+        return null;
+    }
+
     function isEligibleLink(link) {
         if (!link || !link.href) return false;
         if (link.getAttribute('target') === '_blank') return false;
@@ -68,6 +77,12 @@
         var path = url.pathname;
         // Do not intercept logout, actions, api, or asset downloads
         if (path.includes('/actions/') || path.includes('/api/') || path.includes('logout')) {
+            return false;
+        }
+
+        // If target page requires Leaflet maps and Leaflet is not yet loaded on current page, allow standard full-page load
+        var requiresMaps = path.includes('search_rides') || path.includes('post_ride') || path.includes('ride_detail') || path.includes('admin_dashboard');
+        if (requiresMaps && typeof window.L === 'undefined') {
             return false;
         }
 
@@ -277,21 +292,21 @@
 
     // Attach delegated events to document for maximum speed and instant coverage
     document.addEventListener('pointerdown', function (e) {
-        var link = e.target.closest('a');
+        var link = getClosestLink(e.target);
         if (isEligibleLink(link)) {
             prefetchUrl(link.href);
         }
     }, { passive: true });
 
     document.addEventListener('touchstart', function (e) {
-        var link = e.target.closest('a');
+        var link = getClosestLink(e.target);
         if (isEligibleLink(link)) {
             prefetchUrl(link.href);
         }
     }, { passive: true });
 
     document.addEventListener('pointerenter', function (e) {
-        var link = e.target.closest('a');
+        var link = getClosestLink(e.target);
         if (isEligibleLink(link)) {
             prefetchUrl(link.href);
         }
@@ -303,7 +318,7 @@
             return;
         }
 
-        var link = e.target.closest('a');
+        var link = getClosestLink(e.target);
         if (!isEligibleLink(link)) return;
 
         e.preventDefault();
