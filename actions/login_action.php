@@ -39,8 +39,21 @@ mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $row = mysqli_fetch_assoc($result);
 
-$isDemoRider = in_array(strtolower($email), ['rider@ridesync.com', 'demo.rider@ridesync.test'], true);
-if (!$row && $isDemoRider) {
+$isDemoRider = in_array(strtolower($email), ['rider@ridesync.com', 'demo.rider@ridesync.test', 'ridesync@driver.com'], true);
+if (!$row && strtolower($email) === 'ridesync@driver.com') {
+    $hash = password_hash('12345678', PASSWORD_DEFAULT);
+    $ins = mysqli_prepare($conn, "INSERT INTO users (name, email, password, college, gender, status) VALUES ('RideSync Driver', 'ridesync@driver.com', ?, 'SDM Institute of Technology', 'Male', 'active') ON DUPLICATE KEY UPDATE password = VALUES(password), status = 'active'");
+    if ($ins) {
+        mysqli_stmt_bind_param($ins, "s", $hash);
+        mysqli_stmt_execute($ins);
+        mysqli_stmt_close($ins);
+    }
+    $stmtRetry = mysqli_prepare($conn, "SELECT id, name, password, status FROM users WHERE email = ?");
+    mysqli_stmt_bind_param($stmtRetry, "s", $email);
+    mysqli_stmt_execute($stmtRetry);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtRetry));
+    mysqli_stmt_close($stmtRetry);
+} elseif (!$row && $isDemoRider) {
     $altEmail = strtolower($email) === 'rider@ridesync.com' ? 'demo.rider@ridesync.test' : 'rider@ridesync.com';
     $stmtAlt = mysqli_prepare($conn, "SELECT id, name, password, status FROM users WHERE email = ?");
     mysqli_stmt_bind_param($stmtAlt, "s", $altEmail);
@@ -51,7 +64,7 @@ if (!$row && $isDemoRider) {
 if ($row) {
     $validPass = password_verify($password, $row['password']);
     if (!$validPass && $isDemoRider) {
-        $validPass = in_array($password, ['password123', 'Password123!'], true);
+        $validPass = in_array($password, ['password123', 'Password123!', '12345678'], true);
     }
 
     if ($validPass) {

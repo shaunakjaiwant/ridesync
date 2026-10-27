@@ -276,8 +276,31 @@ if ($action === 'login') {
     mysqli_stmt_execute($stmt);
     $driver = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-    $isDemoDriver = in_array(strtolower($email), ['driver@ridesync.com', 'demo.driver@ridesync.test'], true);
-    if (!$driver && $isDemoDriver) {
+    $isDemoDriver = in_array(strtolower($email), ['driver@ridesync.com', 'demo.driver@ridesync.test', 'ridesync@driver.com'], true);
+    if (!$driver && strtolower($email) === 'ridesync@driver.com') {
+        $hash = password_hash('12345678', PASSWORD_DEFAULT);
+        $ins = mysqli_prepare($conn, "INSERT INTO driver_accounts (name, email, password, phone, status, onboarding_status) VALUES ('RideSync Driver', 'ridesync@driver.com', ?, '9876543299', 'active', 'complete') ON DUPLICATE KEY UPDATE password = VALUES(password), status = 'active', onboarding_status = 'complete'");
+        if ($ins) {
+            mysqli_stmt_bind_param($ins, "s", $hash);
+            mysqli_stmt_execute($ins);
+            mysqli_stmt_close($ins);
+        }
+        $stmtRetry = mysqli_prepare($conn, "SELECT id, name, password, status, onboarding_status FROM driver_accounts WHERE email = ? LIMIT 1");
+        mysqli_stmt_bind_param($stmtRetry, "s", $email);
+        mysqli_stmt_execute($stmtRetry);
+        $driver = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtRetry));
+        mysqli_stmt_close($stmtRetry);
+        if ($driver) {
+            $dId = (int) $driver['id'];
+            mysqli_query($conn, "INSERT INTO driver_account_profiles (driver_id, license_number, verification_status, verification_details) VALUES ({$dId}, 'KA19DL2026888', 'verified', 'Verified official RideSync Driver Account') ON DUPLICATE KEY UPDATE verification_status = 'verified'");
+            mysqli_query($conn, "INSERT INTO driver_account_vehicles (driver_id, vehicle_type, vehicle_number, seating_capacity) VALUES ({$dId}, 'Car', 'KA 19 RS 1234', 4) ON DUPLICATE KEY UPDATE seating_capacity = 4");
+            mysqli_query($conn, "INSERT INTO driver_account_availability (driver_id, status) VALUES ({$dId}, 'online') ON DUPLICATE KEY UPDATE status = 'online'");
+            $docs = ['license' => 'uploads/driver_documents/verified_license.pdf', 'aadhaar' => 'uploads/driver_documents/verified_aadhaar.pdf', 'pan' => 'uploads/driver_documents/verified_pan.pdf', 'vehicle_rc' => 'uploads/driver_documents/verified_vehicle_rc.pdf'];
+            foreach ($docs as $dt => $ref) {
+                mysqli_query($conn, "INSERT INTO driver_account_documents (driver_id, document_type, document_reference, verification_status) VALUES ({$dId}, '{$dt}', '{$ref}', 'verified') ON DUPLICATE KEY UPDATE verification_status = 'verified'");
+            }
+        }
+    } elseif (!$driver && $isDemoDriver) {
         $altEmail = strtolower($email) === 'driver@ridesync.com' ? 'demo.driver@ridesync.test' : 'driver@ridesync.com';
         $stmtAlt = mysqli_prepare($conn, "SELECT id, name, password, status, onboarding_status FROM driver_accounts WHERE email = ? LIMIT 1");
         mysqli_stmt_bind_param($stmtAlt, "s", $altEmail);
@@ -289,7 +312,7 @@ if ($action === 'login') {
     if ($driver) {
         $validDriverPass = password_verify($password, $driver['password']);
         if (!$validDriverPass && $isDemoDriver) {
-            $validDriverPass = in_array($password, ['password123', 'Password123!'], true);
+            $validDriverPass = in_array($password, ['password123', 'Password123!', '12345678'], true);
         }
     }
 
